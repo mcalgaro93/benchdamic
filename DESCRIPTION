@@ -6,12 +6,33 @@ Author: Matteo Calgaro
 Maintainer: Matteo Calgaro <matteo.calgaro_01@univr.it>
 Description: Starting from a microbiome dataset (16S or WMS with absolute count
     values) it is possible to perform several analysis to assess the 
-    performances of several differential abundance detection methods. 
+    performances of many differential abundance detection methods. 
     The analyses focus on 4 main aspects: i) the goodness of fit of each 
     method's distributional assumptions on the observed count data, ii) the 
     ability to control the false discovery rate, iii) the within and between 
     method concordances, iv) the truthfulness of the findings if any apriori 
     knowledge is given.
-License: MIT
+License: Artistic-2.0
 Encoding: UTF-8
-LazyData: true
+Depends: R (>= 4.0.0)
+Imports: stats,
+    phyloseq,
+    reshape2,
+    BiocParallel,
+    zinbwave,
+    edgeR,
+    MAST,
+    metagenomeSeq,
+    MGLM,
+    ggplot2,
+    plyr
+Suggests: knitr, 
+    rmarkdown,
+    HMP16SData,
+    curatedMetagenomicData,
+    cowplot
+VignetteBuilder: knitr
+LazyData: TRUE
+RoxygenNote: 7.1.1
+biocViews: 
+BugReports: https://github.com/mcalgaro93/benchdamic/issues
