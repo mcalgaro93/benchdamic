@@ -25,6 +25,7 @@ csl: genome-biology.csl
 
 </style>
 ```
+
 ```{r options, include=FALSE, echo=FALSE}
 knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE)
 ```
@@ -74,7 +75,6 @@ We perform two filters:
 
 ```{r dataloading}
 # WMS HMP data download
-da
 psWMS_Stool <- curatedMetagenomicData("HMP_2012.metaphlan_bugs_list.stool",
                                       dryrun = FALSE,
                                       counts = TRUE,
@@ -103,7 +103,6 @@ psWMS@sam_data <- psWMS@sam_data[ps16S@sam_data$SRS_SAMPLE_ID,]
   
 Stool_WMS <- filter_taxa(psWMS,function(x) sum(x>10)>1,1)
 Stool_16S <- filter_taxa(ps16S,function(x) sum(x>10)>1,1)
-
 ```
 
 # Model estimation
@@ -205,10 +204,18 @@ RMSE_ZPD_16S
 
 To plot estimated and observed values we use the function `MDPlot`, based on `ggplot2`.
 
-```{r plot16S, fig.width=15, fig.height=10}
+```{r plot16S, fig.width=12, fig.height=7}
+cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = TRUE),
+MDPlot(data = df_16S,difference = "ZPD",split = TRUE)),
+nrow = 2)
+```
+
+which are also available in this other output layout:
+
+```{r plot16S_collapsed, fig.width=8, fig.height=5}
 cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = FALSE),
 MDPlot(data = df_16S,difference = "ZPD",split = FALSE)),
-nrow = 2)
+nrow = 1)
 ```
 
 ### WMS Stool samples
@@ -222,10 +229,18 @@ list_WMS <- fitModels(counts = Stool_WMS@otu_table@.Data,
 df_WMS <- plyr::ldply(list_WMS,.id = "Model")
 ```
 
-```{r plotWMS, fig.width=15, fig.height=10}
+```{r plotWMS, fig.width=12, fig.height=7}
 cowplot::plot_grid(plotlist = list(MDPlot(data = df_WMS,difference = "MD"),
 MDPlot(data = df_WMS,difference = "ZPD")),
 nrow = 2)
+```
+
+Also available in the other layout:
+
+```{r plotWMS_collpased, fig.width=10, fig.height=5}
+cowplot::plot_grid(plotlist = list(MDPlot(data = df_WMS,difference = "MD",split = FALSE),
+MDPlot(data = df_WMS,difference = "ZPD",split = FALSE)),
+nrow = 1)
 ```
 
 # References
