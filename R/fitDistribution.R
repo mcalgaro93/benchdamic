@@ -481,6 +481,8 @@ fitModels <- function(counts,
 #' estimations and the RMSE computations respectively.
 
 MDPlot <- function(data, difference = NULL, split = TRUE){
+  # To avoid notes like: "no visible binding for global variable..."
+  Y <- MD <- Model <- Y0 <- ZPD <- NULL
   if(difference == "MD"){
     if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
        "MD" %in% colnames(data)){
@@ -574,6 +576,8 @@ MDPlot <- function(data, difference = NULL, split = TRUE){
 #' estimations and the RMSE computations respectively.
 
 RMSEPlot <- function(data, difference = NULL){
+  # To avoid notes like: "no visible binding for global variable Model"
+  Model <- NULL
   if(difference == "MD"){
     if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
        "MD" %in% colnames(data)){

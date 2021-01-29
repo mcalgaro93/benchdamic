@@ -23,14 +23,14 @@
 # Create data.frame with random labels
 createMocks <- function(nsamples, N = 1000, seed = 123){
     sample_num <- nsamples %/% 2 * 2 # Balanced design sample numerosity
-    mock_df <- matrix(NA,nrow = N,ncol = sample_num)
+    mock_df <- matrix(NA, nrow = N, ncol = sample_num)
     set.seed(seed)
     for(i in 1:N){ # N random balanced relabellings
         grps <- rep("grp1", sample_num)
         grps[sample(1:sample_num,size = sample_num/2)] <- "grp2"
         mock_df[i,] <- grps
     }
-    rownames(mock_df) <- paste0("Comparison",1:1000)
+    rownames(mock_df) <- paste0("Comparison",1:N)
     return(mock_df)
 }# END - function: createMocks
 
@@ -169,7 +169,7 @@ norm_DESeq2 <- function(object,
 
 #' @title norm_CSS
 #'
-#' @importFrom metagenomeSeq newMRexperiment calcNormFactors
+#' @importFrom metagenomeSeq newMRexperiment
 #' @importFrom phyloseq taxa_are_rows otu_table
 #' @importFrom stats median
 #' @export
