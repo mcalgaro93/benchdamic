@@ -1,0 +1,211 @@
+---
+title: 'An introduction to benchdamic'
+author: "Matteo Calgaro"
+output: 
+  BiocStyle::html_document:
+    toc: yes
+vignette: >
+  %\VignetteEcoding{UTF-8}
+  \usepackage[utf8]{inputenc}
+bibliography: bib_intro.json
+csl: genome-biology.csl
+---
+
+<!--
+%\VignetteEngine{knitr::rmarkdown}
+%\VignetteIndexEntry{Intro}
+-->
+
+```{=html}
+<style>
+#TOC {
+  top: 1%;
+  opacity: 0.5;
+}
+#TOC:hover {
+  opacity: 1;
+}
+
+</style>
+```
+
+```{r options, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE)
+```
+
+# Installation
+
+The recommended way to install the `benchdamic` package is
+
+```{r, eval=FALSE}
+devtools::install_github("mcalgaro93/benchdamic")
+```
+
+# Introduction
+
+This vignette provides an introductory example on how to work with the analysis framework proposed in [@calgaro2020].
+
+First, let's load some packages for basic functions and data.
+
+```{r load_packs}
+library(benchdamic)
+# Data management
+library(phyloseq)
+library(plyr)
+# Graphics
+library(ggplot2)
+library(cowplot)
+```
+
+# Data loading
+
+We consider a homogeneous group of samples (e.g. only samples from a specific experimental condition, phenotype, treatment, body site...).
+
+In this demonstrative example, datasets are downloaded from the `HMP16SData` Bioconductor package.
+
+```{r dataloading}
+data("ps_stool_16S")
+# ## 16S HMP data download
+# ps_stool_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions' count data
+#   subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
+#            RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
+#            SEX == "Male" & # Only male subject
+#            VISITNO == 1 & # Only the first visit
+#            !duplicated(RSID)) %>% # Duplicated SubjectID removal
+#   as_phyloseq()
+# 
+# ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, ps_stool_16S_raw)
+# 
+# ps_stool_16S <- filter_taxa(ps_stool_16S_pruned,function(x) sum(x>10)>5,1)
+```
+
+# Goodness of Fit
+
+As different methods rely on different statistical distributions to perform DA analysis, we assess the goodness of fit (GOF) of the statistical models underlying each method on a 16S and a WMS dataset. For each model, we evaluate its ability to correctly estimate the average counts and the proportion of zeroes by taxon.
+
+We consider five distributions: (1) the negative binomial (NB) used in edgeR and DeSeq2 [@edger; @deseq2], (2) the zero-inflated negative binomial (ZINB) used in ZINB-WaVE [@zinbwave], (3) the truncated Gaussian Hurdle model of MAST [@mast], (4) the zero-inflated Gaussian (ZIG) mixture model of metagenomeSeq [@zig], and (5) the Dirichlet-Multinomial (DM) distribution underlying ALDEx2 [@aldex2].
+
+## Model estimation
+
+### Negative Binomial and Zero-Inflated Negative Binomial Models
+
+For any $\mu \ge 0$ and $\theta > 0$, let $f_{NB}(\cdot;\mu,\theta)$ denote the probability mass function (PMF) of the negative binomial (NB) distribution with mean $\mu$ and inverse dispersion parameter $\theta$, namely:$$
+f_{NB} = \frac{\Gamma(y+\theta)}{\Gamma(y+1)\Gamma(\theta)}\left(\frac{\theta}{\theta+1} \right)^\theta\left(\frac{\mu}{\mu+\theta} \right)^y, \forall y \in \mathbb{N}
+$$Note that another parametrization of the NB PMF is in terms of the dispersion parameter $\psi = \theta^{-1}$ (although $\theta$ is also sometimes called dispersion parameter in the literature). In both cases, the mean of the NB distribution is $\mu$ and its variance is:$$
+\sigma^2 = \mu + \frac{\mu^2}{\theta} = \mu+\psi\mu^2
+$$In particular, the NB distribution boils down to a Poisson distribution when $\psi=0 \iff \theta=+ \infty$.
+
+For any $\pi\in[0,1]$, let $f_{ZINB}(\cdot;\mu,\theta,\pi)$ be the PMF of the ZINB distribution given by:
+
+$$
+f_{ZINB}(\cdot;\mu,\theta,\pi) = \pi\delta_0(y)+(1-\pi)f_{NB}(y;\mu,\theta), \forall y\in\mathbb{N}
+$$
+
+where $\delta_0(\cdot)$ is the Dirac function. Here, $\pi$ can be interpreted as the probability that a 0 is observed instead of the actual count, resulting in an inflation of zeros compared to the NB distribution, hence the name ZINB.
+
+The packages we rely on to estimate these distributions on real count data are edgeR [@edger] and ZINB-WaVE [@zinbwave] but we can easily call the benchdamic functions `fitNB` and `fitZINB`.
+
+### Zero-Inflated Gaussian Model
+
+The raw count for sample j and feature i is denoted by $c_{ij}$. The zero-inflated model is defined for the continuity-corrected logarithm of the raw count data: $y_{ij} = log_2(c_{ij}+1)$ as a mixture of a point mass at zero $I_{0}(y)$ and a count distribution $f_{count}(y;\mu,\sigma^2) \sim N(\mu,\sigma^2)$. Given mixture parameters $\pi_j$, we have that the density of the ZIG distribution for feature i, in sample j with $s_j$ total counts is: $$f_{ZIG}(y_{ij};s_j,\beta,\mu_i,\sigma^2_i) = \pi_j(s_j)\cdot I_{0}(y_{ij})+(1-\pi_j(s_j))\cdot f_{count}(y_{ij};\mu,\sigma^2)$$
+
+The mean model is specified as:$$E(y_{ij})=\pi_{j} + (1-\pi_j)\cdot\left(b_{i0}+\eta_ilog_2\left( \frac{s_j^\hat{l}}{N}+1 \right) \right)$$
+
+In this case, parameter $b_{i0}$ is the intercept of the model while the term including the logged normalization factor $log_2\left(\frac{s_j^\hat{l}}{N}+1 \right)$ captures feature-specific normalization factors through parameter $\eta_i$. In details, $s_j^\hat{l}$ is the median scaling factor resulted from the Cumulative Sum Scaling (CSS) normalization procedure. $N$ is a constant fixed by default at 1000 but it should be a number close to the scaling factors to be used as a reference, for this reason a good choice could be the median of the scaling factors. The mixture parameters $\pi_j(s_j)$ are modeled as a binomial process:
+
+$$log\frac{\pi_j}{1-\pi_j} = \beta_0+\beta_1\cdot log(s_j)$$
+
+The package we rely on to estimate this distribution on real count data is metagenomeSeq [@zig] but we can easily call the benchdamic function `fitZIG`.
+
+### Truncated Gaussian Hurdle Model
+
+The original field of application of this method was the single-cell RNAseq data, where $y = log_2(TPM+1)$ expression matrix was modeled as a two-part generalized regression model [@mast]. In microbiome data that starting point translates to a $y_{ij} = log_2\left(counts_{ij}\cdot\frac{10^6}{libSize_{j}}+1 \right)$ or a $log_2\left(counts_{ij}\cdot\frac{ median(libSize)}{libSize_{j}}+1\right)$.
+
+The taxon presence rate is modeled using logistic regression and, conditioning on a sample with the taxon, the transformed abundance level is modeled as Gaussian.
+
+Given normalized, possibly thresholded, abundance $y_{ij}$, the rate of presence and the level of abundance for the samples were the taxon is present, are modeled conditionally independent for each gene $i$. Define the indicator $z_{ij}$, indicating whether taxon $i$ is expressed in sample $j$ (i.e., $z_{ij} = 0$ if $y_{ij} = 0$ and $z_{ij} = 1$ if $y_{ij} > 0$). We fit logistic regression models for the discrete variable $Z$ and a Gaussian linear model for the continuous variable $(Y|Z=1)$ independently, as follows:
+
+$$ logit(Pr(Z_{ij}=1))=X_j\beta_i^D $$
+
+$$ P(Y_{ij}=y|Z_{ij}=1) \sim N(X_j\beta^C_i,\sigma^2_i)$$
+
+The package we rely on to estimate this distribution on real count data is MAST [@mast] but we can easily call the benchdamic function `fitHURDLE`.
+
+### Dirichlet-Multinomial Mixture Model
+
+The probability mass function of a $n$ dimensional multinomial sample $y = (y_1,...,y_n)^T$ with library size $libSize = \sum_{i=1}^ny_i$ and parameter $p=(p_1,...,p_n)$ is:
+
+$$
+f(y;p)= {libSize\choose y}\prod_{i=1}^np_i^{y_i}
+$$
+
+The mean-variance structure of the MN model doesn't allow over-dispersion, which is common in real data. DM distribution models the probability parameter $p$ in the MN model by a Dirichlet distribution. The probability mass of a n-category count vector $y$ over $libSize$ trials under DM with parameter $\alpha=(\alpha_1,...,\alpha_n)$, $a_i>0$ and proportion vector $p \in \Delta_n=\{(p_1,...,p_n):p_i\ge0,\sum_ip_i=1 \}$ is:
+
+$$
+f(y|\alpha)={libSize\choose y}\frac{\prod_{i=1}^n(a_i)y_i}{(\sum_i\alpha_i)\cdot libSize}
+$$
+
+The mean value for the $i^{th}$ taxon and $j^{th}$ sample of the count matrix is given by $libSize_j\cdot \frac{\alpha_{ij}}{\sum_i a_{ij}}$.
+
+The package we rely on to estimate this distribution on real count data is MGML [@kim2018] but we can easily call the benchdamic function `fitDM`.
+
+## Comparing Estimated and Observed counts
+
+To easily compare estimated and observed mean values the natural logarithm transformation, with the continuity correction ($log(counts+1)$), is well suited, indeed it reduces count range making the differences more stable.
+
+Except for `fitHURDLE`, which performs a CPM transformation on the counts (or the one with the median library size), and `fitZIG` which models the $log_2(counts+1)$, the other methods model the $counts$ directly. For these reasons, `fitHURDLE`'s output should not be compared directly to the observed $log(counts+1)$ mean values as for the other methods. Instead, the logarithm of the observed CPM (or the one with the median library size) should be used.
+
+The function to prepare observed counts is `prepareObserved()`, specifying the `scale` parameter if the HURDLE model is considered. The function to compute mean differences (MD) and zero probability difference (ZPD) between estimated and observed values, is `meanDifferences()`.
+
+A wrapper function to simultaneously perform the estimates and the mean differences is `fitModels()`. Using `ldply` function it is possible to arrange all the values from the `list`to a ready-to-plot `data.frame`.
+
+### 16S Stool samples
+
+```{r fitting_16S, warning=FALSE}
+list_16S <- fitModels(counts = ps_stool_16S@otu_table@.Data,
+                      models = c("NB","ZINB","DM","ZIG","HURDLE"))
+
+df_16S <- plyr::ldply(list_16S,.id = "Model")
+```
+
+We obtain the RMSE values for MD values:
+
+```{r RMSE_MD_16S}
+RMSE_MD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,"MD"])),.id =  "Model")
+RMSE_MD_16S
+```
+
+and for ZPD values:
+
+```{r RMSE_ZPD_16S}
+RMSE_ZPD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,"ZPD"])),.id =  "Model")
+RMSE_ZPD_16S
+```
+
+To plot estimated and observed values we use the function `MDPlot`, based on `ggplot2`.
+
+```{r plot16S, fig.width=15, fig.height=10}
+cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = TRUE),
+MDPlot(data = df_16S,difference = "ZPD",split = TRUE)),
+nrow = 2)
+```
+
+which are also available in this other output layout:
+
+```{r plot16S_collapsed, fig.width=12, fig.height=5}
+cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = FALSE),
+MDPlot(data = df_16S,difference = "ZPD",split = FALSE)),
+nrow = 1)
+```
+# Type I Error Control
+
+We next try to evaluate type I error rate control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 1000 times. In this setting, the p values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed α), which is the observed proportion of significant tests, should match the nominal value (e.g., $ α=0.05$).
+
+## Create mock comparisons
+
+```{r}
+
+```
+
+
+# References
