@@ -4,7 +4,8 @@
 #' for a total of 77 OTUs. The 32 Stool samples belong to the Human Microbiome
 #' Project. This particular subset contains the SEX = "Male", RUN_CENTER = "BI",
 #' and VISITNO = "1" samples. It is possible to obtain the same dataset after
-#' several filters using the [HMP16Data] Bioconductor package.
+#' several filters (only taxa present with more than 10 counts in more than 5
+#' sample are kept) using the [HMP16Data] Bioconductor package.
 #'
 #' @docType data
 #' @aliases ps_stool_16S

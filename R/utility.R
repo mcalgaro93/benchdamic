@@ -464,7 +464,7 @@ DA_DESeq2 <- function(object,
     # Check if the column with the normalization factors is present
     NF.col <- paste("NF", norm, sep = ".")
     if(!any(colnames(metadata) == NF.col))
-        stop(paste0("Can't find the ", NF.col," column in your object. Be sure
+        stop(paste0("Can't find the ", NF.col," column in your object. Make sure
         to add the normalization factors column in your object first."))
 
     NFs = unlist(metadata[,NF.col])
@@ -521,3 +521,126 @@ DA_DESeq2 <- function(object,
                 "name" = name))
 }# END - function: DA_DESeq2
 
+#' @title DA_limma
+#'
+#' @importFrom phyloseq taxa_are_rows otu_table sample_data
+#' @importFrom limma voom lmFit eBayes topTable
+#' @importFrom stats model.matrix
+#' @export
+#' @description
+#' Fast run for limma voom differential abundance detection method.
+#'
+#' @param object phyloseq object.
+#' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
+#' @param norm name of the normalization method used to compute the
+#' normalization factors to use in the differential abundace analysis.
+#' @inheritParams edgeR::voom
+#' @inheritParams edgeR::lmFit
+#'
+#' @return A list object containing the matrix of p-values, the matrix of
+#' summary statistics for each tag, and a suggested name of the final object
+#' considering the parameters passed to the function.
+#'
+#' @seealso [limma::voom()] for the mean-variance relationship estimation,
+#' [limma::lmFit()] and [limma::eBayes()] for the linear model framework.
+
+DA_limma <- function(object,
+                     pseudo_count = FALSE,
+                     design = NULL,
+                     coef = 2,
+                     norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
+                              "posupperquartile", "none", # edgeR
+                              "ratio", "poscounts", "iterate", # DESeq2
+                              "TSS", "CSS"), # others
+                     weights){
+
+    # Check the orientation
+    if (!phyloseq::taxa_are_rows(object))
+    {
+        object <- t(object)
+    } else {}
+
+    # Slot extraction of phyloseq object
+    counts <- as(phyloseq::otu_table(object), "matrix")
+    metadata <- phyloseq::sample_data(object)
+
+    # Name building
+    name <- "limma"
+
+    # add 1 if any zero counts
+    if (any(counts == 0) & pseudo_count)
+    {
+        message("Adding a pseudo count... \n")
+        counts <- counts + 1
+        name <- paste(name,".pseudo",sep = "")
+    } else {}
+
+    if(length(norm) > 1)
+        stop("Please choose one normalization for this istance of differential
+             abundance analysis.")
+
+    if(norm == "TSS"){
+        NFs = 1
+    } else {
+        # Check if the column with the normalization factors is present
+        NF.col <- paste("NF", norm, sep = ".")
+        if(!any(colnames(metadata) == NF.col))
+            stop(paste0("Can't find the ", NF.col," column in your object. Make
+            sure to add the normalization factors column in your object first."
+                        ))
+
+        NFs = unlist(metadata[,NF.col])
+        # DESeq2 NFs are supplied -> make them scaling factors!
+        if(is.element(norm, c("ratio", "poscounts", "iterate"))){
+            NFs <- NFs*colSums(counts)
+        }
+        NFs = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
+    }
+
+    name <- paste(name, ".", norm, sep = "")
+    message(paste0("Differential abundance on ", norm," normalized data"))
+
+    if(class(design) == "character")
+        design <- as.formula(design)
+
+    if(class(design) == "formula")
+        design <- stats::model.matrix(object = design,
+                                      data = data.frame(metadata))
+
+    v <- limma::voom(counts = counts,
+                     design = design,
+                     lib.size = colSums(counts) / NFs,
+                     plot = FALSE)
+
+    if(missing(weights)){
+        message("Estimating Differential Abundance without weighting")
+        fit <- limma::lmFit(object = v,
+                            design = design)
+    } else {
+        message("Estimating Differential Abundance with weights")
+        name <- paste(name,".weighted",sep = "")
+        fit <- limma::lmFit(object = v,
+                            design = design,
+                            weights = v$weights * weights)
+    }
+
+    fit <- limma::eBayes(fit)
+
+    message(paste0("Extracting results for ",
+                   colnames(fit$coefficients)[coef],
+                   " coefficient"))
+
+    statInfo <- limma::topTable(fit,
+                                coef = 2,
+                                n = nrow(counts),
+                                sort.by="none")
+
+    pValMat <- cbind("rawP" = statInfo$P.Value,
+                     "adjP" = statInfo$adj.P.Val)
+    rownames(pValMat) = rownames(statInfo)
+
+    return(list("pValMat" = pValMat,
+                "statInfo" = statInfo,
+                "name" = name))
+
+}# END - function: DA_limma

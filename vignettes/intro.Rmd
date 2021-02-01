@@ -11,11 +11,12 @@ bibliography: bib_intro.json
 csl: genome-biology.csl
 ---
 
+```{=html}
 <!--
 %\VignetteEngine{knitr::rmarkdown}
 %\VignetteIndexEntry{Intro}
 -->
-
+```
 ```{=html}
 <style>
 #TOC {
@@ -28,9 +29,8 @@ csl: genome-biology.csl
 
 </style>
 ```
-
 ```{r options, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(warning=FALSE, error=FALSE, message=FALSE)
+knitr::opts_chunk$set(warning = FALSE, error = FALSE, message = FALSE)
 ```
 
 # Installation
@@ -65,23 +65,27 @@ In this demonstrative example, datasets are downloaded from the `HMP16SData` Bio
 
 ```{r dataloading}
 data("ps_stool_16S")
-# ## 16S HMP data download
-# ps_stool_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions' count data
-#   subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
-#            RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
-#            SEX == "Male" & # Only male subject
-#            VISITNO == 1 & # Only the first visit
-#            !duplicated(RSID)) %>% # Duplicated SubjectID removal
-#   as_phyloseq()
-# 
-# ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, ps_stool_16S_raw)
-# 
-# ps_stool_16S <- filter_taxa(ps_stool_16S_pruned,function(x) sum(x>10)>5,1)
+```
+
+```{r 16S_data_download, eval=FALSE}
+## 16S HMP data download
+library(HMP16SData)
+ps_stool_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions' count data
+  subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
+           RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
+           SEX == "Male" & # Only male subject
+           VISITNO == 1 & # Only the first visit
+           !duplicated(RSID)) %>% # Duplicated SubjectID removal
+  as_phyloseq()
+
+ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, ps_stool_16S_raw)
+
+ps_stool_16S <- filter_taxa(ps_stool_16S_pruned,function(x) sum(x>10)>5,1)
 ```
 
 # Goodness of Fit
 
-As different methods rely on different statistical distributions to perform DA analysis, we assess the goodness of fit (GOF) of the statistical models underlying each method on a 16S and a WMS dataset. For each model, we evaluate its ability to correctly estimate the average counts and the proportion of zeroes by taxon.
+As different methods rely on different statistical distributions to perform DA analysis, we assess the goodness of fit (GOF) of the statistical models underlying each method on a 16S dataset. For each model, we evaluate its ability to correctly estimate the average counts and the proportion of zeroes by taxon.
 
 We consider five distributions: (1) the negative binomial (NB) used in edgeR and DeSeq2 [@edger; @deseq2], (2) the zero-inflated negative binomial (ZINB) used in ZINB-WaVE [@zinbwave], (3) the truncated Gaussian Hurdle model of MAST [@mast], (4) the zero-inflated Gaussian (ZIG) mixture model of metagenomeSeq [@zig], and (5) the Dirichlet-Multinomial (DM) distribution underlying ALDEx2 [@aldex2].
 
@@ -157,7 +161,7 @@ Except for `fitHURDLE`, which performs a CPM transformation on the counts (or th
 
 The function to prepare observed counts is `prepareObserved()`, specifying the `scale` parameter if the HURDLE model is considered. The function to compute mean differences (MD) and zero probability difference (ZPD) between estimated and observed values, is `meanDifferences()`.
 
-A wrapper function to simultaneously perform the estimates and the mean differences is `fitModels()`. Using `ldply` function it is possible to arrange all the values from the `list`to a ready-to-plot `data.frame`.
+A wrapper function to simultaneously perform the estimates and the mean differences is `fitModels()`. Using `plyr::ldply` function it is possible to arrange all the values from the `list` to a ready-to-plot `data.frame`.
 
 ### 16S Stool samples
 
@@ -184,7 +188,7 @@ RMSE_ZPD_16S
 
 To plot estimated and observed values we use the function `MDPlot`, based on `ggplot2`.
 
-```{r plot16S, fig.width=15, fig.height=10}
+```{r plot16S, fig.width=15, fig.height=8}
 cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = TRUE),
 MDPlot(data = df_16S,difference = "ZPD",split = TRUE)),
 nrow = 2)
@@ -197,15 +201,15 @@ cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split 
 MDPlot(data = df_16S,difference = "ZPD",split = FALSE)),
 nrow = 1)
 ```
+
 # Type I Error Control
 
-We next try to evaluate type I error rate control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 1000 times. In this setting, the p values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed α), which is the observed proportion of significant tests, should match the nominal value (e.g., $ α=0.05$).
+We next try to evaluate type I error rate control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 1000 times. In this setting, the p values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed `α`), which is the observed proportion of significant tests, should match the nominal value (e.g., `α=0.05`).
 
 ## Create mock comparisons
 
 ```{r}
 
 ```
-
 
 # References
