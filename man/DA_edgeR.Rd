@@ -33,7 +33,7 @@ DA_edgeR(
 \item{coef}{integer or character index vector indicating which coefficients of the linear model are to be tested equal to zero. Ignored if \code{contrast} is not \code{NULL}.}
 
 \item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundace analysis.}
+normalization factors to use in the differential abundance analysis.}
 
 \item{weights}{optional numeric matrix giving observation weights}
 }

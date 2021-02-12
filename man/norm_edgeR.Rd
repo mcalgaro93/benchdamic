@@ -24,17 +24,17 @@ norm_edgeR(
 
 \item{refColumn}{column to use as reference for \code{method="TMM"}. Can be a column number or a numeric vector of length \code{nrow(object)}.}
 
-\item{logratioTrim}{amount of trim to use on log-ratios ("M" values) for \code{method="TMM"}}
+\item{logratioTrim}{the fraction (0 to 0.5) of observations to be trimmed from each tail of the distribution of log-ratios (M-values) before computing the mean. Used by \code{method="TMM"} for each pair of samples.}
 
-\item{sumTrim}{amount of trim to use on the combined absolute levels ("A" values) for \code{method="TMM"}}
+\item{sumTrim}{the fraction (0 to 0.5) of observations to be trimmed from each tail of the distribution of A-values before computing the mean. Used by \code{method="TMM"} for each pair of samples.}
 
-\item{doWeighting}{logical, whether to compute (asymptotic binomial precision) weights for \code{method="TMM"}}
+\item{doWeighting}{logical, whether to use (asymptotic binomial precision) weights when computing the mean M-values. Used by \code{method="TMM"} for each pair of samples.}
 
-\item{Acutoff}{cutoff on "A" values to use before trimming for \code{method="TMM"}}
+\item{Acutoff}{minimum cutoff applied to A-values. Count pairs with lower A-values are ignored. Used by \code{method="TMM"} for each pair of samples.}
 
-\item{p}{percentile (between 0 and 1) of the counts that is aligned when \code{method="upperquartile"}}
+\item{p}{numeric value between 0 and 1 specifying which quantile of the counts should be used by \code{method="upperquartile"}.}
 
-\item{...}{other arguments that are not currently used.}
+\item{...}{other arguments are not currently used.}
 }
 \value{
 A new column containing the chosen edgeR-based normalization factors

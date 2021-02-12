@@ -42,7 +42,7 @@ filtering (by default 0.1). If the adjusted p-value cutoff (FDR) will be a
 value other than 0.1, \code{alpha} should be set to that value.}
 
 \item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundace analysis.}
+normalization factors to use in the differential abundance analysis.}
 
 \item{weights}{optional numeric matrix giving observation weights.}
 }
