@@ -245,6 +245,72 @@ norm_TSS <- function(object)
     return(object)
 }# END - function: norm_TSS
 
+#' @title weights_ZINB
+#'
+#' @importFrom phyloseq taxa_are_rows otu_table sample_data
+#' @importFrom stats model.matrix
+#' @importFrom zinbwave zinbFit computeObservationalWeights
+#' @importFrom BiocParallel SerialParam
+#' @export
+#' @description
+#' Computes the observational weights of the counts under a zero-inflated
+#' negative binomial (ZINB) model. For each count, the ZINB distribution is
+#' parametrized by three parameters: the mean value and the dispersion of the
+#' negative binomial distribution, and the probability of the zero component.
+#'
+#' @param object phyloseq object containing the counts and the sample data.
+#' @param design character name of the metadata columns, formula, or design
+#' matrix with rows corresponding to samples and columns to coefficients to be
+#' estimated (the user needs to explicitly include the intercept in the design).
+#' @inheritParams zinbwave::zinbFit
+#'
+#' @return A matrix of weights.
+#'
+#' @seealso [zinbwave::zinbFit()] for zero-inflated negative binomial
+#' parameters' estimation and [zinbwave::computeObservationalWeights()] for
+#' weights extraction.
+
+weights_ZINB <- function(object,
+                         design,
+                         K = 0,
+                         commondispersion = TRUE,
+                         zeroinflation = TRUE,
+                         verbose = FALSE,
+                         ...){
+    # Check the orientation
+    if (!phyloseq::taxa_are_rows(object))
+    {
+        object <- t(object)
+    } else {}
+
+    # Slot extraction of phyloseq object
+    counts <- as(phyloseq::otu_table(object), "matrix")
+    metadata <- phyloseq::sample_data(object)
+
+    if(is.character(design)){
+        if(grepl("~", design))
+            design <- as.formula(design)
+        else design <- as.formula(paste0("~", design))
+    }
+
+    if(class(design) == "formula")
+        design <- stats::model.matrix(object = design,
+                                      data = data.frame(metadata))
+
+    zinbmodel <- zinbwave::zinbFit(Y = counts,
+                                   X = design,
+                                   K = K,
+                                   commondispersion = commondispersion,
+                                   zeroinflation = TRUE,
+                                   verbose = verbose,
+                                   BPPARAM = BiocParallel::SerialParam(),
+                                   ... = ...)
+
+    w <- zinbwave::computeObservationalWeights(model = zinbmodel,
+                                               x = counts)
+    return(w)
+}# END - function: weights_ZINB
+
 ### Differential Abundance Methods  ###
 
 #' @title DA_edgeR
@@ -286,7 +352,7 @@ DA_edgeR <- function(object,
                      norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
                               "posupperquartile", "none", # edgeR
                               "ratio", "poscounts", "iterate", # DESeq2
-                              "TSS", "CSS"), # others
+                              "TSS", "CSSmedian", "CSSdefault"), # others
                      weights){
 
     # Check the orientation
@@ -349,7 +415,7 @@ DA_edgeR <- function(object,
         name <- paste(name,".weighted",sep = "")
     }
 
-    if(class(design) == "character"){
+    if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
         else design <- as.formula(paste0("~", design))
@@ -438,7 +504,7 @@ DA_DESeq2 <- function(object,
                       norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
                                "posupperquartile", "none", # edgeR
                                "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSS"), # others
+                               "TSS", "CSSmedian", "CSSdefault"), # others
                       weights){
 
     # Check the orientation
@@ -478,7 +544,8 @@ DA_DESeq2 <- function(object,
     NFs = unlist(metadata[,NF.col])
     # edgeR, TSS, and CSS NFs supplied -> make them normalization factors!
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSS", "TSS"))){
+                          "posupperquartile", "CSSmedian", "CSSdefault",
+                          "TSS"))){
         NFs <- NFs*colSums(counts)
     }
     DESeq2::sizeFactors(dds) = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
@@ -491,7 +558,7 @@ DA_DESeq2 <- function(object,
     } else {
         message("Estimating Differential Abundance with weights")
         weights[which(weights < 1e-6)] <- 1e-06
-        SummarizedExperiment::assays(dds)[["weights"]] <- weights
+        SummarizedExperiment::assays(dds,withDimnames = FALSE)$weights <- weights
         name <- paste(name,".weighted",sep = "")
     }
 
@@ -566,7 +633,7 @@ DA_limma <- function(object,
                      norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
                               "posupperquartile", "none", # edgeR
                               "ratio", "poscounts", "iterate", # DESeq2
-                              "TSS", "CSS"), # others
+                              "TSS", "CSSmedian", "CSSdefault"), # others
                      weights){
 
     # Check the orientation
@@ -615,7 +682,7 @@ DA_limma <- function(object,
     name <- paste(name, ".", norm, sep = "")
     message(paste0("Differential abundance on ", norm," normalized data"))
 
-    if(class(design) == "character"){
+    if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
         else design <- as.formula(paste0("~", design))
@@ -697,7 +764,8 @@ DA_metagenomeSeq <- function(object,
                              norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
                                       "posupperquartile", "none", # edgeR
                                       "ratio", "poscounts", "iterate", # DESeq2
-                                      "TSS", "CSS")) # others
+                                      "TSS", "CSSmedian",
+                                      "CSSdefault")) # others
     {
 
 
@@ -750,7 +818,7 @@ DA_metagenomeSeq <- function(object,
 
     metagenomeSeq::normFactors(object = obj) <- NFs
 
-    if(class(design) == "character"){
+    if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
         else design <- as.formula(paste0("~", design))
@@ -828,7 +896,7 @@ DA_ALDEx2 <- function(object,
                       norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
                                "posupperquartile", "none", # edgeR
                                "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSS")) # others
+                               "TSS", "CSSmedian", "CSSdefault")) # others
 {
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
@@ -869,7 +937,8 @@ DA_ALDEx2 <- function(object,
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSS", "TSS"))){
+                          "posupperquartile", "CSSmedian", "CSSdefault",
+                          "TSS"))){
         NFs <- NFs * colSums(counts)
     }
 
@@ -952,7 +1021,7 @@ DA_corncob <- function(object,
                        norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
                                 "posupperquartile", "none", # edgeR
                                 "ratio", "poscounts", "iterate", # DESeq2
-                                "TSS", "CSS")) # others)
+                                "TSS", "CSSmedian", "CSSdefault")) # others)
 {
 
     # Check the orientation
@@ -993,7 +1062,8 @@ DA_corncob <- function(object,
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSS", "TSS"))){
+                          "posupperquartile", "CSSmedian", "CSSdefault",
+                          "TSS"))){
         NFs <- NFs * colSums(counts)
     }
 
@@ -1090,7 +1160,7 @@ DA_MAST <- function(object,
                     norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
                              "posupperquartile", "none", # edgeR
                              "ratio", "poscounts", "iterate", # DESeq2
-                             "TSS", "CSS")) # others)
+                             "TSS", "CSSmedian", "CSSdefault")) # others
 {
 
     # Check the orientation
@@ -1131,7 +1201,8 @@ DA_MAST <- function(object,
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSS", "TSS"))){
+                          "posupperquartile", "CSSmedian", "CSSdefault",
+                          "TSS"))){
         NFs <- NFs * colSums(counts)
     }
 
@@ -1165,7 +1236,7 @@ DA_MAST <- function(object,
     metadata$cngeneson <- ngeneson - mean(ngeneson)
     SummarizedExperiment::colData(sca)$cngeneson <- metadata$cngeneson
 
-    if(class(design) == "character"){
+    if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
         else design <- as.formula(paste0("~", design))
@@ -1244,7 +1315,7 @@ DA_Seurat <- function(object,
                       norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
                                "posupperquartile", "none", # edgeR
                                "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSS")) # others)
+                               "TSS", "CSSmedian", "CSSdefault")) # others
 {
 
     # Check the orientation
@@ -1285,7 +1356,8 @@ DA_Seurat <- function(object,
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSS", "TSS"))){
+                          "posupperquartile", "CSSmedian", "CSSdefault",
+                          "TSS"))){
         NFs <- NFs * colSums(counts)
     }
 
@@ -1349,5 +1421,3 @@ DA_Seurat <- function(object,
     list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name)
 
 }# END - function: DA_Seurat
-
-

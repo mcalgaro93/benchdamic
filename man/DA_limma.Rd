@@ -10,7 +10,7 @@ DA_limma(
   design = NULL,
   coef = 2,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSS"),
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
   weights
 )
 }

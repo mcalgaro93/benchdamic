@@ -13,7 +13,7 @@ DA_ALDEx2(
   test = c("t", "wilcox"),
   denom = "iqlr",
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSS")
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")
 )
 }
 \arguments{

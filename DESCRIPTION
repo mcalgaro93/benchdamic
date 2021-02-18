@@ -31,6 +31,7 @@ Imports: stats,
     metagenomeSeq,
     MGLM,
     ggplot2,
+    RColorBrewer,
     plyr
 Suggests: knitr, 
     rmarkdown,

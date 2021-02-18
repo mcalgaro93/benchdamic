@@ -11,7 +11,7 @@ DA_MAST(
   design,
   coefficient = NULL,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSS")
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")
 )
 }
 \arguments{

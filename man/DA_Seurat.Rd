@@ -11,7 +11,7 @@ DA_Seurat(
   group.by = NULL,
   reference.level = NULL,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSS")
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")
 )
 }
 \arguments{

@@ -11,7 +11,7 @@ DA_DESeq2(
   contrast = NULL,
   alpha = 0.05,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSS"),
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
   weights
 )
 }
