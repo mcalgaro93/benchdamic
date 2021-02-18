@@ -78,9 +78,14 @@ ps_stool_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions' count da
            !duplicated(RSID)) %>% # Duplicated SubjectID removal
   as_phyloseq()
 
+# Remove low depth samples
 ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, ps_stool_16S_raw)
 
-ps_stool_16S <- filter_taxa(ps_stool_16S_pruned,function(x) sum(x>10)>5,1)
+# Remove features with zero counts
+ps_stool_16S_filtered <- filter_taxa(ps_stool_16S_pruned,function(x) sum(x>0)>0,1)
+
+# Collapse counts to the genus level
+ps_stool_16S <- tax_glom(ps_stool_16S_filtered, taxrank = "GENUS")
 ```
 
 # Goodness of Fit
@@ -165,7 +170,7 @@ A wrapper function to simultaneously perform the estimates and the mean differen
 
 ### 16S Stool samples
 
-```{r fitting_16S, warning=FALSE}
+```{r fitting, warning=FALSE}
 list_16S <- fitModels(counts = ps_stool_16S@otu_table@.Data,
                       models = c("NB","ZINB","DM","ZIG","HURDLE"))
 
@@ -174,21 +179,21 @@ df_16S <- plyr::ldply(list_16S,.id = "Model")
 
 We obtain the RMSE values for MD values:
 
-```{r RMSE_MD_16S}
+```{r RMSE_MD}
 RMSE_MD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,"MD"])),.id =  "Model")
 RMSE_MD_16S
 ```
 
 and for ZPD values:
 
-```{r RMSE_ZPD_16S}
+```{r RMSE_ZPD}
 RMSE_ZPD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,"ZPD"])),.id =  "Model")
 RMSE_ZPD_16S
 ```
 
 To plot estimated and observed values we use the function `MDPlot`, based on `ggplot2`.
 
-```{r plot16S, fig.width=15, fig.height=8}
+```{r plotGOF, fig.width=15, fig.height=8}
 cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = TRUE),
 MDPlot(data = df_16S,difference = "ZPD",split = TRUE)),
 nrow = 2)
@@ -196,7 +201,7 @@ nrow = 2)
 
 which are also available in this other output layout:
 
-```{r plot16S_collapsed, fig.width=12, fig.height=5}
+```{r plotGOF_collapsed, fig.width=12, fig.height=5}
 cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = FALSE),
 MDPlot(data = df_16S,difference = "ZPD",split = FALSE)),
 nrow = 1)
@@ -208,8 +213,148 @@ We next try to evaluate type I error rate control of each differential abundance
 
 ## Create mock comparisons
 
-```{r}
+Using `createMocks` function we can randomly group the samples, `N = 10` times. A higher `N` is suggested (at least 1000) but in that case a longer running time is required.
 
+```{r createMocks}
+mock_df <- createMocks(nsamples = nsamples(ps_stool_16S),
+                       N = 10, # At least 1000 is suggested
+                       seed = 123)
+```
+
+## Differential abundance
+
+Once the mocks have been generated, we perform DA analysis. Firstly we add to the `phyloseq` object some normalization factors, such as *TMM* from `edgeR`, *poscounts* from `DESeq2`, and *CSS* from `metagenomeSeq`. We also compute the zero-inflated negative binomial weights using the `weights_ZINB` function.
+
+```{r normalization}
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S,
+                           method = "TMM")
+ps_stool_16S <- norm_DESeq2(object = ps_stool_16S,
+                            method = "poscounts")
+ps_stool_16S <- norm_CSS(object = ps_stool_16S,
+                         "median")
+
+zinbweights <- weights_ZINB(object = ps_stool_16S, 
+                            K = 0,
+                            design = "~ 1")
+```
+
+For each row of the `mock_df` data frame we run a bunch of DA methods.
+
+```{r DA_TIEC}
+# Random grouping each time
+Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
+    # Group assignment
+    sample_data(ps_stool_16S)$group <- x
+    ### DA analysis ###
+    returnList = list()
+    returnList = within(returnList, {
+    da.edger <- DA_edgeR(object = ps_stool_16S,
+                         group = ps_stool_16S@sam_data$group,
+                         design = as.formula("~ group"),
+                         coef = 2,
+                         norm = "TMM")
+    da.edger.zinb <- DA_edgeR(object = ps_stool_16S,
+                         group = ps_stool_16S@sam_data$group,
+                         design = as.formula("~ group"),
+                         coef = 2,
+                         norm = "TMM",
+                         weights = zinbweights)
+    da.deseq <- DA_DESeq2(object = ps_stool_16S,
+                         design = as.formula("~ group"),
+                         norm = "poscounts",
+                         contrast = c("group","grp2","grp1"))
+    da.deseq.zinb <- DA_DESeq2(object = ps_stool_16S,
+                         design = as.formula("~ group"),
+                         norm = "poscounts",
+                         contrast = c("group","grp2","grp1"),
+                         weights = zinbweights)
+    da.limma <- DA_limma(object = ps_stool_16S,
+                         design = ~ group,
+                         coef = 2,
+                         norm = "TMM")
+    da.limma.zinb <- DA_limma(object = ps_stool_16S,
+                         design = ~ group,
+                         coef = 2,
+                         norm = "TMM",
+                         weights = zinbweights)
+    da.limma.css <- DA_limma(object = ps_stool_16S,
+                         design = ~ group,
+                         coef = 2,
+                         norm = "CSS.median")
+    })
+    return(returnList)
+})
+```
+
+The structure of the output in this example is the following:
+
+-   *Comparison1* to *Comparison10* on the first level, which contains:
+
+    -   *Method1* to *Method7* output lists on the second level:
+
+        -   `pValMat` which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
+
+        -   `statInfo` which contains the matrix of summary statistics for each feature, such as the *logFC*, standard errors, test statistics and so on;
+
+        -   `dispEsts` which contains the dispersion estimates for methods like *edgeR* and *DESeq2*;
+
+        -   `name` which contains the complete name of the used method.
+
+In case the user wants to add a custom method, be sure to create a similar result structure (respecting the names and types of the objects): `dispEsts` vector is optional, while the matrix `pValMat`, and the character `name` are mandatory for the "Type I Error Control" results' visualization (see the example below for more information).
+
+```{r customExample, eval=FALSE}
+DA_yourMethod <- function(parameters) # others
+{
+    ### your method code ###
+    
+    ### extract important variables ###
+    vector_of_pval = NA # contains the p-values 
+    vector_of_adjusted_pval = NA # contains the adjusted p-values
+    name_of_your_features = NA # contains the OTU, or ASV, or other feature names. Usually extracted from the rownames of the count data
+    
+    ### prepare the output ###
+    name = "write.here.the.name"
+    pValMat <- data.frame("pval" = vector_of_pval,
+                          "adjp" = vector_of_adjusted_pval)
+    rownames(pValMat) <- name_of_your_features # Be sure that your method hasn't changed the order of the features. If it happens, you'll need to re-establish the original order.
+
+    return(list("pValMat" = pValMat, "name" = name))
+
+}# END - function: DA_yourMethod
+```
+
+## Visualization
+
+Since the visualization rely on *ggplot2* package, firstly we run the create*TIEC* function of the *benchdamic* package, in order to produce a list of 4 *data.frame*s:
+
+1.  `df_pval` is a 3 columns and *number_of_features x methods x comparisons* rows data.frame. The three columns are called *Comparison*, *pval*, and *method*;
+
+2.  `df_FDR` is a 5 columns and *methods x comparisons* rows data.frame. For each set of method and comparison, the proportion of false discoveries, considering 3 threshold (0.01, 0.05, 0.1) are reported;
+
+3.  `df_qq` contains the coordinates to draw the QQ-plot for comparing the mean observed p-value distribution across comparisons, with the theoretical uniform distribution. Indeed, the observed p-values should follow a uniform distribution under the null hypothesis of no differential abundant features presence;
+
+4.  `df_KS` is a 5 columns and *methods x comparisons* rows data.frame. For each set of method and comparison, the Kolmogorov-Smirnov test statistics and pvalues are reported in *KS* and *KS_pval* columns respectively.
+
+```{r createTIEC}
+TIEC_summary <- createTIEC(Stool_16S_mockDA)
+```
+
+### False Discovery Rate
+
+```{r FDRplot}
+plotFDR(df_FDR = TIEC_summary$df_FDR)
+```
+
+### QQ-Plot
+
+```{r QQPlot}
+plotQQ(df_QQ = TIEC_summary$df_QQ)
+```
+
+### Kolmogorov-Smirnov test
+
+```{r}
+plotKS(df_KS = TIEC_summary$df_KS)
 ```
 
 # References
