@@ -47,18 +47,28 @@ RMSE_MD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,
 RMSE_MD_16S
 
 ## ----RMSE_ZPD-----------------------------------------------------------------
-RMSE_ZPD_16S <- plyr::ldply(list_16S,.fun = function(df) cbind("RMSE" = RMSE(df[,"ZPD"])),.id =  "Model")
+RMSE_ZPD_16S <- plyr::ldply(list_16S, 
+                            .fun = function(df) cbind("RMSE" = RMSE(df[,"ZPD"])),
+                            .id =  "Model")
 RMSE_ZPD_16S
 
 ## ----plotGOF, fig.width=15, fig.height=8--------------------------------------
-cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = TRUE),
-MDPlot(data = df_16S,difference = "ZPD",split = TRUE)),
-nrow = 2)
+cowplot::plot_grid(plotlist = list(plotMD(data = df_16S,
+                                          difference = "MD",
+                                          split = TRUE),
+                                   plotMD(data = df_16S,
+                                          difference = "ZPD",
+                                          split = TRUE)),
+                   nrow = 2)
 
 ## ----plotGOF_collapsed, fig.width=12, fig.height=5----------------------------
-cowplot::plot_grid(plotlist = list(MDPlot(data = df_16S,difference = "MD",split = FALSE),
-MDPlot(data = df_16S,difference = "ZPD",split = FALSE)),
-nrow = 1)
+cowplot::plot_grid(plotlist = list(plotMD(data = df_16S, 
+                                          difference = "MD", 
+                                          split = FALSE),
+                                   plotMD(data = df_16S, 
+                                          difference = "ZPD", 
+                                          split = FALSE)),
+                   nrow = 1)
 
 ## ----createMocks--------------------------------------------------------------
 mock_df <- createMocks(nsamples = nsamples(ps_stool_16S),
@@ -117,7 +127,7 @@ Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
     da.limma.css <- DA_limma(object = ps_stool_16S,
                          design = ~ group,
                          coef = 2,
-                         norm = "CSS.median")
+                         norm = "CSSmedian")
     })
     return(returnList)
 })
@@ -138,7 +148,8 @@ Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
 #                            "adjp" = vector_of_adjusted_pval)
 #      rownames(pValMat) <- name_of_your_features # Be sure that your method hasn't changed the order of the features. If it happens, you'll need to re-establish the original order.
 #  
-#      return(list("pValMat" = pValMat, "name" = name))
+#      return(list("pValMat" = pValMat,
+#                  "name" = name))
 #  
 #  }# END - function: DA_yourMethod
 
@@ -146,7 +157,7 @@ Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
 TIEC_summary <- createTIEC(Stool_16S_mockDA)
 
 ## ----FDRplot------------------------------------------------------------------
-plotFDR(df_FDR = TIEC_summary$df_FDR)
+plotFPR(df_FPR = TIEC_summary$df_FPR)
 
 ## ----QQPlot-------------------------------------------------------------------
 plotQQ(df_QQ = TIEC_summary$df_QQ)

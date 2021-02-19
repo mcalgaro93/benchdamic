@@ -17,7 +17,7 @@
 #'  \item{\code{df_pval}}{3 columns per number_of_features x methods x
 #'  comparisons rows data.frame. The three columns are called Comparison, pval,
 #'  and method;}
-#'  \item{\code{df_FDR}}{5 columns per methods x comparisons rows data.frame.
+#'  \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
 #'  For each set of method and comparison, the proportion of false discoveries,
 #'  considering 3 threshold (0.01, 0.05, 0.1) are reported;}
 #'  \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to compare
@@ -52,24 +52,24 @@ createTIEC <- function(object){
     # Melt down to a single data frame with the Comparison column added
     df_pval <- plyr::ldply(df_list_pval, .id = "Comparison")
 
-    ### FDR ###
+    ### FPR ###
     # Count the p-values which are lower than a selected threshold
-    df_pval_FDR <- plyr::ddply(.data = df_pval,
+    df_pval_FPR <- plyr::ddply(.data = df_pval,
                                .variables = ~ Comparison + Method,
                                .fun = function(x){
         # index for not NA p-values
         k_pval <- !is.na(x$pval)
-        x$FDR_obs001 <- sum(x$pval < 0.01, na.rm = TRUE) / sum(k_pval)
-        x$FDR_obs005 <- sum(x$pval < 0.05, na.rm = TRUE) / sum(k_pval)
-        x$FDR_obs01 <- sum(x$pval < 0.1, na.rm = TRUE) / sum(k_pval)
+        x$FPR_obs001 <- sum(x$pval < 0.01, na.rm = TRUE) / sum(k_pval)
+        x$FPR_obs005 <- sum(x$pval < 0.05, na.rm = TRUE) / sum(k_pval)
+        x$FPR_obs01 <- sum(x$pval < 0.1, na.rm = TRUE) / sum(k_pval)
         return(x)
     })
 
-    # Compute the mean for each FDR threshold
-    df_FDR <- plyr::ddply(.data = df_pval_FDR,
+    # Compute the mean for each FPR threshold
+    df_FPR <- plyr::ddply(.data = df_pval_FPR,
                           .variables = ~ Comparison + Method,
                           .fun = function(x){
-        colMeans(x[,c("FDR_obs001", "FDR_obs005", "FDR_obs01")])
+        colMeans(x[,c("FPR_obs001", "FPR_obs005", "FPR_obs01")])
     })
 
     ### QQ and KS ###
@@ -111,7 +111,7 @@ createTIEC <- function(object){
         colMeans(x[, c("KS", "KS_pval")])})
 
     return(list(df_pval = df_pval,
-                df_FDR = df_FDR,
+                df_FPR = df_FPR,
                 df_QQ = df_QQ,
                 df_KS = df_KS))
 }# END - function: createTIEC
@@ -147,7 +147,7 @@ createColors <- function(variable){
     return(cols)
 }# END - function: createColors
 
-#' @title plotFDR
+#' @title plotFPR
 #'
 #' @export
 #' @importFrom plyr ddply
@@ -157,53 +157,53 @@ createColors <- function(variable){
 #' Draw the boxplots of the proportions of p-values lower than 0.01, 0.05, and
 #' 0.1 thresholds for each method.
 #'
-#' @param df_FDR 5 columns per methods x comparisons rows data.frame produced by
-#' the [bechdamic::createTIEC()] function, containing the FDR values.
+#' @param df_FPR 5 columns per methods x comparisons rows data.frame produced by
+#' the [bechdamic::createTIEC()] function, containing the FPR values.
 #' @param cols named vector of colors.
 #'
 #' @return A ggplot object.
 
-plotFDR <- function(df_FDR,
+plotFPR <- function(df_FPR,
                     cols = NULL){
     # Create the vector of colors
     if(is.null(cols))
-        cols <- createColors(variable = df_FDR$Method)
+        cols <- createColors(variable = df_FPR$Method)
     if(is.null(names(cols)))
         stop("'cols' vector is not a named vector of colors.")
 
-    # Methods' ordering for FDR levels
-    ord001 <- order(plyr::ddply(df_FDR,
+    # Methods' ordering for FPR levels
+    ord001 <- order(plyr::ddply(df_FPR,
                                 .variables = ~ Method,
-                                function(x) mean(x$FDR_obs001))$V1)
-    ord005 <- order(plyr::ddply(df_FDR,
+                                function(x) mean(x$FPR_obs001))$V1)
+    ord005 <- order(plyr::ddply(df_FPR,
                                 .variables = ~ Method,
-                                function(x) mean(x$FDR_obs005))$V1)
-    ord01 <- order(plyr::ddply(df_FDR,
+                                function(x) mean(x$FPR_obs005))$V1)
+    ord01 <- order(plyr::ddply(df_FPR,
                                .variables = ~ Method,
-                               function(x) mean(x$FDR_obs01))$V1)
+                               function(x) mean(x$FPR_obs01))$V1)
 
-    df_FDR001 <- df_FDR005 <- df_FDR01 <- df_FDR
+    df_FPR001 <- df_FPR005 <- df_FPR01 <- df_FPR
 
-    df_FDR001$Method <- factor(df_FDR$Method,
-        levels = levels(df_FDR$Method)[ord001],ordered = TRUE)
+    df_FPR001$Method <- factor(df_FPR$Method,
+        levels = levels(df_FPR$Method)[ord001],ordered = TRUE)
 
-    df_FDR005$Method <- factor(df_FDR$Method,
-        levels = levels(df_FDR$Method)[ord005],ordered = TRUE)
+    df_FPR005$Method <- factor(df_FPR$Method,
+        levels = levels(df_FPR$Method)[ord005],ordered = TRUE)
 
-    df_FDR01$Method <- factor(df_FDR$Method,
-        levels = levels(df_FDR$Method)[ord01],ordered = TRUE)
+    df_FPR01$Method <- factor(df_FPR$Method,
+        levels = levels(df_FPR$Method)[ord01],ordered = TRUE)
 
     ### Plot ###
     # to avoid notes during the check
-    Method <- FDR_obs001 <- FDR_obs005 <- FDR_obs01 <- NULL
+    Method <- FPR_obs001 <- FPR_obs005 <- FPR_obs01 <- NULL
 
-    g <- ggplot2::ggplot(data = df_FDR, ggplot2::aes(color = Method)) +
-            ggplot2::geom_boxplot(data = df_FDR001,
-                                  ggplot2::aes(x = "0.01",y = FDR_obs001)) +
-            ggplot2::geom_boxplot(data = df_FDR005,
-                                  ggplot2::aes(x = "0.05",y = FDR_obs005)) +
-            ggplot2::geom_boxplot(data = df_FDR01,
-                                  ggplot2::aes(x = "0.1",y = FDR_obs01)) +
+    g <- ggplot2::ggplot(data = df_FPR, ggplot2::aes(color = Method)) +
+            ggplot2::geom_boxplot(data = df_FPR001,
+                                  ggplot2::aes(x = "0.01",y = FPR_obs001)) +
+            ggplot2::geom_boxplot(data = df_FPR005,
+                                  ggplot2::aes(x = "0.05",y = FPR_obs005)) +
+            ggplot2::geom_boxplot(data = df_FPR01,
+                                  ggplot2::aes(x = "0.1",y = FPR_obs01)) +
             ggplot2::geom_segment(ggplot2::aes(x = 1 - 0.5,
                                                xend = 1 + 0.5,
                                                y = 0.01,
@@ -221,11 +221,12 @@ plotFDR <- function(df_FDR,
                                   color = "red", lty = 2) +
             ggplot2::xlab(expression(Nominal ~ alpha)) +
             ggplot2::ylab(expression(Observed ~ alpha)) +
-            ggplot2::ggtitle(label = "False discoveries for each method") +
+            ggplot2::ggtitle(label = "False Positive Rate",
+                             subtitle = "For each method") +
             ggplot2::scale_color_manual(values = cols)
 
     return(g)
-} # END - function: plotFDR
+} # END - function: plotFPR
 
 #' @title plotQQ
 #'
@@ -271,6 +272,8 @@ plotQQ <- function(df_QQ,
         ggplot2::coord_cartesian(xlim = zoom, ylim = zoom) +
         ggplot2::xlab("Theoretical p-value") +
         ggplot2::ylab("Observed p-value") +
+        ggplot2::ggtitle(label = "Average QQ-plot",
+                         subtitle = paste("From", zoom[1], "to", zoom[2])) +
         ggplot2::geom_segment(ggplot2::aes(x = x1, xend = x2,
                                            y = y1, yend = y2),
                               color = "red",
@@ -321,7 +324,7 @@ plotKS <- function(df_KS,
         ggplot2::geom_boxplot() +
         ggplot2::coord_flip() +
         ggplot2::ylab("KS statistics") + ggplot2::xlab("Methods") +
-        ggplot2::ggtitle(label = "KS statistics",subtitle = "Ordered methods") +
+        ggplot2::ggtitle(label = "K-S statistics",subtitle = "Ordered methods") +
         ggplot2::scale_x_discrete(limits = rev(levels(df_KS$Method)),
                                   position = "top") +
         ggplot2::theme(legend.position = "none",

@@ -212,7 +212,7 @@ norm_CSS <- function(object, method = "default")
 
     object@sam_data@.Data <- c(object@sam_data@.Data, list(normFacts))
     aux <- object@sam_data@names
-    aux[length(aux)] <- paste("NF.CSS", method, sep = ".")
+    aux[length(aux)] <- paste("NF.CSS", method, sep = "")
     object@sam_data@names <- aux
     return(object)
 }# END - function: norm_CSS

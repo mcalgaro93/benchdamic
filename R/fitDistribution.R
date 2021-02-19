@@ -457,7 +457,7 @@ fitModels <- function(counts,
   return(fittedModels)
 }
 
-#' @title MDPlot
+#' @title plotMD
 #'
 #' @importFrom plyr ddply
 #' @import ggplot2
@@ -480,7 +480,7 @@ fitModels <- function(counts,
 #' @seealso \code{\link{fitModels}} and \code{\link{RMSE}} for the model
 #' estimations and the RMSE computations respectively.
 
-MDPlot <- function(data, difference = NULL, split = TRUE){
+plotMD <- function(data, difference = NULL, split = TRUE){
   # To avoid notes like: "no visible binding for global variable..."
   Y <- MD <- Model <- Y0 <- ZPD <- NULL
   if(difference == "MD"){
@@ -554,7 +554,7 @@ MDPlot <- function(data, difference = NULL, split = TRUE){
   return(gobj)
 }
 
-#' @title RMSEPlot
+#' @title plotRMSE
 #'
 #' @importFrom plyr ddply
 #' @import ggplot2
@@ -575,7 +575,7 @@ MDPlot <- function(data, difference = NULL, split = TRUE){
 #' @seealso \code{\link{fitModels}} and \code{\link{RMSE}} for the model
 #' estimations and the RMSE computations respectively.
 
-RMSEPlot <- function(data, difference = NULL){
+plotRMSE <- function(data, difference = NULL){
   # To avoid notes like: "no visible binding for global variable Model"
   Model <- NULL
   if(difference == "MD"){

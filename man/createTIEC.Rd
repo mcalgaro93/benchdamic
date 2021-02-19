@@ -17,7 +17,7 @@ A \code{list} of \code{data.frame}s:
  \item{\code{df_pval}}{3 columns per number_of_features x methods x
  comparisons rows data.frame. The three columns are called Comparison, pval,
  and method;}
- \item{\code{df_FDR}}{5 columns per methods x comparisons rows data.frame.
+ \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
  For each set of method and comparison, the proportion of false discoveries,
  considering 3 threshold (0.01, 0.05, 0.1) are reported;}
  \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to compare
