@@ -7,7 +7,8 @@
 plotMD(data, difference = NULL, split = TRUE)
 }
 \arguments{
-\item{data}{a `data.frame` object with a 'Model', 'Y', 'Y0', 'MD', and 'ZPD'
+\item{data}{the `list` output of the \code{fitModels} function or a
+`data.frame` object with 'Model', 'Y', 'Y0', 'MD', and 'ZPD'
 columns containing the model name, the observed values for the mean and the
 zero proportion and the differences between observed and estimated values.}
 
@@ -25,7 +26,22 @@ a `ggplot` object.
 A function to plot mean difference (MD) and zero probability difference (ZPD)
 values between estimated and observed values.
 }
+\examples{
+\dontrun{
+data(ps_stool_16S)
+
+# Estimate the counts assuming several distributions
+GOF_stool_16S <- fitModels(object = ps_stool_16S, models = c("NB","ZINB",
+"DM","ZIG","HURDLE"), scale_ZIG = c("median","default"), scale_HURDLE =
+c("median","default"))
+
+# Plot the results
+plotMD(data = GOF_stool_16S, difference = "MD", split = TRUE)
+plotMD(data = GOF_stool_16S, difference = "ZPD", split = TRUE)
+}
+}
 \seealso{
 \code{\link{fitModels}} and \code{\link{RMSE}} for the model
-estimations and the RMSE computations respectively.
+estimations and the RMSE computations respectively. \code{\link{plotRMSE}}
+for the graphical evaluation of the RMSE values.
 }

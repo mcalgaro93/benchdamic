@@ -4,14 +4,12 @@
 \alias{createMocks}
 \title{createMocks}
 \usage{
-createMocks(nsamples, N = 1000, seed = 123)
+createMocks(nsamples, N = 1000)
 }
 \arguments{
 \item{nsamples}{an integer representing the total number of samples.}
 
 \item{N}{number of mock comparison to generate.}
-
-\item{seed}{seed to use for random mock generation.}
 }
 \value{
 A `data.frame` containing `N` rows and `nsamples` columns (if even).
@@ -20,14 +18,16 @@ represent the mock groups pattern.
 }
 \description{
 Given the number of samples of the dataset from which the mocks should be
-created this function produces a `data.frame` object with as many rows as the
-number of mocks and as many columns as the number of samples. If an odd
+created, this function produces a `data.frame` object with as many rows as
+the number of mocks and as many columns as the number of samples. If an odd
 number of samples is given, the lower even integer will be considered in
 order to obtain a balanced design for the mocks.
 }
 \examples{
-# Let's generate the patterns for 100 mock comparison for an experiment with
-# 15 grp1 and 15 grp2 samples.
-mocks <- createMocks(nsamples = 30, N = 100)
+\dontrun{
+data(ps_stool_16S)
+# Generate the patterns for 100 mock comparison for an experiment
+mocks <- createMocks(nsamples = nsamples(ps_stool_16S), N = 100)
 head(mocks)
+}
 }

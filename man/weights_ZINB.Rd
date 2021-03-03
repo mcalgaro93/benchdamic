@@ -43,8 +43,16 @@ negative binomial (ZINB) model. For each count, the ZINB distribution is
 parametrized by three parameters: the mean value and the dispersion of the
 negative binomial distribution, and the probability of the zero component.
 }
+\examples{
+\dontrun{
+data(ps_stool_16S)
+# Calculate the ZINB weights
+zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
+head(zinbweights)
+}
+}
 \seealso{
-[zinbwave::zinbFit()] for zero-inflated negative binomial
-parameters' estimation and [zinbwave::computeObservationalWeights()] for
-weights extraction.
+\code{\link[zinbwave]{zinbFit}} for zero-inflated negative binomial
+parameters' estimation and
+\code{\link[zinbwave]{computeObservationalWeights}} for weights extraction.
 }

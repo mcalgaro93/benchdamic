@@ -83,8 +83,8 @@ createTIEC <- function(object){
         # Index of not NA p-values
         k_pval <- !is.na(x$pval)
         # Theoretical uniform distribution
-        x$pval_theoretical[k_pval] <- (1:(sum(k_pval))) / (sum(k_pval))
-        x$pval_theoretical_rounded[k_pval] <- round((1:(sum(k_pval))) /
+        x$pval_theoretical[k_pval] <- (seq_len(sum(k_pval))) / (sum(k_pval))
+        x$pval_theoretical_rounded[k_pval] <- round((seq_len(sum(k_pval))) /
                                                       (sum(k_pval)), digits = 2)
         x$KS <- stats::ks.test(x = x$pval_theoretical[k_pval],
                                y = x$pval[k_pval])$statistic
@@ -142,7 +142,7 @@ createColors <- function(variable){
     col_vector = unlist(mapply(RColorBrewer::brewer.pal,
                                qual_col_pals$maxcolors,
                                rownames(qual_col_pals)))
-    cols <- col_vector[1:n_levels]
+    cols <- col_vector[seq_len(n_levels)]
     names(cols) <- levels
     return(cols)
 }# END - function: createColors
@@ -324,7 +324,8 @@ plotKS <- function(df_KS,
         ggplot2::geom_boxplot() +
         ggplot2::coord_flip() +
         ggplot2::ylab("KS statistics") + ggplot2::xlab("Methods") +
-        ggplot2::ggtitle(label = "K-S statistics",subtitle = "Ordered methods") +
+        ggplot2::ggtitle(label = "K-S statistics", subtitle =
+                             "Ordered methods") +
         ggplot2::scale_x_discrete(limits = rev(levels(df_KS$Method)),
                                   position = "top") +
         ggplot2::theme(legend.position = "none",

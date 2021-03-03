@@ -23,14 +23,12 @@ the countdata. The ZINB estimation procedure is performed by zinbwave
 (design matrix equal to a column of ones.)
 }
 \examples{
-# Let's generate some random count data
-nlibs <- 10
-ntaxa <- 100
-lambda = 2
-counts <- matrix(rpois(ntaxa*nlibs, lambda),
-                 nrow = ntaxa,
-                 ncol = nlibs)
-# ZINB estimation
-f_values <- fitZINB(counts)
-head(f_values)
+\dontrun{
+data(ps_stool_16S)
+counts = as(otu_table(ps_stool_16S), "matrix")
+
+# Fit model on the counts matrix
+ZINB <- fitZINB(counts)
+head(ZINB)
+}
 }

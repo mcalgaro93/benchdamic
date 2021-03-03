@@ -15,3 +15,38 @@ RMSE value
 \description{
 Computes the Root Mean Square Error (RMSE) from a vector of differences.
 }
+\examples{
+\dontrun{
+data(ps_stool_16S)
+counts = as(otu_table(ps_stool_16S), "matrix")
+
+# Fit some models on the counts matrix
+HURDLE <- fitHURDLE(counts, scale = "median")
+NB <- fitNB(counts)
+
+# Then log-transform the observed counts
+# For HURDLE model remember to specify the "scale" parameter
+observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+# For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not
+necessary
+observed <- prepareObserved(counts)
+
+# Compute the mean differences between estimated and observed counts
+md_HURDLE = meanDifferences(estimated = HURDLE, observed =
+observed_for_HURDLE)
+md_NB = meanDifferences(estimated = NB, observed = observed)
+
+head(md_HURDLE)
+
+# Calculate RMSE for MD and ZPD values
+# HURDLE model
+RMSE(md_HURDLE[,"MD"])
+RMSE(md_HURDLE[,"ZPD"])
+# NB model
+RMSE(md_NB[,"MD"])
+RMSE(md_NB[,"ZPD"])
+}
+}
+\seealso{
+\code{\link{prepareObserved}} and \code{\link{meanDifferences}}.
+}

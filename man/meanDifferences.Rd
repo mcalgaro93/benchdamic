@@ -31,3 +31,27 @@ corrected logarithms of the average count values (MD), and between the
 estimated average probability to observe a zero and the the observed zero
 rate (ZPD).
 }
+\examples{
+\dontrun{
+data(ps_stool_16S)
+counts = as(otu_table(ps_stool_16S), "matrix")
+
+# Fit some models on the counts matrix
+HURDLE <- fitHURDLE(counts, scale = "median")
+NB <- fitNB(counts)
+
+# Then log-transform the observed counts
+# For HURDLE model remember to specify the "scale" parameter
+observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+# For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not
+necessary
+observed <- prepareObserved(counts)
+
+# Compute the mean differences between estimated and observed counts
+meanDifferences(estimated = HURDLE, observed = observed_for_HURDLE)
+meanDifferences(estimated = NB, observed = observed)
+}
+}
+\seealso{
+\code{\link{prepareObserved}}.
+}

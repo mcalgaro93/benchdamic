@@ -14,14 +14,31 @@ norm_CSS(object, method = "default")
 et al. 2013).}
 }
 \value{
-A new column containing the CSS normalization factors is added to the
+A new column containing the CSS scaling factors is added to the
 phyloseq `sample_data` slot.
 }
 \description{
-Calculate normalization factors from a phyloseq object to scale the raw
-library sizes. Inherited from metagenomeSeq `calcNormFactors` function
-which performs the Cumulative Sum Scaling normalization.
+Calculate scaling factors from a phyloseq object to scale the raw library
+sizes. Inherited from metagenomeSeq `calcNormFactors` function which performs
+the Cumulative Sum Scaling normalization.
+}
+\examples{
+\dontrun{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- sample_data(ps_stool_16S)[,"NF.CSSmedian"]
+head(scaleFacts)
+
+# VERY IMPORTANT: to convert scaling factors to normalization factors
+# multiply them by the library sizes and renormalize.
+normFacts = scaleFacts * sample_sums(ps_stool_16S)
+# Renormalize: multiply to 1
+normFacts = normFacts/exp(mean(log(normFacts)))
+}
 }
 \seealso{
-[metagenomeSeq::calcNormFactors()] for details.
+\code{\link[metagenomeSeq]{calcNormFactors}} for details.
 }

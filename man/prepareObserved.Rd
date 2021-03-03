@@ -26,15 +26,21 @@ Average count value continuity corrected logarithms and fraction of zeroes by
 taxon.
 }
 \examples{
-# Let's generate some random count data
-nlibs <- 10
-ntaxa <- 100
-lambda = 2
-counts <- matrix(rpois(ntaxa*nlibs, lambda),
-                 nrow = ntaxa,
-                 ncol = nlibs)
+\dontrun{
+data(ps_stool_16S)
+counts = as(otu_table(ps_stool_16S), "matrix")
 
-# observed values
-o_values <- prepareObserved(counts)
-head(o_values)
+# Fit some models on the counts matrix
+HURDLE <- fitHURDLE(counts, scale = "median")
+NB <- fitNB(counts)
+
+# Then log-transform the observed counts
+# For HURDLE model remember to specify the "scale" parameter
+observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+# For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not necessary
+observed <- prepareObserved(counts)
+}
+}
+\seealso{
+\code{\link{meanDifferences}}
 }

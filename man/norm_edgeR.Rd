@@ -37,14 +37,31 @@ norm_edgeR(
 \item{...}{other arguments are not currently used.}
 }
 \value{
-A new column containing the chosen edgeR-based normalization factors
-is added to the phyloseq `sample_data` slot. The effective library sizes for
+A new column containing the chosen edgeR-based scaling factors is
+added to the phyloseq `sample_data` slot. The effective library sizes for
 use in downstream analysis must be multiplied by the normalization factors.
 }
 \description{
-Calculate normalization factors from a phyloseq object to scale the raw
-library sizes. Inherited from edgeR `calcNormFactors` function.
+Calculate scaling factors from a phyloseq object to scale the raw library
+sizes. Inherited from edgeR `calcNormFactors` function.
+}
+\examples{
+\dontrun{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+head(scaleFacts)
+
+# VERY IMPORTANT: to convert scaling factors to normalization factors
+# multiply them by the library sizes and renormalize.
+normFacts = scaleFacts * sample_sums(ps_stool_16S)
+# Renormalize: multiply to 1
+normFacts = normFacts/exp(mean(log(normFacts)))
+}
 }
 \seealso{
-[edgeR::calcNormFactors()] for details.
+\code{\link[edgeR]{calcNormFactors}} for details.
 }

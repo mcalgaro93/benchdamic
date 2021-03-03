@@ -22,14 +22,12 @@ without assuming the presence of any group in the samples (design matrix
 equal to a column of ones.)
 }
 \examples{
-# Let's generate some random count data
-nlibs <- 10
-ntaxa <- 100
-lambda = 2
-counts <- matrix(rpois(ntaxa*nlibs, lambda),
-                 nrow = ntaxa,
-                 ncol = nlibs)
-# DM model estimation
-f_values <- fitDM(counts)
-head(f_values)
+\dontrun{
+data(ps_stool_16S)
+counts = as(otu_table(ps_stool_16S), "matrix")
+
+# Fit model on the counts matrix
+DM <- fitDM(counts)
+head(DM)
+}
 }

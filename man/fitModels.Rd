@@ -5,15 +5,14 @@
 \title{fitModels}
 \usage{
 fitModels(
-  counts,
+  object,
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("default", "median"),
   scale_HURDLE = c("default", "median")
 )
 }
 \arguments{
-\item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
-samples by column.}
+\item{object}{a phyloseq object.}
 
 \item{models}{character vector which assumes the values 'NB', 'ZINB', 'DM',
 'ZIG', and 'HURDLE'.}
@@ -36,6 +35,18 @@ values for the mean and the zero rate resplectively.
 A wrapper function that fits the specified models for each taxon of the count
 data and computes the mean difference (MD) and zero probability difference
 (ZPD) between estimated and observed values.
+}
+\examples{
+\dontrun{
+data(ps_stool_16S)
+
+# Estimate the counts assuming several distributions
+GOF_stool_16S <- fitModels(object = ps_stool_16S, models = c("NB","ZINB",
+"DM","ZIG","HURDLE"), scale_ZIG = c("median","default"), scale_HURDLE =
+c("median","default"))
+
+head(GOF_stool_16S)
+}
 }
 \seealso{
 \code{\link{fitNB}}, \code{\link{fitZINB}}, \code{\link{fitDM}},

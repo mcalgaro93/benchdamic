@@ -37,6 +37,7 @@ considering the parameters passed to the function.
 Fast run for the metagenomeSeq's differential abundance detection method.
 }
 \seealso{
-[metagenomeSeq::fitZig()] for the Zero-Inflated Gaussian regression
-model estimation and [metagenomeSeq::MRfulltable()] for results extraction.
+\code{\link[metagenomeSeq]{fitZig}} for the Zero-Inflated Gaussian
+regression model estimation and \code{\link[metagenomeSeq]{MRfulltable}}
+for results extraction.
 }
