@@ -77,10 +77,11 @@ considering the parameters passed to the function.
 Fast run for Seurat differential abundance detection method.
 }
 \seealso{
-[Seurat::CreateSeuratObject] to create the Seurat object,
-[Seurat::AddMetaData()] to add metadata information,
-[Seurat::NormalizeData()] to compute the normalization for the counts,
-[Seurat::FindVariableFeatures()] to estimate the mean-variance trend,
-[Seurat::ScaleData()] to scale and center features in the dataset, and
-[Seurat::FindMarkers()] to perform differential abundance analysis.
+\code{\link[Seurat]{CreateSeuratObject}} to create the Seurat
+object, \code{\link[Seurat]{AddMetaData}} to add metadata information,
+\code{\link[Seurat]{NormalizeData}} to compute the normalization for the
+counts, \code{\link[Seurat]{FindVariableFeatures}} to estimate the
+mean-variance trend, \code{\link[Seurat]{ScaleData}} to scale and center
+features in the dataset, and \code{\link[Seurat]{FindMarkers}} to perform
+differential abundance analysis.
 }

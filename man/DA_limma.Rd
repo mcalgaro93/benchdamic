@@ -43,6 +43,6 @@ considering the parameters passed to the function.
 Fast run for limma voom differential abundance detection method.
 }
 \seealso{
-[limma::voom()] for the mean-variance relationship estimation,
-[limma::lmFit()] for the linear model framework.
+\code{\link[limma]{voom}} for the mean-variance relationship
+estimation, \code{\link[limma]{lmFit}} for the linear model framework.
 }

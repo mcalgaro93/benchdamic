@@ -2,7 +2,7 @@
 % Please edit documentation in R/utility.R
 \name{DA_corncob}
 \alias{DA_corncob}
-\title{DA_MAST}
+\title{DA_corncob}
 \usage{
 DA_corncob(
   object,
@@ -51,6 +51,7 @@ considering the parameters passed to the function.
 Fast run for corncob differential abundance detection method.
 }
 \seealso{
-[corncob::bbdml()] and [corncob::differentialTest] for differential
-abundance and differential variance evaluation.
+\code{\link[corncob]{bbdml}} and
+\code{\link[corncob]{differentialTest}} for differential abundance and
+differential variance evaluation.
 }

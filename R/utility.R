@@ -3,36 +3,136 @@
 #' @export
 #' @description
 #' Given the number of samples of the dataset from which the mocks should be
-#' created this function produces a `data.frame` object with as many rows as the
-#' number of mocks and as many columns as the number of samples. If an odd
+#' created, this function produces a `data.frame` object with as many rows as
+#' the number of mocks and as many columns as the number of samples. If an odd
 #' number of samples is given, the lower even integer will be considered in
 #' order to obtain a balanced design for the mocks.
 #' @param nsamples an integer representing the total number of samples.
 #' @param N number of mock comparison to generate.
-#' @param seed seed to use for random mock generation.
 #'
 #' @return A `data.frame` containing `N` rows and `nsamples` columns (if even).
 #' Each cell of the data frame contains the "grp1" or "grp2" characters which
 #' represent the mock groups pattern.
+#'
 #' @examples
-#' # Let's generate the patterns for 100 mock comparison for an experiment with
-#' # 15 grp1 and 15 grp2 samples.
-#' mocks <- createMocks(nsamples = 30, N = 100)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Generate the patterns for 100 mock comparison for an experiment
+#' mocks <- createMocks(nsamples = nsamples(ps_stool_16S), N = 100)
 #' head(mocks)
+#' }
 
 # Create data.frame with random labels
-createMocks <- function(nsamples, N = 1000, seed = 123){
+createMocks <- function(nsamples, N = 1000){
     sample_num <- nsamples %/% 2 * 2 # Balanced design sample numerosity
     mock_df <- matrix(NA, nrow = N, ncol = sample_num)
-    set.seed(seed)
-    for(i in 1:N){ # N random balanced relabellings
+    for(i in seq_len(N)){ # N random balanced relabellings
         grps <- rep("grp1", sample_num)
-        grps[sample(1:sample_num,size = sample_num/2)] <- "grp2"
+        grps[sample(seq_len(sample_num),size = sample_num/2)] <- "grp2"
         mock_df[i,] <- grps
     }
-    rownames(mock_df) <- paste0("Comparison",1:N)
+    rownames(mock_df) <- paste0("Comparison",seq_len(N))
     return(mock_df)
 }# END - function: createMocks
+
+#' @title createSplits
+#'
+#' @export
+#' @description
+#' Given the phyloseq object from which the random splits should be created,
+#' this function produces a list of 2 `data.frame` objects: \code{Subset1} and
+#' \code{Subset2} with as many rows as the number of splits and as many columns
+#' as the half of the number of samples.
+#' @param object a \code{phyloseq} object.
+#' @param varName name of a factor variable with 2 levels.
+#' @param paired name of the unique subject identifier variable. If specified,
+#' paired samples will remain in the same split. (default = NULL).
+#' @param balanced If \code{TRUE} a balanced design will be created for the
+#' splits.
+#' @param N number of splits to generate.
+#'
+#' @return A list of 2 `data.frame` objects: \code{Subset1} and
+#' \code{Subset2} containing `N` rows and half of the total number of samples
+#' columns. Each cell contains a unique sample identifier.
+
+createSplits <- function(object,
+                         varName = NULL,
+                         paired = NULL,
+                         balanced = TRUE,
+                         N = 1000)
+{
+
+    metadata <- data.frame(phyloseq::sample_data(object))
+
+    # Take variable names and levels
+    if(is.null(varName)){
+        stop("Please supply the name of the variable to perform the splitting")
+    } else if(!is.element(varName,colnames(metadata))){
+        stop("Variable not found")
+    } else {
+        variable <- metadata[,varName]
+        if(!is.factor(variable)){
+            warning(paste("The variable",
+                          varName,
+                          "is not a factor.",
+                          "Coercing to factor."))
+            variable <- as.factor(variable)
+        }
+        var_levels <- levels(variable)
+        if(length(var_levels) != 2){
+            stop(paste("The variable",
+                       varName,
+                       "has not 2 levels."))
+        } else {
+            grp1_name = var_levels[1]
+            grp2_name = var_levels[2]
+        }
+    }
+
+    if(!is.null(paired)){
+        # 1 ID is enough to identify the two paired samples
+        ID <- unique(metadata[,paired])
+        num_ID <- length(ID)
+        half = num_ID/2
+        Subset1 <- matrix(NA, nrow = N, ncol = 2 * half)
+        Subset2 <- matrix(NA, nrow = N, ncol = 2 * half)
+
+        for(i in seq_len(N)){
+            chosenID <- sample(x = ID, size = half, replace = FALSE)
+            Subset1[i,] <- rownames(metadata[metadata[,paired] %in%
+                                                 chosenID,])
+            Subset2[i,] <- rownames(metadata[metadata[,paired] %in%
+                                                 setdiff(ID,chosenID),])
+        }
+
+    } else {
+        # find indexes for the 2 levels
+        ID1 <- rownames(metadata[metadata[,varName] == grp1_name,])
+        ID2 <- rownames(metadata[metadata[,varName] == grp2_name,])
+        num_ID1 <- length(ID1)
+        num_ID2 <- length(ID2)
+        if(balanced){
+            min_length <- min(num_ID1,num_ID2)
+            ID1 <- ID1[seq_len(min_length)]
+            ID2 <- ID2[seq_len(min_length)]
+            half <- rep(min_length/2,2)
+        } else {
+            half <- round(c(num_ID1,num_ID2)/2, digits = 0)
+        }
+        Subset1 <- matrix(NA, nrow = N, ncol = sum(half))
+        Subset2 <- matrix(NA, nrow = N, ncol = sum(half))
+
+        for(i in seq_len(N)){
+            chosenID1 <- sample(x = ID1, size = half[1], replace = FALSE)
+            chosenID2 <- sample(x = ID2, size = half[2], replace = FALSE)
+            Subset1[i,] <- c(chosenID1, chosenID2)
+            Subset2[i,] <- c(setdiff(ID1,chosenID1),setdiff(ID2,chosenID2))
+        }
+    }
+
+    rownames(Subset1) <- rownames(Subset2) <- paste0("Comparison",seq_len(N))
+    return(list("Subset1" = Subset1, "Subset2" = Subset2))
+}# END - function: createSplits
 
 ### Normalizations ###
 
@@ -43,18 +143,35 @@ createMocks <- function(nsamples, N = 1000, seed = 123){
 #' @importFrom stats quantile
 #' @export
 #' @description
-#' Calculate normalization factors from a phyloseq object to scale the raw
-#' library sizes. Inherited from edgeR `calcNormFactors` function.
+#' Calculate scaling factors from a phyloseq object to scale the raw library
+#' sizes. Inherited from edgeR `calcNormFactors` function.
 #'
 #' @param object phyloseq object containing the counts to be normalized.
 #' @param method normalization method to be used. Choose between "TMM",
 #' "TMMwsp", "RLE", "upperquartile", "posupperquartile" or "none".
 #' @inheritParams edgeR::calcNormFactors
 #'
-#' @return A new column containing the chosen edgeR-based normalization factors
-#' is added to the phyloseq `sample_data` slot. The effective library sizes for
+#' @return A new column containing the chosen edgeR-based scaling factors is
+#' added to the phyloseq `sample_data` slot. The effective library sizes for
 #' use in downstream analysis must be multiplied by the normalization factors.
-#' @seealso [edgeR::calcNormFactors()] for details.
+#' @seealso \code{\link[edgeR]{calcNormFactors}} for details.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+#' head(scaleFacts)
+#'
+#' # VERY IMPORTANT: to convert scaling factors to normalization factors
+#' # multiply them by the library sizes and renormalize.
+#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' # Renormalize: multiply to 1
+#' normFacts = normFacts/exp(mean(log(normFacts)))
+#' }
 
 norm_edgeR <- function(object,
                        method=c("TMM", "TMMwsp",
@@ -132,13 +249,30 @@ norm_edgeR <- function(object,
 #' "iterate" estimator iterates between estimating the dispersion with a design
 #' of ~1, and finding a size factor vector by numerically optimizing the
 #' likelihood of the ~1 model.
-#' @param ... other parameters for DESeq2 [DESeq2::estimateSizeFactors()]
-#' function.
+#' @param ... other parameters for DESeq2
+#' \code{\link[DESeq2]{estimateSizeFactors}} function.
 #'
 #' @return A new column containing the chosen DESeq2-based normalization factors
 #' is added to the phyloseq `sample_data` slot.
 #'
-#' @seealso [DESeq2::estimateSizeFactors()] for details.
+#' @seealso \code{\link[DESeq2]{estimateSizeFactors}} for details.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the normalization factors
+#' ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+#'
+#' # The phyloseq object now contains the normalization factors:
+#' normFacts <- sample_data(ps_stool_16S)[,"NF.poscounts"]
+#' head(normFacts)
+#'
+#' # VERY IMPORTANT: to convert normalization factors to scaling factors divide
+#' # them by the library sizes and renormalize.
+#' scaleFacts = normFacts / sample_sums(ps_stool_16S)
+#' # Renormalize: multiply to 1
+#' scaleFacts = scaleFacts/exp(mean(log(scaleFacts)))
+#' }
 
 norm_DESeq2 <- function(object,
                         method = c("ratio", "poscounts", "iterate"),
@@ -174,19 +308,36 @@ norm_DESeq2 <- function(object,
 #' @importFrom stats median
 #' @export
 #' @description
-#' Calculate normalization factors from a phyloseq object to scale the raw
-#' library sizes. Inherited from metagenomeSeq `calcNormFactors` function
-#' which performs the Cumulative Sum Scaling normalization.
+#' Calculate scaling factors from a phyloseq object to scale the raw library
+#' sizes. Inherited from metagenomeSeq `calcNormFactors` function which performs
+#' the Cumulative Sum Scaling normalization.
 #'
 #' @param object phyloseq object containing the counts to be normalized.
 #' @param method  Normalization scaling parameter (default = "1000"). If
 #' "median", the median of the normalization factors is used as scaling (Paulson
 #' et al. 2013).
 #'
-#' @return A new column containing the CSS normalization factors is added to the
+#' @return A new column containing the CSS scaling factors is added to the
 #' phyloseq `sample_data` slot.
 #'
-#' @seealso [metagenomeSeq::calcNormFactors()] for details.
+#' @seealso \code{\link[metagenomeSeq]{calcNormFactors}} for details.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.CSSmedian"]
+#' head(scaleFacts)
+#'
+#' # VERY IMPORTANT: to convert scaling factors to normalization factors
+#' # multiply them by the library sizes and renormalize.
+#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' # Renormalize: multiply to 1
+#' normFacts = normFacts/exp(mean(log(normFacts)))
+#' }
 
 norm_CSS <- function(object, method = "default")
 {
@@ -227,8 +378,26 @@ norm_CSS <- function(object, method = "default")
 #'
 #' @param object phyloseq object containing the counts to be normalized.
 #'
-#' @return A new column containing the TSS normalization factors is added to the
+#' @return A new column containing the TSS scaling factors is added to the
 #' phyloseq `sample_data` slot.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_TSS(object = ps_stool_16S)
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TSS"]
+#' head(scaleFacts)
+#'
+#' # VERY IMPORTANT: to convert scaling factors to normalization factors
+#' # multiply them by the library sizes and renormalize.
+#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' # Renormalize: multiply to 1
+#' normFacts = normFacts/exp(mean(log(normFacts)))
+#' # In this case they will be ones.
+#' }
 
 norm_TSS <- function(object)
 {
@@ -266,9 +435,17 @@ norm_TSS <- function(object)
 #'
 #' @return A matrix of weights.
 #'
-#' @seealso [zinbwave::zinbFit()] for zero-inflated negative binomial
-#' parameters' estimation and [zinbwave::computeObservationalWeights()] for
-#' weights extraction.
+#' @seealso \code{\link[zinbwave]{zinbFit}} for zero-inflated negative binomial
+#' parameters' estimation and
+#' \code{\link[zinbwave]{computeObservationalWeights}} for weights extraction.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the ZINB weights
+#' zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
+#' head(zinbweights)
+#' }
 
 weights_ZINB <- function(object,
                          design,
@@ -293,7 +470,7 @@ weights_ZINB <- function(object,
         else design <- as.formula(paste0("~", design))
     }
 
-    if(class(design) == "formula")
+    if(is(design, "formula"))
         design <- stats::model.matrix(object = design,
                                       data = data.frame(metadata))
 
@@ -337,10 +514,29 @@ weights_ZINB <- function(object,
 #' estimates, the matrix of summary statistics for each tag, and a suggested
 #' name of the final object considering the parameters passed to the function.
 #'
-#' @seealso [edgeR::DGEList()] for the edgeR DEG object creation,
-#' [edgeR::estimateDisp()] and [edgeR::estimateGLMRobustDisp()] for dispersion
-#' estimation, and [edgeR::glmQLFit()] and [edgeR::glmQLFTest()] for the
+#' @seealso \code{\link[edgeR]{DGEList}} for the edgeR DEG object creation,
+#' \code{\link[edgeR]{estimateDisp}} and
+#' \code{\link[edgeR]{estimateGLMRobustDisp}} for dispersion estimation, and
+#' \code{\link[edgeR]{glmQLFit}} and \code{\link[edgeR]{glmQLFTest}} for the
 #' quasi-likelihood negative binomial model fit.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = nsamples(ps_stool_16S),
+#' replace = TRUE)
+#' sample_data(ps_stool_16S)$group <- group
+#' DA_edgeR(ps_stool_16S, group = group, design = ~ group, coef = 2,
+#' norm = "TMM")
+#' }
 
 DA_edgeR <- function(object,
                      pseudo_count = FALSE,
@@ -421,7 +617,7 @@ DA_edgeR <- function(object,
         else design <- as.formula(paste0("~", design))
     }
 
-    if(class(design) == "formula")
+    if(is(design, "formula"))
         design <- stats::model.matrix(object = design,
                                       data = data.frame(metadata))
 
@@ -492,9 +688,9 @@ DA_edgeR <- function(object,
 #' each tag `statInfo`, and a suggested `name` of the final object considering
 #' the parameters passed to the function.
 #'
-#' @seealso [phyloseq::phyloseq_to_deseq2()] for phyloseq to DESeq2 object
-#' conversion, [DESeq2::DESeq()] and [DESeq2::results()] for the differential
-#' abundance method.
+#' @seealso \code{\link[phyloseq]{phyloseq_to_deseq2}} for phyloseq to DESeq2
+#' object conversion, \code{\link[DESeq2]{DESeq}} and
+#' \code{\link[DESeq2]{results}} for the differential abundance method.
 
 DA_DESeq2 <- function(object,
                       pseudo_count = FALSE,
@@ -558,7 +754,8 @@ DA_DESeq2 <- function(object,
     } else {
         message("Estimating Differential Abundance with weights")
         weights[which(weights < 1e-6)] <- 1e-06
-        SummarizedExperiment::assays(dds,withDimnames = FALSE)$weights <- weights
+        SummarizedExperiment::assays(dds, withDimnames = FALSE)$weights <-
+            weights
         name <- paste(name,".weighted",sep = "")
     }
 
@@ -623,8 +820,8 @@ DA_DESeq2 <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [limma::voom()] for the mean-variance relationship estimation,
-#' [limma::lmFit()] for the linear model framework.
+#' @seealso \code{\link[limma]{voom}} for the mean-variance relationship
+#' estimation, \code{\link[limma]{lmFit}} for the linear model framework.
 
 DA_limma <- function(object,
                      pseudo_count = FALSE,
@@ -688,7 +885,7 @@ DA_limma <- function(object,
         else design <- as.formula(paste0("~", design))
     }
 
-    if(class(design) == "formula")
+    if(is(design, "formula"))
         design <- stats::model.matrix(object = design,
                                       data = data.frame(metadata))
 
@@ -754,8 +951,9 @@ DA_limma <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [metagenomeSeq::fitZig()] for the Zero-Inflated Gaussian regression
-#' model estimation and [metagenomeSeq::MRfulltable()] for results extraction.
+#' @seealso \code{\link[metagenomeSeq]{fitZig}} for the Zero-Inflated Gaussian
+#' regression model estimation and \code{\link[metagenomeSeq]{MRfulltable}}
+#' for results extraction.
 
 DA_metagenomeSeq <- function(object,
                              pseudo_count = FALSE,
@@ -824,7 +1022,7 @@ DA_metagenomeSeq <- function(object,
         else design <- as.formula(paste0("~", design))
     }
 
-    if(class(design) == "formula"){
+    if(is(design, "formula")){
         design <- as.formula(paste0(paste0(design,collapse = " ")," + ",NF.col))
         design <- stats::model.matrix(object = design,
                                       data = data.frame(metadata))
@@ -837,7 +1035,7 @@ DA_metagenomeSeq <- function(object,
                                           control = zigControl(maxit = 1000)),
                                 silent = TRUE))
 
-    if(class(fit) == "try-error"){
+    if(is(fit, "try-error")){
         res = matrix(NA, ncol = 2, nrow = nrow(counts))
         stop("Error! Something went wrong during fitZig estimation.")
     } else {
@@ -847,7 +1045,7 @@ DA_metagenomeSeq <- function(object,
         # You need to specify all OTUs to get the full table from MRfulltable.
         res <- metagenomeSeq::MRfulltable(obj = fit,
                                           number = nrow(counts),
-                                          coef = 2)
+                                          coef = coef)
     }
 
     pValMat <- cbind("rawP" = res$pvalues,
@@ -874,7 +1072,6 @@ DA_metagenomeSeq <- function(object,
 #'
 #' @param object phyloseq object.
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
-#' @param seed seed to use for the MC sampling.
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
 #' @inheritParams ALDEx2::aldex
@@ -883,12 +1080,12 @@ DA_metagenomeSeq <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [ALDEx2::aldex] for the Dirichlet-Multinomial model estimation.
-#' Several and more complex tests are present in the ALDEx2 framework.
+#' @seealso \code{\link[ALDEx2]{aldex}} for the Dirichlet-Multinomial model
+#' estimation. Several and more complex tests are present in the ALDEx2
+#' framework.
 
 DA_ALDEx2 <- function(object,
                       pseudo_count = FALSE,
-                      seed = 1,
                       conditions = NULL,
                       mc.samples = 128,
                       test = c("t","wilcox"),
@@ -961,7 +1158,6 @@ DA_ALDEx2 <- function(object,
 
     name <- paste(name, ".", test, sep = "")
 
-    set.seed(seed = seed)
     statInfo <- ALDEx2::aldex(reads = norm_counts,
                               conditions = conditions,
                               mc.samples = mc.samples,
@@ -984,7 +1180,7 @@ DA_ALDEx2 <- function(object,
 
 }# END - function: DA_ALDEx2
 
-#' @title DA_MAST
+#' @title DA_corncob
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom corncob differentialTest
@@ -1006,8 +1202,9 @@ DA_ALDEx2 <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [corncob::bbdml()] and [corncob::differentialTest] for differential
-#' abundance and differential variance evaluation.
+#' @seealso \code{\link[corncob]{bbdml}} and
+#' \code{\link[corncob]{differentialTest}} for differential abundance and
+#' differential variance evaluation.
 
 DA_corncob <- function(object,
                        pseudo_count = FALSE,
@@ -1150,7 +1347,8 @@ DA_corncob <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [MAST::zlm] for the Truncated Gaussian Hurdle model estimation.
+#' @seealso \code{\link[MAST]{zlm}} for the Truncated Gaussian Hurdle model
+#' estimation.
 
 DA_MAST <- function(object,
                     pseudo_count = FALSE,
@@ -1242,7 +1440,7 @@ DA_MAST <- function(object,
         else design <- as.formula(paste0("~", design))
     }
 
-    if(class(design) == "formula"){
+    if(is(design, "formula")){
         design <- as.formula(paste0(paste0(design,
                                            collapse = " "), " + cngeneson"))
     }
@@ -1300,12 +1498,13 @@ DA_MAST <- function(object,
 #' summary statistics for each tag, and a suggested name of the final object
 #' considering the parameters passed to the function.
 #'
-#' @seealso [Seurat::CreateSeuratObject] to create the Seurat object,
-#' [Seurat::AddMetaData()] to add metadata information,
-#' [Seurat::NormalizeData()] to compute the normalization for the counts,
-#' [Seurat::FindVariableFeatures()] to estimate the mean-variance trend,
-#' [Seurat::ScaleData()] to scale and center features in the dataset, and
-#' [Seurat::FindMarkers()] to perform differential abundance analysis.
+#' @seealso \code{\link[Seurat]{CreateSeuratObject}} to create the Seurat
+#' object, \code{\link[Seurat]{AddMetaData}} to add metadata information,
+#' \code{\link[Seurat]{NormalizeData}} to compute the normalization for the
+#' counts, \code{\link[Seurat]{FindVariableFeatures}} to estimate the
+#' mean-variance trend, \code{\link[Seurat]{ScaleData}} to scale and center
+#' features in the dataset, and \code{\link[Seurat]{FindMarkers}} to perform
+#' differential abundance analysis.
 
 DA_Seurat <- function(object,
                       pseudo_count = FALSE,

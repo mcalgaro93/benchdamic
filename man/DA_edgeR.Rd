@@ -45,9 +45,28 @@ name of the final object considering the parameters passed to the function.
 \description{
 Fast run for edgeR differential abundance detection method.
 }
+\examples{
+\dontrun{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = nsamples(ps_stool_16S),
+replace = TRUE)
+sample_data(ps_stool_16S)$group <- group
+DA_edgeR(ps_stool_16S, group = group, design = ~ group, coef = 2,
+norm = "TMM")
+}
+}
 \seealso{
-[edgeR::DGEList()] for the edgeR DEG object creation,
-[edgeR::estimateDisp()] and [edgeR::estimateGLMRobustDisp()] for dispersion
-estimation, and [edgeR::glmQLFit()] and [edgeR::glmQLFTest()] for the
+\code{\link[edgeR]{DGEList}} for the edgeR DEG object creation,
+\code{\link[edgeR]{estimateDisp}} and
+\code{\link[edgeR]{estimateGLMRobustDisp}} for dispersion estimation, and
+\code{\link[edgeR]{glmQLFit}} and \code{\link[edgeR]{glmQLFTest}} for the
 quasi-likelihood negative binomial model fit.
 }

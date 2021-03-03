@@ -1,6 +1,7 @@
 #' @title fitNB
 #'
-#' @importFrom edgeR calcNormFactors estimateDisp DGEList glmFit
+#' @importFrom edgeR calcNormFactors estimateDisp DGEList glmFit getCounts
+#' @importFrom edgeR getDispersion
 #' @export
 #' @description
 #' Fit a Negative Binomial (NB) distribution for each taxon of the count data.
@@ -15,38 +16,32 @@
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
 #' and the estimated probability to observe a zero in the `Y0` column.
 #' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
-#' # NB estimation
-#' f_values <- fitNB(counts)
-#' head(f_values)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit model on the counts matrix
+#' NB <- fitNB(counts)
+#' head(NB)
+#' }
 
 # Negative Binomial fitting
 fitNB <- function(counts){
-  cat("Model: Negative Binomial \n")
-  # Default normalization
-  normFacts <- edgeR::calcNormFactors(counts)
-  # DGEList object creation
-  dge <- edgeR::DGEList(counts = counts, norm.factors = normFacts)
-  # Dispersion estimate
-  disp <- edgeR::estimateDisp(y = dge, tagwise = TRUE)
-  # GLM
-  fit <- edgeR::glmFit(dge$counts,
-                       dispersion = disp$tagwise.dispersion)
-  # nbloglik <- rowSums(dnbinom(x = counts,
-  #                             size=1/disp$tagwise.dispersion,
-  #                             mu=rowMeans(fit$fitted.values),
-  #                             log = TRUE))
-  # Fitted values extraction
-  # Return the log(average fitted values + 1) to
-  Y = log1p(rowMeans(fit$fitted.values))
-  Y0 = rowMeans((1 + fit$fitted.values * disp$tagwise.dispersion)^(-1/disp$tagwise.dispersion))
-  return(data.frame("Y" = Y, "Y0" = Y0))
+    cat("Model: Negative Binomial \n")
+    # Default normalization
+    normFacts <- edgeR::calcNormFactors(counts)
+    # DGEList object creation
+    dge <- edgeR::DGEList(counts = counts, norm.factors = normFacts)
+    # Dispersion estimate
+    disp <- edgeR::estimateDisp(y = dge, tagwise = TRUE)
+    # GLM
+    disps <- edgeR::getDispersion(disp)
+    fit <- edgeR::glmFit(edgeR::getCounts(dge), dispersion = disps)
+    # Fitted values extraction
+    fitVals <- fit[["fitted.values"]]
+    Y = log1p(rowMeans(fitVals))
+    Y0 = rowMeans((1 + fitVals * disps)^(-1/disps))
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title fitZINB
@@ -67,38 +62,33 @@ fitNB <- function(counts){
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
 #' and the estimated probability to observe a zero in the `Y0` column.
 #' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
-#' # ZINB estimation
-#' f_values <- fitZINB(counts)
-#' head(f_values)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit model on the counts matrix
+#' ZINB <- fitZINB(counts)
+#' head(ZINB)
+#' }
 
 fitZINB <- function(counts)
 {
-  cat("Model: Zero-Inflated Negative Binomial \n")
-  fit <- zinbwave::zinbFit(Y = counts,
-                           epsilon = 1e10, # Regularization parameter fixed
-                           commondispersion = TRUE,
-                           BPPARAM = BiocParallel::SerialParam())
-  mu = t(zinbwave::getMu(fit))
-  pi = t(zinbwave::getPi(fit))
-  phi = zinbwave::getPhi(fit)
-
-
-  Y = log1p(rowMeans((1 - pi) * mu))
-  Y0 = rowMeans(pi + (1 - pi) * (1 + phi * mu) ^ (-1/phi))
-  return(data.frame("Y" = Y, "Y0" = Y0))
+    cat("Model: Zero-Inflated Negative Binomial \n")
+    fit <- zinbwave::zinbFit(Y = counts, epsilon = 1e10, commondispersion =
+                                 TRUE, BPPARAM = BiocParallel::SerialParam())
+    mu = t(zinbwave::getMu(fit))
+    pi = t(zinbwave::getPi(fit))
+    phi = zinbwave::getPhi(fit)
+    Y = log1p(rowMeans((1 - pi) * mu))
+    Y0 = rowMeans(pi + (1 - pi) * (1 + phi * mu) ^ (-1/phi))
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title fitHURDLE
 #'
-#' @importFrom stats model.matrix as.formula median coef
+#' @importFrom stats model.matrix as.formula median
 #' @importFrom MAST FromMatrix zlm invlogit
+#' @importFrom SummarizedExperiment assay colData
 #' @export
 #' @description
 #' Fit a truncated gaussian hurdle model for each taxon of the count data. The
@@ -114,53 +104,51 @@ fitZINB <- function(counts)
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
 #' and the estimated probability to observe a zero in the `Y0` column.
 #' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
-#' # HURDLE model estimation
-#' f_values <- fitHURDLE(counts,"median")
-#' head(f_values)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit model on the counts matrix
+#' HURDLE <- fitHURDLE(counts, scale = "median")
+#' head(HURDLE)
+#' }
 
 fitHURDLE <- function(counts, scale = "default"){
-  cat("Model: Truncated Gaussian Hurdle \n")
-  # tpm scaling
-  if(scale == "median"){
-    tpm <- counts * stats::median(colSums(counts)) / colSums(counts)
-  } else if(scale == "default"){
-    tpm <- counts * 1e6 / colSums(counts)
-  } else stop("'scale' must be 'median' or 'default'")
-  # log2 + 1 transformation
-  tpm <- log2(tpm + 1)
-  # Single Cell object
-  sca <- MAST::FromMatrix(tpm)
-  # Normalization suggested in MAST vignette
-  ngeneson <- colSums(sca@assays@data$et)
-  CD <- sca@colData
-  CD$ngeneson <- ngeneson
-  CD$cngeneson <- scale(ngeneson)
-  sca@colData <- CD
-  # hurdle model estimation
-  hm <- MAST::zlm(~ 1 + cngeneson, sca = sca)
-  # C = Continous, positive counts, D = Discrete, 0 or 1
-  betaC <- hm@coefC
-  fittedC <- tcrossprod(betaC,
-                        stats::model.matrix(~ 1 + cngeneson,
-                                            data = sca@colData))
-  betaD <- hm@coefD
-  fittedD <- tcrossprod(betaD,
-                        stats::model.matrix(~ 1 + cngeneson,
-                                            data = sca@colData))
-  # Estimated parameters
-  mu <- fittedC
-  pi <- MAST::invlogit(fittedD)
-  # Back-transformation
-  Y = log(rowMeans(exp((pi * mu) * log(2))))
-  Y0 = rowMeans(1 - pi)
-  return(data.frame("Y" = Y, "Y0" = Y0))
+    cat("Model: Truncated Gaussian Hurdle \n")
+    # tpm scaling
+    if(scale == "median"){
+        tpm <- counts * stats::median(colSums(counts)) / colSums(counts)
+    } else if(scale == "default"){
+        tpm <- counts * 1e6 / colSums(counts)
+    } else stop("'scale' must be 'median' or 'default'")
+    # log2 + 1 transformation
+    tpm <- log2(tpm + 1)
+    # Single Cell object
+    sca <- MAST::FromMatrix(tpm)
+    # Normalization suggested in MAST vignette
+    ngeneson <- colSums(SummarizedExperiment::assay(sca))
+    CD <- SummarizedExperiment::colData(sca)
+    CD[, "ngeneson"] <- ngeneson
+    CD[, "cngeneson"] <- scale(ngeneson)
+    SummarizedExperiment::colData(sca) <- CD
+    # hurdle model estimation
+    hm <- MAST::zlm(~ 1 + cngeneson, sca = sca, onlyCoef = TRUE)
+    # C = Continous, positive counts, D = Discrete, 0 or 1
+    betaC <- hm[,,"C"]
+    fittedC <- tcrossprod(betaC,
+                          stats::model.matrix(~ 1 + cngeneson,
+                              data = SummarizedExperiment::colData(sca)))
+    betaD <- hm[,,"D"]
+    fittedD <- tcrossprod(betaD,
+                          stats::model.matrix(~ 1 + cngeneson,
+                              data = SummarizedExperiment::colData(sca)))
+    # Estimated parameters
+    mu <- fittedC
+    pi <- MAST::invlogit(fittedD)
+    # Back-transformation
+    Y = log(rowMeans(exp((pi * mu) * log(2))))
+    Y0 = rowMeans(1 - pi)
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title fitZIG
@@ -184,48 +172,48 @@ fitHURDLE <- function(counts, scale = "default"){
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
 #' and the estimated probability to observe a zero in the `Y0` column.
 #' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
-#' # ZIG model estimation
-#' f_values <- fitZIG(counts,"median")
-#' head(f_values)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit model on the counts matrix
+#' ZIG <- fitZIG(counts, scale = "median")
+#' head(ZIG)
+#' }
 
 fitZIG <- function(counts, scale = "default"){
-  cat("Model: Zero-Inflated Gaussian \n")
-  MGS <- metagenomeSeq::newMRexperiment(counts = counts)
-  # Normalization
-  MGSp = metagenomeSeq::cumNormStat(MGS)
-  MGS <- metagenomeSeq::cumNorm(MGS,MGSp)
-  normFactor = metagenomeSeq::normFactors(MGS)
-  # scaling
-  if(scale == "median"){
-    normFactor = log2(normFactor / stats::median(normFactor) + 1)
-  } else if(scale == "default"){
-    normFactor = log2(normFactor / 1000 + 1)
-  } else stop("'scale' must be 'median' or 'default'")
-  # Design matrix
-  desMat <- cbind(1, normFactor = normFactor)
-  # Estimation
-  zig <- metagenomeSeq::fitZig(MGS,
-                               desMat,
-                               control = zigControl(maxit = 1000),
-                               useCSSoffset = FALSE) # To allow the "median"
-  # Coefficient extraction
-  mu <- tcrossprod(zig@fit$coefficients, desMat)
-  Y <- rowMeans(mu) * log(2)
-  Y0 <- rowMeans(zig@z)
-  return(data.frame("Y" = Y, "Y0" = Y0))
+    cat("Model: Zero-Inflated Gaussian \n")
+    MGS <- metagenomeSeq::newMRexperiment(counts = counts)
+    # Normalization
+    MGSp = metagenomeSeq::cumNormStat(MGS)
+    MGS <- metagenomeSeq::cumNorm(MGS,MGSp)
+    normFactor = metagenomeSeq::normFactors(MGS)
+    # scaling
+    if(scale == "median"){
+        normFactor = log2(normFactor / stats::median(normFactor) + 1)
+    } else if(scale == "default"){
+        normFactor = log2(normFactor / 1000 + 1)
+    } else stop("'scale' must be 'median' or 'default'")
+    # Design matrix
+    desMat <- cbind(1, normFactor = normFactor)
+    # Estimation
+    zig <- metagenomeSeq::fitZig(MGS,
+                             desMat,
+                             control = metagenomeSeq::zigControl(maxit = 1000),
+                             useCSSoffset = FALSE) # To allow the "median"
+    # Coefficient extraction (metagenomeSeq::MRcoefs() changes the order, use @)
+    mu <- tcrossprod(coef(zig@fit), desMat)
+    Y <- rowMeans(mu) * log(2)
+    Y0 <- rowMeans(zig@z)
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title fitDM
 #'
 #' @importFrom MGLM MGLMreg
 #' @importFrom stats as.formula
+#' @import methods
+#' @importFrom stats4 coef
 #' @export
 #' @description
 #' Fit a Dirichlet-Multinomial (DM) distribution for each taxon of the count
@@ -239,39 +227,40 @@ fitZIG <- function(counts, scale = "default"){
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
 #' and the estimated probability to observe a zero in the `Y0` column.
 #' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
-#' # DM model estimation
-#' f_values <- fitDM(counts)
-#' head(f_values)
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit model on the counts matrix
+#' DM <- fitDM(counts)
+#' head(DM)
+#' }
 
 fitDM <- function(counts){
-  cat("Model: Dirichlet Multinomial \n")
-  # library sizes
-  ls <- colSums(counts)
-  data <- t(counts)
-  # Design only intercept
-  desFormula = stats::as.formula("data ~ 1")
-  # Model fit
-  dmFit <- MGLM::MGLMreg(desFormula, dist = "DM", display = TRUE)
-  fitted_values <- dmFit@fitted * ls
-  # Coefficent extraction
-  alpha_i <- t(exp(t(dmFit@coefficients) %*% 1))
-  alpha_0 <- rowSums(alpha_i)
+    cat("Model: Dirichlet Multinomial \n")
+    # library sizes
+    ls <- colSums(counts)
+    data <- t(counts)
+    # Design only intercept
+    desFormula = stats::as.formula("data ~ 1")
+    # Model fit
+    dmFit <- MGLM::MGLMreg(data ~ 1L, dist = "DM", display = TRUE)
+    # fitted_values <- dmFit@fitted * ls
+    # Coefficent extraction
+    alpha_i <- exp(coef(dmFit))
+    alpha_0 <- rowSums(alpha_i)
 
-  Y <- log1p(colMeans(ls %*% alpha_i/alpha_0))
-  # The univariate version of a DM is a Beta-Binomial
-  Y0 <- rowMeans(sapply(ls,function(l)
-    beta(a = alpha_i,
-         b = l + alpha_0 - alpha_i) /
-      beta(a = alpha_i,
-           b =  alpha_0 - alpha_i)))
-  return(data.frame("Y" = Y, "Y0" = Y0))
+    Y <- log1p(colMeans(ls %*% alpha_i/alpha_0))
+    # The univariate version of a DM is a Beta-Binomial
+    Y0 <- rowMeans(vapply(X = ls,
+                          FUN = function(l){
+                              beta(a = alpha_i,
+                                   b = l + alpha_0 - alpha_i) /
+                              beta(a = alpha_i,
+                                   b =  alpha_0 - alpha_i)
+                          },
+                          FUN.VALUE = seq(0,1,length.out = nrow(counts))))
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title prepareObserved
@@ -293,31 +282,35 @@ fitDM <- function(counts){
 #' continuity corrected logarithm for the mean CPM (`scale = "default"`) or the
 #' mean counts per median library size (`scale = "median"`) is computed instead.
 #'
-#' @examples
-#' # Let's generate some random count data
-#' nlibs <- 10
-#' ntaxa <- 100
-#' lambda = 2
-#' counts <- matrix(rpois(ntaxa*nlibs, lambda),
-#'                  nrow = ntaxa,
-#'                  ncol = nlibs)
+#' @seealso \code{\link{meanDifferences}}
 #'
-#' # observed values
-#' o_values <- prepareObserved(counts)
-#' head(o_values)
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit some models on the counts matrix
+#' HURDLE <- fitHURDLE(counts, scale = "median")
+#' NB <- fitNB(counts)
+#'
+#' # Then log-transform the observed counts
+#' # For HURDLE model remember to specify the "scale" parameter
+#' observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+#' # For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not necessary
+#' observed <- prepareObserved(counts)
+#' }
 
-prepareObserved <- function(counts,
-                            scale = NULL){
-  if(!is.null(scale)){
-    if(scale == "median"){
-      counts <- counts * stats::median(colSums(counts)) / colSums(counts)
-    } else if(scale == "default"){
-      counts <- counts * 1e6 / colSums(counts)
-    } else stop("When specified, 'scale' must be 'median' or 'default'")
-  }
-  Y <- log1p(rowMeans(counts))
-  Y0 <- rowMeans(counts == 0)
-  return(data.frame("Y" = Y, "Y0" = Y0))
+prepareObserved <- function(counts, scale = NULL){
+    if(!is.null(scale)){
+        if(scale == "median"){
+            counts <- counts * stats::median(colSums(counts)) / colSums(counts)
+        } else if(scale == "default"){
+            counts <- counts * 1e6 / colSums(counts)
+        } else stop("When specified, 'scale' must be 'median' or 'default'")
+    }
+    Y <- log1p(rowMeans(counts))
+    Y0 <- rowMeans(counts == 0)
+    return(data.frame("Y" = Y, "Y0" = Y0))
 }
 
 #' @title meanDifferences
@@ -344,19 +337,41 @@ prepareObserved <- function(counts,
 #' observed continuity corrected logarithms of the average count values in the
 #' `MD` columns, and between the estimated average probability to observe a zero
 #' and the the observed zero rate in the `ZPD` column.
+#'
+#' @seealso \code{\link{prepareObserved}}.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit some models on the counts matrix
+#' HURDLE <- fitHURDLE(counts, scale = "median")
+#' NB <- fitNB(counts)
+#'
+#' # Then log-transform the observed counts
+#' # For HURDLE model remember to specify the "scale" parameter
+#' observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+#' # For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not
+#' necessary
+#' observed <- prepareObserved(counts)
+#'
+#' # Compute the mean differences between estimated and observed counts
+#' meanDifferences(estimated = HURDLE, observed = observed_for_HURDLE)
+#' meanDifferences(estimated = NB, observed = observed)
+#' }
 
-meanDifferences <- function(estimated,
-                            observed){
-  if(sum(colnames(estimated) != colnames(observed))>0)
-    stop("Estimated and Observed data.frames have different colnames")
-  if(sum(colnames(estimated) != c("Y","Y0")) > 0 |
-     sum(colnames(observed) != c("Y","Y0")) > 0)
-    stop("Please rename the colnames of the data.frames as Y and Y0")
-  if(nrow(estimated) != nrow(observed))
-    stop("Estimated and Observed data.frames have different number of rows")
-  MD <- estimated$Y - observed$Y
-  ZPD <- estimated$Y0 - observed$Y0
-  return(data.frame("MD" = MD, "ZPD" = ZPD))
+meanDifferences <- function(estimated, observed){
+    if(sum(colnames(estimated) != colnames(observed))>0)
+        stop("Estimated and Observed data.frames have different colnames")
+    if(sum(colnames(estimated) != c("Y","Y0")) > 0 |
+       sum(colnames(observed) != c("Y","Y0")) > 0)
+        stop("Please rename the colnames of the data.frames as Y and Y0")
+    if(nrow(estimated) != nrow(observed))
+        stop("Estimated and Observed data.frames have different number of rows")
+    MD <- estimated[, "Y"] - observed[, "Y"]
+    ZPD <- estimated[, "Y0"] - observed[, "Y0"]
+    return(data.frame("MD" = MD, "ZPD" = ZPD))
 }
 
 #' @title RMSE
@@ -368,20 +383,55 @@ meanDifferences <- function(estimated,
 #' @param differences a vector of differences.
 #'
 #' @return RMSE value
+#'
+#' @seealso \code{\link{prepareObserved}} and \code{\link{meanDifferences}}.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#' counts = as(otu_table(ps_stool_16S), "matrix")
+#'
+#' # Fit some models on the counts matrix
+#' HURDLE <- fitHURDLE(counts, scale = "median")
+#' NB <- fitNB(counts)
+#'
+#' # Then log-transform the observed counts
+#' # For HURDLE model remember to specify the "scale" parameter
+#' observed_for_HURDLE <- prepareObserved(counts, scale = "median")
+#' # For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not
+#' necessary
+#' observed <- prepareObserved(counts)
+#'
+#' # Compute the mean differences between estimated and observed counts
+#' md_HURDLE = meanDifferences(estimated = HURDLE, observed =
+#' observed_for_HURDLE)
+#' md_NB = meanDifferences(estimated = NB, observed = observed)
+#'
+#' head(md_HURDLE)
+#'
+#' # Calculate RMSE for MD and ZPD values
+#' # HURDLE model
+#' RMSE(md_HURDLE[,"MD"])
+#' RMSE(md_HURDLE[,"ZPD"])
+#' # NB model
+#' RMSE(md_NB[,"MD"])
+#' RMSE(md_NB[,"ZPD"])
+#' }
 
 RMSE <- function(differences){
-  sqrt(mean(differences^2,na.rm = TRUE))
+    sqrt(mean(differences^2, na.rm = TRUE))
 }
 
 #' @title fitModels
 #'
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' A wrapper function that fits the specified models for each taxon of the count
 #' data and computes the mean difference (MD) and zero probability difference
 #' (ZPD) between estimated and observed values.
 #'
-#' @inheritParams fitNB
+#' @param object a phyloseq object.
 #' @param models character vector which assumes the values 'NB', 'ZINB', 'DM',
 #' 'ZIG', and 'HURDLE'.
 #' @param scale_ZIG character vector, either 'median' or 'default' to choose
@@ -401,60 +451,79 @@ RMSE <- function(differences){
 #' \code{\link{prepareObserved}} for raw counts preparation, and
 #' \code{\link{meanDifferences}} for the Mean Difference (MD) and Zero
 #' Probability Difference (ZPD) computations.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#'
+#' # Estimate the counts assuming several distributions
+#' GOF_stool_16S <- fitModels(object = ps_stool_16S, models = c("NB","ZINB",
+#' "DM","ZIG","HURDLE"), scale_ZIG = c("median","default"), scale_HURDLE =
+#' c("median","default"))
+#'
+#' head(GOF_stool_16S)
+#' }
 
-fitModels <- function(counts,
+fitModels <- function(object,
                       models = c("NB","ZINB","DM","ZIG","HURDLE"),
                       scale_ZIG = c("default","median"),
                       scale_HURDLE = c("default","median")){
-  fittedModels <- list()
-  observed <- prepareObserved(counts)
-  if("NB" %in% models){
-    fitted <- fitNB(counts)
-    MD <- meanDifferences(estimated = fitted,
-                          observed = observed)
-    fittedModels$NB <- data.frame(observed,MD)
-  }
-  if("ZINB" %in% models){
-    fitted <- fitZINB(counts)
-    MD <- meanDifferences(estimated = fitted,
-                          observed = observed)
-    fittedModels$ZINB <- data.frame(observed,MD)
-  }
-  if("DM" %in% models){
-    fitted <- fitDM(counts)
-    MD <- meanDifferences(estimated = fitted,
-                          observed = observed)
-    fittedModels$DM <- data.frame(observed,MD)
-  }
-  if("ZIG" %in% models){
-    fitted <- fitZIG(counts, scale_ZIG[1])
-    MD <- meanDifferences(estimated = fitted,
-                          observed = observed)
-    name <- paste0("ZIG_",scale_ZIG[1])
-    fittedModels[[name]] <- data.frame(observed, MD)
-    if(length(scale_ZIG) == 2){
-      fitted <- fitZIG(counts, scale_ZIG[2])
-      MD <- meanDifferences(estimated = fitted,
-                            observed = observed)
-      name <- paste0("ZIG_",scale_ZIG[2])
-      fittedModels[[name]] <- data.frame(observed, MD)
+    counts <- as(otu_table(object), "matrix")
+    if (!phyloseq::taxa_are_rows(object))
+    {
+        counts <- t(counts)
+    } else {}
+    fittedModels <- list()
+    observed <- prepareObserved(counts)
+    if("NB" %in% models){
+        fitted <- fitNB(counts)
+        MD <- meanDifferences(estimated = fitted,
+                              observed = observed)
+        fittedModels[["NB"]] <- data.frame(observed,MD)
     }
-  }
-  if("HURDLE" %in% models){
-    fitted <- fitHURDLE(counts, scale_HURDLE[1])
-    MD <- meanDifferences(estimated = fitted,
-                          observed = observed)
-    name <- paste0("HURDLE_",scale_HURDLE[1])
-    fittedModels[[name]] <- data.frame(observed, MD)
-    if(length(scale_HURDLE) == 2){
-      fitted <- fitHURDLE(counts, scale_HURDLE[2])
-      MD <- meanDifferences(estimated = fitted,
-                            observed = observed)
-      name <- paste0("HURDLE_",scale_HURDLE[2])
-      fittedModels[[name]] <- data.frame(observed, MD)
+    if("ZINB" %in% models){
+        fitted <- fitZINB(counts)
+        MD <- meanDifferences(estimated = fitted,
+                              observed = observed)
+        fittedModels[["ZINB"]] <- data.frame(observed,MD)
     }
-  }
-  return(fittedModels)
+    if("DM" %in% models){
+        fitted <- fitDM(counts)
+        MD <- meanDifferences(estimated = fitted,
+                              observed = observed)
+        fittedModels[["DM"]] <- data.frame(observed,MD)
+    }
+    if("ZIG" %in% models){
+        fitted <- fitZIG(counts, scale_ZIG[1])
+        MD <- meanDifferences(estimated = fitted,
+                              observed = observed)
+        name <- paste0("ZIG_",scale_ZIG[1])
+        fittedModels[[name]] <- data.frame(observed, MD)
+        if(length(scale_ZIG) == 2){
+            fitted <- fitZIG(counts, scale_ZIG[2])
+            MD <- meanDifferences(estimated = fitted,
+                                  observed = observed)
+            name <- paste0("ZIG_",scale_ZIG[2])
+            fittedModels[[name]] <- data.frame(observed, MD)
+        }
+    }
+    if("HURDLE" %in% models){
+        fitted <- fitHURDLE(counts, scale_HURDLE[1])
+        observed <- prepareObserved(counts, scale = scale_HURDLE[1])
+        MD <- meanDifferences(estimated = fitted,
+                              observed = observed)
+        name <- paste0("HURDLE_",scale_HURDLE[1])
+        fittedModels[[name]] <- data.frame(observed, MD)
+        if(length(scale_HURDLE) == 2){
+            fitted <- fitHURDLE(counts, scale_HURDLE[2])
+            observed <- prepareObserved(counts, scale = scale_HURDLE[2])
+            MD <- meanDifferences(estimated = fitted,
+                                  observed = observed)
+            name <- paste0("HURDLE_",scale_HURDLE[2])
+            fittedModels[[name]] <- data.frame(observed, MD)
+        }
+    }
+    return(fittedModels)
 }
 
 #' @title plotMD
@@ -466,7 +535,8 @@ fitModels <- function(counts,
 #' A function to plot mean difference (MD) and zero probability difference (ZPD)
 #' values between estimated and observed values.
 #'
-#' @param data a `data.frame` object with a 'Model', 'Y', 'Y0', 'MD', and 'ZPD'
+#' @param data the `list` output of the \code{fitModels} function or a
+#' `data.frame` object with 'Model', 'Y', 'Y0', 'MD', and 'ZPD'
 #' columns containing the model name, the observed values for the mean and the
 #' zero proportion and the differences between observed and estimated values.
 #' @param difference character vector, either 'MD' or 'ZPD' to plot the
@@ -478,80 +548,97 @@ fitModels <- function(counts,
 #' @return a `ggplot` object.
 #'
 #' @seealso \code{\link{fitModels}} and \code{\link{RMSE}} for the model
-#' estimations and the RMSE computations respectively.
+#' estimations and the RMSE computations respectively. \code{\link{plotRMSE}}
+#' for the graphical evaluation of the RMSE values.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#'
+#' # Estimate the counts assuming several distributions
+#' GOF_stool_16S <- fitModels(object = ps_stool_16S, models = c("NB","ZINB",
+#' "DM","ZIG","HURDLE"), scale_ZIG = c("median","default"), scale_HURDLE =
+#' c("median","default"))
+#'
+#' # Plot the results
+#' plotMD(data = GOF_stool_16S, difference = "MD", split = TRUE)
+#' plotMD(data = GOF_stool_16S, difference = "ZPD", split = TRUE)
+#' }
 
 plotMD <- function(data, difference = NULL, split = TRUE){
-  # To avoid notes like: "no visible binding for global variable..."
-  Y <- MD <- Model <- Y0 <- ZPD <- NULL
-  if(difference == "MD"){
-    if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
-       "MD" %in% colnames(data)){
-
-      RMSE_MD <- plyr::ddply(.data = data,
-                             .variables = ~ Model,
-                             .fun = function(m) cbind("RMSE" = RMSE(m$MD)))
-
-      gobj <- ggplot(data = data, aes(x = Y, y = MD, color = Model)) +
-        ggtitle(label = "Mean Differences plot",
-                subtitle = paste0("Observed = log(mean(counts*)+1)",
-                                  "\n",
-                                  "Estimated = log(mean(fitted*)+1)"))
-
-      if(split){
-        gobj <- gobj +
-          geom_text(data = RMSE_MD, color = "black",
-                    aes(x = mean(data$Y),
-                        y = max(data$MD,na.rm = TRUE),
-                        label = paste0("RMSE:",round(RMSE,2))))
-      }
-
-    } else {stop("data should contains 'Model', 'Y', and 'MD' columns for model
-              name, observed values and mean difference values respectively.")}
-  } else if(difference == "ZPD"){
-    if("Model" %in% colnames(data) &
-       "Y0" %in% colnames(data) &
-       "ZPD" %in% colnames(data)){
-
-      RMSE_ZPD <- plyr::ddply(.data = data,
-                              .variables = ~ Model,
-                              .fun = function(m) cbind("RMSE" = RMSE(m$ZPD)))
-
-      gobj <- ggplot(data = data, aes(x = Y0,  y = ZPD,  color = Model)) +
-        ggtitle(label = "Zero Probability Differences plot", subtitle =
-                  "Observed = mean(counts=0)\nEstimated = mean(P(Y=0))")
-
-      if(split){
-        gobj <- gobj +
-          geom_text(data = RMSE_ZPD, color = "black",
-                    aes(x = mean(data$Y0),
-                        y = max(data$ZPD,na.rm = TRUE),
-                        label = paste0("RMSE:",round(RMSE,4))))
-      }
-
-    } else {stop("df should contains 'Model', 'Y0', and 'ZPD' columns for model
-              name, zero rate observed values and zero probability difference
-              values respectively.")}
-  } else stop("Difference must be 'MD' or 'ZPD'")
-
-  gobj <- gobj +
-    geom_hline(aes(yintercept = 0), lty = 2, color = "black") +
-    theme(legend.position = "bottom") +
-    xlab("Observed") +
-    ylab("Estimated-Observed")
-
-  if(length(unique(data$Model))>1){
-    if(split){
-      gobj <- gobj +
-        facet_grid(~ Model, labeller = labeller(.cols = label_both)) +
-        geom_point(pch = 21) +
-        geom_smooth(color = "black")
-    } else {
-      gobj <- gobj +
-        geom_smooth()
+    Y <- MD <- Model <- Y0 <- ZPD <- NULL
+    if(is.list(data)){
+        data <- plyr::ldply(data, .id = "Model")
     }
-  }
+    if(difference == "MD"){
+        if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
+           "MD" %in% colnames(data)){
 
-  return(gobj)
+            RMSE_MD <- plyr::ddply(.data = data,
+                                   .variables = ~ Model,
+                                   .fun = function(m) {
+                                       cbind("RMSE" = RMSE(m[,"MD"]))
+                                   })
+
+            gobj <- ggplot(data = data, aes(x = Y, y = MD, color = Model)) +
+                ggtitle(label = "Mean Differences plot",
+                        subtitle = paste0("Observed = log(mean(counts*)+1)",
+                                          "\n",
+                                          "Estimated = log(mean(fitted*)+1)"))
+            if(split){
+              gobj <- gobj +
+                geom_text(data = RMSE_MD, color = "black",
+                          aes(x = mean(data[, "Y"]),
+                              y = max(data[, "MD"],na.rm = TRUE),
+                              label = paste0("RMSE:",round(RMSE,2))))
+          }
+        } else {
+            stop("data should contain 'Model', 'Y', and 'MD' columns for model
+                 name, observed values and mean difference values respectively."
+            )}
+    } else if(difference == "ZPD"){
+        if("Model" %in% colnames(data) &
+           "Y0" %in% colnames(data) &
+           "ZPD" %in% colnames(data)){
+            RMSE_ZPD <- plyr::ddply(.data = data,
+                                    .variables = ~ Model,
+                                    .fun = function(m){
+                                        cbind("RMSE" = RMSE(m[, "ZPD"]))
+                                    })
+            gobj <- ggplot(data = data, aes(x = Y0,  y = ZPD,  color = Model)) +
+              ggtitle(label = "Zero Probability Differences plot",
+                      subtitle = paste0("Observed = mean(counts=0)",
+                                        "\n",
+                                        "Estimated = mean(P(Y=0))"))
+            if(split){
+                gobj <- gobj +
+                    geom_text(data = RMSE_ZPD, color = "black",
+                              aes(x = mean(data[, "Y0"]),
+                                  y = max(data[, "ZPD"], na.rm = TRUE),
+                                  label = paste0("RMSE:", round(RMSE,4))))
+            }
+        } else {stop("data should contain 'Model', 'Y0', and 'ZPD' columns for
+                     model name, zero rate observed values and zero probability
+                     difference values respectively.")}
+    } else stop("Difference must be 'MD' or 'ZPD'")
+    gobj <- gobj +
+        geom_hline(aes(yintercept = 0), lty = 2, color = "black") +
+        theme(legend.position = "bottom") +
+        xlab("Observed") +
+        ylab("Estimated-Observed")
+    if(length(unique(data[, "Model"]))>1){
+        if(split){
+            gobj <- gobj +
+                facet_grid(~ Model,
+                           labeller = labeller(.cols = label_both)) +
+                geom_point(pch = 21) +
+                geom_smooth(color = "black")
+        } else {
+            gobj <- gobj +
+                geom_smooth()
+        }
+    }
+    return(gobj)
 }
 
 #' @title plotRMSE
@@ -563,9 +650,10 @@ plotMD <- function(data, difference = NULL, split = TRUE){
 #' A function to plot RMSE values computed for mean difference (MD) and zero
 #' probability difference (ZPD) values between estimated and observed values.
 #'
-#' @param data a `data.frame` object with a 'Model', 'Y', 'Y0', 'MD', and 'ZPD'
-#' columns containing the model name, the observed values for the mean and the
-#' zero proportion and the differences between observed and estimated values.
+#' @param data the `list` output of the \code{fitModels} function or a
+#' `data.frame` object with a 'Model', 'Y', 'Y0', 'MD', and 'ZPD' columns
+#' containing the model name, the observed values for the mean and the zero
+#' proportion and the differences between observed and estimated values.
 #' @param difference character vector, either 'MD' or 'ZPD' to plot the RMSE
 #' values for the differences between estimated and observed mean counts or the
 #' differences between estimated zero probability and observed zero proportion.
@@ -573,54 +661,71 @@ plotMD <- function(data, difference = NULL, split = TRUE){
 #' @return a `ggplot` object.
 #'
 #' @seealso \code{\link{fitModels}} and \code{\link{RMSE}} for the model
-#' estimations and the RMSE computations respectively.
+#' estimations and the RMSE computations respectively. \code{\link{plotMD}} for
+#' the graphical evaluation.
+#'
+#' @examples
+#' \dontrun{
+#' data(ps_stool_16S)
+#'
+#' # Estimate the counts assuming several distributions
+#' GOF_stool_16S <- fitModels(object = ps_stool_16S, models = c("NB","ZINB",
+#' "DM","ZIG","HURDLE"), scale_ZIG = c("median","default"), scale_HURDLE =
+#' c("median","default"))
+#'
+#' # Plot the RMSE results
+#' plotRMSE(data = GOF_stool_16S, difference = "MD")
+#' plotRMSE(data = GOF_stool_16S, difference = "ZPD")
+#' }
 
 plotRMSE <- function(data, difference = NULL){
-  # To avoid notes like: "no visible binding for global variable Model"
-  Model <- NULL
-  if(difference == "MD"){
-    if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
-       "MD" %in% colnames(data)){
+    Model <- NULL
+    if(is.list(data)){
+        data <- plyr::ldply(data, .id = "Model")
+    }
+    if(difference == "MD"){
+        if("Model" %in% colnames(data) & "Y" %in% colnames(data) &
+           "MD" %in% colnames(data)){
 
-      RMSE <- plyr::ddply(.data = data,
-                          .variables = ~ Model,
-                          .fun = function(m) cbind("RMSE" = RMSE(m$MD)))
+          RMSE <- plyr::ddply(.data = data,
+                              .variables = ~ Model,
+                              .fun = function(m) {
+                                      cbind("RMSE" = RMSE(m[, "MD"]))
+                                  })
 
-      gobj <- ggplot(data = RMSE, aes(x = Model, y = RMSE, fill = Model)) +
-        geom_col() +
-        geom_label(aes(x = Model, y = RMSE, label = round(RMSE,2)),
-                   fill = "white") +
-        ggtitle(label = "RMSE",
-                subtitle = "Mean differences")
+          gobj <- ggplot(data = RMSE, aes(x = Model, y = RMSE, fill = Model)) +
+              geom_col() +
+              geom_label(aes(x = Model, y = RMSE, label = round(RMSE,2)),
+                         fill = "white") +
+              ggtitle(label = "RMSE",
+                      subtitle = "Mean differences")
+        } else {stop("data should contains 'Model', 'Y', and 'MD' columns for
+        model name, observed values and mean difference values respectively.")}
+    } else if(difference == "ZPD"){
+        if("Model" %in% colnames(data) &
+           "Y0" %in% colnames(data) &
+           "ZPD" %in% colnames(data)){
 
-    } else {stop("data should contains 'Model', 'Y', and 'MD' columns for model
-              name, observed values and mean difference values respectively.")}
-  } else if(difference == "ZPD"){
-    if("Model" %in% colnames(data) &
-       "Y0" %in% colnames(data) &
-       "ZPD" %in% colnames(data)){
+          RMSE <- plyr::ddply(.data = data,
+                              .variables = ~ Model,
+                              .fun = function(m){
+                                      cbind("RMSE" = RMSE(m[, "ZPD"]))
+                                  })
 
-      RMSE <- plyr::ddply(.data = data,
-                          .variables = ~ Model,
-                          .fun = function(m) cbind("RMSE" = RMSE(m$ZPD)))
+          gobj <- ggplot(data = RMSE, aes(x = Model, y = RMSE, fill = Model)) +
+              geom_col() +
+              geom_label(aes(x = Model, y = RMSE, label = round(RMSE,4)),
+                         fill = "white") +
+              ggtitle(label = "RMSE",
+                      subtitle = "Zero probability difference")
 
-      gobj <- ggplot(data = RMSE, aes(x = Model, y = RMSE, fill = Model)) +
-        geom_col() +
-        geom_label(aes(x = Model, y = RMSE, label = round(RMSE,4)),
-                   fill = "white") +
-        ggtitle(label = "RMSE",
-                subtitle = "Zero probability difference")
-
-    } else {stop("df should contains 'Model', 'Y0', and 'ZPD' columns for model
-              name, zero rate observed values and zero probability difference
-              values respectively.")}
-
-  } else stop("Difference must be 'MD' or 'ZPD'")
-
-  gobj <- gobj +
-    theme(legend.position = "bottom",
-          axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
-    scale_x_discrete(limits = RMSE$Model[order(RMSE$RMSE)])
-
-  return(gobj)
+        } else {stop("df should contains 'Model', 'Y0', and 'ZPD' columns for
+                     model name, zero rate observed values and zero probability
+                     difference values respectively.")}
+    } else stop("Difference must be 'MD' or 'ZPD'")
+    gobj <- gobj +
+        theme(legend.position = "bottom",
+              axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
+        scale_x_discrete(limits = RMSE[order(RMSE[, "RMSE"]), "Model"])
+    return(gobj)
 }

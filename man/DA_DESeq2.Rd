@@ -56,7 +56,7 @@ the parameters passed to the function.
 Fast run for DESeq2 differential abundance detection method.
 }
 \seealso{
-[phyloseq::phyloseq_to_deseq2()] for phyloseq to DESeq2 object
-conversion, [DESeq2::DESeq()] and [DESeq2::results()] for the differential
-abundance method.
+\code{\link[phyloseq]{phyloseq_to_deseq2}} for phyloseq to DESeq2
+object conversion, \code{\link[DESeq2]{DESeq}} and
+\code{\link[DESeq2]{results}} for the differential abundance method.
 }

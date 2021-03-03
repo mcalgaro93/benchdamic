@@ -7,7 +7,6 @@
 DA_ALDEx2(
   object,
   pseudo_count = FALSE,
-  seed = 1,
   conditions = NULL,
   mc.samples = 128,
   test = c("t", "wilcox"),
@@ -20,8 +19,6 @@ DA_ALDEx2(
 \item{object}{phyloseq object.}
 
 \item{pseudo_count}{Add 1 to all counts if TRUE (default = FALSE).}
-
-\item{seed}{seed to use for the MC sampling.}
 
 \item{conditions}{A character vector. A description of the data structure used
 for testing. Typically, a vector of group labels. For \code{aldex.glm}, use
@@ -56,6 +53,7 @@ considering the parameters passed to the function.
 Fast run for the ALDEx2's differential abundance detection method.
 }
 \seealso{
-[ALDEx2::aldex] for the Dirichlet-Multinomial model estimation.
-Several and more complex tests are present in the ALDEx2 framework.
+\code{\link[ALDEx2]{aldex}} for the Dirichlet-Multinomial model
+estimation. Several and more complex tests are present in the ALDEx2
+framework.
 }

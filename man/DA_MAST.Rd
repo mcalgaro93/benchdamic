@@ -42,5 +42,6 @@ considering the parameters passed to the function.
 Fast run for MAST differential abundance detection method.
 }
 \seealso{
-[MAST::zlm] for the Truncated Gaussian Hurdle model estimation.
+\code{\link[MAST]{zlm}} for the Truncated Gaussian Hurdle model
+estimation.
 }
