@@ -41,6 +41,22 @@ considering the parameters passed to the function.
 \description{
 Fast run for MAST differential abundance detection method.
 }
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.none"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_MAST(ps_stool_16S, rescale = "median", design = ~ group, norm = "none",
+    coefficient = "groupgrp2")
+}
 \seealso{
 \code{\link[MAST]{zlm}} for the Truncated Gaussian Hurdle model
 estimation.

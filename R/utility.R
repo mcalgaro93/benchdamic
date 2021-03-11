@@ -15,12 +15,10 @@
 #' represent the mock groups pattern.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Generate the patterns for 100 mock comparison for an experiment
-#' mocks <- createMocks(nsamples = nsamples(ps_stool_16S), N = 100)
+#' mocks <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 100)
 #' head(mocks)
-#' }
 
 # Create data.frame with random labels
 createMocks <- function(nsamples, N = 1000){
@@ -29,8 +27,7 @@ createMocks <- function(nsamples, N = 1000){
     for(i in seq_len(N)){ # N random balanced relabellings
         grps <- rep("grp1", sample_num)
         grps[sample(seq_len(sample_num),size = sample_num/2)] <- "grp2"
-        mock_df[i,] <- grps
-    }
+        mock_df[i,] <- grps}
     rownames(mock_df) <- paste0("Comparison",seq_len(N))
     return(mock_df)
 }# END - function: createMocks
@@ -48,47 +45,45 @@ createMocks <- function(nsamples, N = 1000){
 #' @param paired name of the unique subject identifier variable. If specified,
 #' paired samples will remain in the same split. (default = NULL).
 #' @param balanced If \code{TRUE} a balanced design will be created for the
-#' splits.
+#' splits. (Ignored if paired is supplied).
 #' @param N number of splits to generate.
 #'
 #' @return A list of 2 `data.frame` objects: \code{Subset1} and
 #' \code{Subset2} containing `N` rows and half of the total number of samples
 #' columns. Each cell contains a unique sample identifier.
+#' @examples
+#' data(ps_plaque_16S)
+#' set.seed(123)
+#' # Balanced design for repeated measures
+#' splits_df <- createSplits(object = ps_plaque_16S, varName =
+#'     "HMP_BODY_SUBSITE", paired = "RSID", balanced = TRUE, N = 100)
+#' # Balanced design for independent samples
+#' splits_df <- createSplits(object = ps_plaque_16S, varName =
+#'     "HMP_BODY_SUBSITE", balanced = TRUE, N = 100)
+#' # Unbalanced design
+#' splits_df <- createSplits(object = ps_plaque_16S, varName =
+#'     "HMP_BODY_SUBSITE", balanced = FALSE, N = 100)
 
-createSplits <- function(object,
-                         varName = NULL,
-                         paired = NULL,
-                         balanced = TRUE,
-                         N = 1000)
-{
-
+createSplits <- function(object, varName = NULL, paired = NULL, balanced = TRUE,
+    N = 1000){
     metadata <- data.frame(phyloseq::sample_data(object))
-
     # Take variable names and levels
     if(is.null(varName)){
-        stop("Please supply the name of the variable to perform the splitting")
-    } else if(!is.element(varName,colnames(metadata))){
-        stop("Variable not found")
-    } else {
+        stop("Please supply the name of the variable to perform the splitting")}
+    else if(!is.element(varName,colnames(metadata))){
+        stop("Variable not found")}
+    else {
         variable <- metadata[,varName]
         if(!is.factor(variable)){
-            warning(paste("The variable",
-                          varName,
-                          "is not a factor.",
-                          "Coercing to factor."))
-            variable <- as.factor(variable)
-        }
+            warning(paste("The variable", varName, "is not a factor.",
+                "Coercing to factor."))
+            variable <- as.factor(variable)}
         var_levels <- levels(variable)
-        if(length(var_levels) != 2){
-            stop(paste("The variable",
-                       varName,
-                       "has not 2 levels."))
-        } else {
+        if(length(var_levels) != 2)
+            stop(paste("The variable", varName, "has not 2 levels."))
+        else {
             grp1_name = var_levels[1]
-            grp2_name = var_levels[2]
-        }
-    }
-
+            grp2_name = var_levels[2]}}
     if(!is.null(paired)){
         # 1 ID is enough to identify the two paired samples
         ID <- unique(metadata[,paired])
@@ -96,16 +91,12 @@ createSplits <- function(object,
         half = num_ID/2
         Subset1 <- matrix(NA, nrow = N, ncol = 2 * half)
         Subset2 <- matrix(NA, nrow = N, ncol = 2 * half)
-
         for(i in seq_len(N)){
             chosenID <- sample(x = ID, size = half, replace = FALSE)
-            Subset1[i,] <- rownames(metadata[metadata[,paired] %in%
-                                                 chosenID,])
-            Subset2[i,] <- rownames(metadata[metadata[,paired] %in%
-                                                 setdiff(ID,chosenID),])
-        }
-
-    } else {
+            Subset1[i,] <- rownames(metadata[metadata[,paired] %in% chosenID,])
+            Subset2[i,] <- rownames(metadata[metadata[,paired] %in% setdiff(ID,
+                chosenID),])}}
+    else {
         # find indexes for the 2 levels
         ID1 <- rownames(metadata[metadata[,varName] == grp1_name,])
         ID2 <- rownames(metadata[metadata[,varName] == grp2_name,])
@@ -115,21 +106,17 @@ createSplits <- function(object,
             min_length <- min(num_ID1,num_ID2)
             ID1 <- ID1[seq_len(min_length)]
             ID2 <- ID2[seq_len(min_length)]
-            half <- rep(min_length/2,2)
-        } else {
-            half <- round(c(num_ID1,num_ID2)/2, digits = 0)
-        }
+            num_ID1 <- num_ID2 <- min_length
+            half <- rep(min_length %/% 2,2)
+        } else half <- c(num_ID1,num_ID2) %/% 2
         Subset1 <- matrix(NA, nrow = N, ncol = sum(half))
-        Subset2 <- matrix(NA, nrow = N, ncol = sum(half))
-
+        Subset2 <- matrix(NA, nrow = N, ncol = sum(c(num_ID1,num_ID2))-sum(
+            half))
         for(i in seq_len(N)){
             chosenID1 <- sample(x = ID1, size = half[1], replace = FALSE)
             chosenID2 <- sample(x = ID2, size = half[2], replace = FALSE)
             Subset1[i,] <- c(chosenID1, chosenID2)
-            Subset2[i,] <- c(setdiff(ID1,chosenID1),setdiff(ID2,chosenID2))
-        }
-    }
-
+            Subset2[i,] <- c(setdiff(ID1,chosenID1),setdiff(ID2,chosenID2))}}
     rownames(Subset1) <- rownames(Subset2) <- paste0("Comparison",seq_len(N))
     return(list("Subset1" = Subset1, "Subset2" = Subset2))
 }# END - function: createSplits
@@ -157,71 +144,43 @@ createSplits <- function(object,
 #' @seealso \code{\link[edgeR]{calcNormFactors}} for details.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the scaling factors
 #' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
 #'
 #' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.TMM"]
 #' head(scaleFacts)
 #'
 #' # VERY IMPORTANT: to convert scaling factors to normalization factors
 #' # multiply them by the library sizes and renormalize.
-#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 #' # Renormalize: multiply to 1
 #' normFacts = normFacts/exp(mean(log(normFacts)))
-#' }
 
-norm_edgeR <- function(object,
-                       method=c("TMM", "TMMwsp",
-                                "RLE", "upperquartile",
-                                "posupperquartile", "none"),
-                       refColumn = NULL, logratioTrim = .3, sumTrim = 0.05,
-                       doWeighting = TRUE, Acutoff = -1e10, p = 0.75, ...)
-{
-    counts <- as(otu_table(object), "matrix")
+norm_edgeR <- function(object, method = c("TMM", "TMMwsp", "RLE",
+    "upperquartile", "posupperquartile", "none"), refColumn = NULL,
+    logratioTrim = .3, sumTrim = 0.05, doWeighting = TRUE, Acutoff = -1e10,
+    p = 0.75, ...){
+    counts <- as(phyloseq::otu_table(object), "matrix")
     if (!phyloseq::taxa_are_rows(object))
-    {
         counts <- t(counts)
-    } else {}
-
-    if (is.na(method)){
+    if (is.na(method))
         stop("Please, supply a valid method between 'TMM', 'TMMwsp', 'RLE',
-        'upperquartile', 'posupperquartile' or 'none'")
-    }
-    else if (method == "posupperquartile")
-    {
+            'upperquartile', 'posupperquartile' or 'none'")
+    else if (method == "posupperquartile"){
         scaledCounts <- t(counts) / colSums(counts)
         tmpNF <- apply(scaledCounts, MARGIN = 1L, FUN = function(x)
             quantile(x[x != 0], probs = .75))
         normFacts <- tmpNF/exp(mean(log(tmpNF)))
     } else {
-        normFacts <- edgeR::calcNormFactors(counts, method=method,
-                                            refColumn = refColumn,
-                                            logratioTrim = logratioTrim,
-                                            sumTrim = sumTrim,
-                                            doWeighting= doWeighting,
-                                            Acutoff = Acutoff,
-                                            p = p, ...)
-    }# END - ifelse: posupperquartile = upperquartile only of non-zero counts
-
-    # VERY IMPORTANT: multiply by library sizes and renormalize.
-    # edgeR calculates scaling factors, which still have to be multiplied by
-    # library sizes to get to the size factors of effective sequencing depth,
-    # i.e. robust estimates of the library sizes.
-    # normFacts = normFacts*sample_sums(object)
-    # Renormalize: multiply to 1
-    # normFacts = normFacts/exp(mean(log(normFacts)))
-
+        normFacts <- edgeR::calcNormFactors(counts, method = method, refColumn =
+            refColumn, logratioTrim = logratioTrim, sumTrim = sumTrim,
+            doWeighting = doWeighting, Acutoff = Acutoff, p = p, ...) }
+    # END - ifelse: posupperquartile = upperquartile only of non-zero counts
     if (all(is.na(normFacts)))
-    {
         stop("Failed to compute normalization factors!")
-    }
-    object@sam_data@.Data <- c(object@sam_data@.Data, list(normFacts))
-    aux <- object@sam_data@names
-    aux[length(aux)] <- paste("NF", method, sep = ".")
-    object@sam_data@names <- aux
+    phyloseq::sample_data(object)[,paste("NF", method, sep = ".")] <- normFacts
     return(object)
 }# END - function: norm_edgeR
 
@@ -258,46 +217,32 @@ norm_edgeR <- function(object,
 #' @seealso \code{\link[DESeq2]{estimateSizeFactors}} for details.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the normalization factors
 #' ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
 #'
 #' # The phyloseq object now contains the normalization factors:
-#' normFacts <- sample_data(ps_stool_16S)[,"NF.poscounts"]
+#' normFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.poscounts"]
 #' head(normFacts)
 #'
 #' # VERY IMPORTANT: to convert normalization factors to scaling factors divide
 #' # them by the library sizes and renormalize.
-#' scaleFacts = normFacts / sample_sums(ps_stool_16S)
+#' scaleFacts = normFacts / phyloseq::sample_sums(ps_stool_16S)
 #' # Renormalize: multiply to 1
 #' scaleFacts = scaleFacts/exp(mean(log(scaleFacts)))
-#' }
 
-norm_DESeq2 <- function(object,
-                        method = c("ratio", "poscounts", "iterate"),
-                        ...)
-{
+norm_DESeq2 <- function(object, method = c("ratio", "poscounts", "iterate"),
+    ...){
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     ## Calculate size factors
     obj <- phyloseq::phyloseq_to_deseq2(object, design = ~ 1)
-
     if(missing(method))
         stop("Please supply a normalization method between 'ratio', 'poscounts'
-             or 'iterate'.")
-
+            or 'iterate'.")
     normFacts <- DESeq2::sizeFactors(DESeq2::estimateSizeFactors(obj,
-                                                                 type = method,
-                                                                 ...))
-
-    object@sam_data@.Data <- c(object@sam_data@.Data, list(normFacts))
-    aux <- object@sam_data@names
-    aux[length(aux)] <- paste("NF", method, sep = ".")
-    object@sam_data@names <- aux
+        type = method, ...))
+    phyloseq::sample_data(object)[,paste("NF", method, sep = ".")] <- normFacts
     return(object)
 }# END - function: norm_DESeq2
 
@@ -323,48 +268,38 @@ norm_DESeq2 <- function(object,
 #' @seealso \code{\link[metagenomeSeq]{calcNormFactors}} for details.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the scaling factors
 #' ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
 #'
 #' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.CSSmedian"]
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.CSSmedian"]
 #' head(scaleFacts)
 #'
 #' # VERY IMPORTANT: to convert scaling factors to normalization factors
 #' # multiply them by the library sizes and renormalize.
-#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 #' # Renormalize: multiply to 1
 #' normFacts = normFacts/exp(mean(log(normFacts)))
-#' }
 
 norm_CSS <- function(object, method = "default")
 {
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     counts <- as(phyloseq::otu_table(object), "matrix")
-
     obj <- metagenomeSeq::newMRexperiment(counts = counts)
     normFacts <- metagenomeSeq::calcNormFactors(obj = obj)
-    normFacts <- drop(as.matrix(normFacts))
-
+    normFacts <- drop(as(normFacts, "matrix"))
     # Default: log2(normFacts/1000 + 1)
     # Original metagenomeSeq paper: log2(normFacts/median(libsize) +1)
-    if(method == "default"){
+    if(method == "default")
         normFacts <- log2(normFacts/1000 + 1)
-    } else if (method == "median"){
+    else if (method == "median")
         normFacts <- log2(normFacts/stats::median(normFacts) + 1)
-    } else stop("Please choose a scaling method between 'default' or 'median'.")
+    else stop("Please choose a scaling method between 'default' or 'median'.")
     # Remember to useCSSoffset = FALSE in fitZig function
-
-    object@sam_data@.Data <- c(object@sam_data@.Data, list(normFacts))
-    aux <- object@sam_data@names
-    aux[length(aux)] <- paste("NF.CSS", method, sep = "")
-    object@sam_data@names <- aux
+    phyloseq::sample_data(object)[,paste0("NF.CSS", method)] <-
+        normFacts
     return(object)
 }# END - function: norm_CSS
 
@@ -382,35 +317,27 @@ norm_CSS <- function(object, method = "default")
 #' phyloseq `sample_data` slot.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the scaling factors
 #' ps_stool_16S <- norm_TSS(object = ps_stool_16S)
 #'
 #' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TSS"]
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TSS"]
 #' head(scaleFacts)
 #'
 #' # VERY IMPORTANT: to convert scaling factors to normalization factors
 #' # multiply them by the library sizes and renormalize.
-#' normFacts = scaleFacts * sample_sums(ps_stool_16S)
+#' normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 #' # Renormalize: multiply to 1
 #' normFacts = normFacts/exp(mean(log(normFacts)))
 #' # In this case they will be ones.
-#' }
 
 norm_TSS <- function(object)
 {
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     normFacts <- 1/phyloseq::sample_sums(object)
-    object@sam_data@.Data <- c(object@sam_data@.Data, list(normFacts))
-    aux <- object@sam_data@names
-    aux[length(aux)] <- "NF.TSS"
-    object@sam_data@names <- aux
+    phyloseq::sample_data(object)[,"NF.TSS"] <- normFacts
     return(object)
 }# END - function: norm_TSS
 
@@ -440,51 +367,30 @@ norm_TSS <- function(object)
 #' \code{\link[zinbwave]{computeObservationalWeights}} for weights extraction.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the ZINB weights
 #' zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
 #' head(zinbweights)
-#' }
 
-weights_ZINB <- function(object,
-                         design,
-                         K = 0,
-                         commondispersion = TRUE,
-                         zeroinflation = TRUE,
-                         verbose = FALSE,
-                         ...){
+weights_ZINB <- function(object, design, K = 0, commondispersion = TRUE,
+    zeroinflation = TRUE, verbose = FALSE, ...){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
-        else design <- as.formula(paste0("~", design))
-    }
-
+        else design <- as.formula(paste0("~", design))}
     if(is(design, "formula"))
         design <- stats::model.matrix(object = design,
-                                      data = data.frame(metadata))
-
-    zinbmodel <- zinbwave::zinbFit(Y = counts,
-                                   X = design,
-                                   K = K,
-                                   commondispersion = commondispersion,
-                                   zeroinflation = TRUE,
-                                   verbose = verbose,
-                                   BPPARAM = BiocParallel::SerialParam(),
-                                   ... = ...)
-
-    w <- zinbwave::computeObservationalWeights(model = zinbmodel,
-                                               x = counts)
+            data = data.frame(metadata))
+    zinbmodel <- zinbwave::zinbFit(Y = counts, X = design, K = K,
+        commondispersion = commondispersion, zeroinflation = TRUE, verbose =
+        verbose, BPPARAM = BiocParallel::SerialParam(), ... = ...)
+    w <- zinbwave::computeObservationalWeights(model = zinbmodel, x = counts)
     return(w)
 }# END - function: weights_ZINB
 
@@ -494,7 +400,7 @@ weights_ZINB <- function(object,
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom edgeR DGEList estimateDisp estimateGLMRobustDisp glmQLFit
-#' glmQLFTest
+#' glmQLFTest getDispersion
 #' @importFrom stats model.matrix p.adjust
 #' @export
 #' @description
@@ -502,6 +408,17 @@ weights_ZINB <- function(object,
 #'
 #' @param object phyloseq object.
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
+#' @param group vector or factor giving the experimental group/condition for
+#' each sample/library.
+#' @param design numeric design matrix. Defaults to \code{model.matrix(~group)}
+#' if \code{group} is specified and otherwise to a single column of ones.
+#' @param contrast numeric vector or matrix specifying one or more contrasts of
+#' the linear model coefficients to be tested equal to zero.
+#' @param robust logical, should the estimation of \code{prior.df} be
+#' robustified against outliers?
+#' @param coef integer or character index vector indicating which coefficients
+#' of the linear model are to be tested equal to zero. Ignored if
+#' \code{contrast} is not \code{NULL}.
 #' @inheritParams edgeR::DGEList
 #' @inheritParams edgeR::estimateDisp
 #' @inheritParams edgeR::glmQLFit
@@ -521,146 +438,94 @@ weights_ZINB <- function(object,
 #' quasi-likelihood negative binomial model fit.
 #'
 #' @examples
-#' \dontrun{
 #' data(ps_stool_16S)
 #' # Calculate the scaling factors
 #' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
 #'
 #' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TMM"]
 #' head(scaleFacts)
 #'
 #' # Differential abundance
-#' group <- sample(x = c("grp1","grp2"), size = nsamples(ps_stool_16S),
-#' replace = TRUE)
-#' sample_data(ps_stool_16S)$group <- group
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
 #' DA_edgeR(ps_stool_16S, group = group, design = ~ group, coef = 2,
-#' norm = "TMM")
-#' }
+#'     norm = "TMM")
 
-DA_edgeR <- function(object,
-                     pseudo_count = FALSE,
-                     group = NULL,
-                     design = NULL,
-                     contrast = NULL,
-                     robust = FALSE,
-                     coef = 2,
-                     norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
-                              "posupperquartile", "none", # edgeR
-                              "ratio", "poscounts", "iterate", # DESeq2
-                              "TSS", "CSSmedian", "CSSdefault"), # others
-                     weights){
-
+DA_edgeR <- function(object, pseudo_count = FALSE, group = NULL, design = NULL,
+    contrast = NULL, robust = FALSE, coef = 2, norm = c("TMM", "TMMwsp", "RLE",
+    "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
+    "iterate", "TSS", "CSSmedian", "CSSdefault"), weights){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "edgeR"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
-    if(norm == "TSS"){
+            abundance analysis.")
+    if(norm == "TSS")
         NFs = 1
-    } else {
+    else {
         # Check if the column with the normalization factors is present
         NF.col <- paste("NF", norm, sep = ".")
         if(!any(colnames(metadata) == NF.col))
             stop(paste0("Can't find the ", NF.col," column in your object. Be
-            sure to add the normalization factors column in your object
-                        first."))
-
+                sure to add the normalization factors column in your object
+                first."))
         NFs = unlist(metadata[,NF.col])
         # DESeq2 NFs are size factors. To obtain normalized counts
         # we need to divide the raw counts by the NFs
         # DESeq2 NFs are supplied -> make them scaling factors!
-        if(is.element(norm, c("ratio", "poscounts", "iterate"))){
+        if(is.element(norm, c("ratio", "poscounts", "iterate")))
             NFs <- NFs/colSums(counts)
-        }
-        NFs = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
-    }
-
+        NFs = NFs/exp(mean(log(NFs)))} # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
     message(paste0("Differential abundance on ", norm," normalized data"))
-
-    dge <- edgeR::DGEList(counts = counts,
-                          norm.factors = NFs,
-                          group = group)
-
-    if(missing(weights)){
+    dge <- edgeR::DGEList(counts = counts, norm.factors = NFs, group = group)
+    if(missing(weights))
         message("Estimating Differential Abundance without weighting")
-    } else {
+    else {
         message("Estimating Differential Abundance with weights")
         dge$weights <- weights
-        name <- paste(name,".weighted",sep = "")
-    }
-
+        name <- paste(name,".weighted",sep = "")}
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
-        else design <- as.formula(paste0("~", design))
-    }
-
+        else design <- as.formula(paste0("~", design))}
     if(is(design, "formula"))
-        design <- stats::model.matrix(object = design,
-                                      data = data.frame(metadata))
-
-    if(!robust){
-        dge <- edgeR::estimateDisp(y = dge,
-                                   design = design)
-    } else {
+        design <- stats::model.matrix(object = design, data = data.frame(
+            metadata))
+    if(!robust)
+        dge <- edgeR::estimateDisp(y = dge, design = design)
+    else {
         message(paste0("Estimating robust dispersions"))
-        dge <- edgeR::estimateGLMRobustDisp(y = dge,
-                                            design = design)
-        name <- paste(name,".robust",sep = "")
-    }
-
+        dge <- edgeR::estimateGLMRobustDisp(y = dge, design = design)
+        name <- paste(name,".robust",sep = "")}
     message(paste0("Extracting results"))
-    glmFit <- edgeR::glmQLFit(y = dge,
-                              dispersion = dge$tagwise.dispersion,
-                              robust = robust,
-                              design = design)
-    glmRes <- edgeR::glmQLFTest(glmFit,
-                                coef = coef,
-                                contrast = contrast)
-    if(missing(contrast)){
-        message(paste0("Extracting results for ",
-                       colnames(glmRes$coefficients)[coef],
-                       " coefficient"))
-    } else {
-        message(paste0("Extracting results for ",
-                       contrast,
-                       " contrasts"))
-    }
-
-
-    pval <- glmRes$table$PValue
-    padj <- stats::p.adjust(pval, "BH")
-    pValMat <- cbind("rawP" = pval, "adjP" = padj)
-    rownames(pValMat) = rownames(glmRes$table)
-
-    statInfo <- glmRes$table
-
-    return(list("pValMat" = pValMat,
-                "statInfo" = statInfo,
-                "dispEsts" = dge$tagwise.dispersion,
-                "name" = name))
+    dispEsts <- edgeR::getDispersion(dge)
+    glmFit <- edgeR::glmQLFit(y = dge, dispersion = dispEsts,
+        robust = robust, design = design)
+    glmRes <- edgeR::glmQLFTest(glmFit, coef = coef, contrast = contrast)
+    if(missing(contrast))
+        message(paste0("Extracting results for ", colnames(coef(glmRes))[coef],
+            " coefficient"))
+    else message(paste0("Extracting results for ", contrast, " contrasts"))
+    statInfo <- glmRes[["table"]]
+    pval <- statInfo[, "PValue"]
+    pValMat <- data.frame("rawP" = pval, "adjP" = stats::p.adjust(pval, "BH"))
+    rownames(pValMat) <- rownames(statInfo)
+    return(list("pValMat" = pValMat, "statInfo" = statInfo, "dispEsts" =
+        dispEsts, "name" = name))
 }# END - function: DA_edgeR
 
 #' @title DA_DESeq2
@@ -674,11 +539,24 @@ DA_edgeR <- function(object,
 #'
 #' @param object phyloseq object.
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
-#' @inheritParams phyloseq::phyloseq_to_deseq2
+#' @param design (Required). A \code{\link{formula}} which specifies the design
+#' of the experiment, taking the form \code{formula(~ x + y + z)}. That is, a
+#' formula with right-hand side only. By default, the functions in this package
+#' and DESeq2 will use the last variable in the formula (e.g. \code{z}) for
+#' presenting results (fold changes, etc.) and plotting. When considering your
+#' specification of experimental design, you will want to  re-order the levels
+#' so that the \code{NULL} set is first. For example, the following line of code
+#' would ensure that Enterotype 1 is used as the reference sample class in tests
+#' by setting it to the first of the factor levels using the
+#' \code{\link{relevel}} function:
+#' \code{sample_data(entill)$Enterotype <-
+#' relevel(sample_data(entill)$Enterotype, "1")}
 #' @param contrast character vector with exactly three elements: the name of a
 #' factor in the design formula, the name of the numerator level for the fold
 #' change, and the name of the denominator level for the fold change.
-#' @inheritParams DESeq2::results
+#' @param alpha the significance cutoff used for optimizing the independent
+#' filtering (by default 0.05). If the adjusted p-value cutoff (FDR) will be a
+#' value other than 0.05, alpha should be set to that value.
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
 #' @param weights optional numeric matrix giving observation weights.
@@ -691,113 +569,90 @@ DA_edgeR <- function(object,
 #' @seealso \code{\link[phyloseq]{phyloseq_to_deseq2}} for phyloseq to DESeq2
 #' object conversion, \code{\link[DESeq2]{DESeq}} and
 #' \code{\link[DESeq2]{results}} for the differential abundance method.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+#'
+#' # The phyloseq object now contains the normalization factors:
+#' normFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.poscounts"]
+#' head(normFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_DESeq2(ps_stool_16S, design = ~ group, contrast = c("group", "grp2",
+#'     "grp1"), norm = "poscounts")
 
-DA_DESeq2 <- function(object,
-                      pseudo_count = FALSE,
-                      design = NULL,
-                      contrast = NULL,
-                      alpha = 0.05,
-                      norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
-                               "posupperquartile", "none", # edgeR
-                               "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSSmedian", "CSSdefault"), # others
-                      weights){
-
+DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
+    NULL, alpha = 0.05, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
+    "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
+    "CSSmedian", "CSSdefault"), weights){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "DESeq2"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
         phyloseq::otu_table(object) <- counts
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     dds <- phyloseq::phyloseq_to_deseq2(object, design = design)
-
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+        abundance analysis.")
     # Check if the column with the normalization factors is present
     NF.col <- paste("NF", norm, sep = ".")
     if(!any(colnames(metadata) == NF.col))
         stop(paste0("Can't find the ", NF.col," column in your object. Make sure
-        to add the normalization factors column in your object first."))
-
+            to add the normalization factors column in your object first."))
     NFs = unlist(metadata[,NF.col])
     # edgeR, TSS, and CSS NFs supplied -> make them normalization factors!
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault",
-                          "TSS"))){
-        NFs <- NFs*colSums(counts)
-    }
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS"))){
+        NFs <- NFs*colSums(counts)}
     DESeq2::sizeFactors(dds) = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
-
     name <- paste(name, ".", norm, sep = "")
     message(paste0("Differential abundance on ", norm," normalized data"))
-
-    if(missing(weights)){
+    if(missing(weights))
         message("Estimating Differential Abundance without weighting")
-    } else {
+    else {
         message("Estimating Differential Abundance with weights")
         weights[which(weights < 1e-6)] <- 1e-06
         SummarizedExperiment::assays(dds, withDimnames = FALSE)$weights <-
             weights
-        name <- paste(name,".weighted",sep = "")
-    }
-
+        name <- paste(name,".weighted",sep = "")}
     ### Run DESeq
-    ddsRes <- DESeq2::DESeq(object = dds,
-                            test = "LRT",
-                            reduced = ~ 1,
-                            parallel = FALSE)
+    ddsRes <- DESeq2::DESeq(object = dds, test = "LRT", reduced = ~ 1,
+        parallel = FALSE)
     dispEsts <- DESeq2::dispersions(ddsRes)
-
-    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3)){
+    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3))
         stop(paste0("Please supply a character vector with exactly three
-                    elements: the name of a factor in the design formula,
-                    the name of the numerator level for the fold change,
-                    and the name of the denominator level for the fold
-                    change."))
-    } else {
-        message(paste0("Extracting results for ",
-                       contrast[1]," variable, ",
-                       contrast[2], " vs ",
-                       contrast[3]))
-    }
-
-    Res <- DESeq2::results(ddsRes,
-                           alpha = alpha,
-                           contrast = contrast)
-
-    pValMat <- as.matrix(Res[, c("pvalue", "padj")])
+            elements: the name of a factor in the design formula, the name of
+            the numerator level for the fold change, and the name of the
+            denominator level for the fold change."))
+    else message(paste0("Extracting results for ", contrast[1]," variable, ",
+        contrast[2], " vs ", contrast[3]))
+    res <- DESeq2::results(ddsRes, alpha = alpha, contrast = contrast)
+    statInfo <- as(res, "data.frame")
+    pValMat <- statInfo[,c("pvalue", "padj")]
     colnames(pValMat) <- c("rawP", "adjP")
-    statInfo <- data.frame(Res@listData)
-
-    return(list("pValMat" = pValMat,
-                "statInfo" = statInfo,
-                "dispEsts" = dispEsts,
-                "name" = name))
+    return(list("pValMat" = pValMat, "statInfo" = statInfo, "dispEsts" =
+        dispEsts, "name" = name))
 }# END - function: DA_DESeq2
 
 #' @title DA_limma
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom limma voom lmFit eBayes topTable
-#' @importFrom stats model.matrix
+#' @importFrom stats model.matrix weights
 #' @export
 #' @description
 #' Fast run for limma voom differential abundance detection method.
@@ -809,7 +664,10 @@ DA_DESeq2 <- function(object,
 #' @param design character name of the metadata columns, formula, or design
 #' matrix with rows corresponding to samples and columns to coefficients to be
 #' estimated.
-#' @inheritParams limma::topTable
+#' @param coef column number or column name specifying which coefficient or
+#' contrast of the linear model is of interest. For \code{topTable}, can also be
+#' a vector of column subscripts, in which case the gene ranking is by
+#' F-statistic for that set of contrasts.
 #' @param weights non-negative precision weights. Can be a numeric matrix of
 #' individual weights of same size as the object expression matrix, or a numeric
 #' vector of array weights with length equal to `ncol` of the expression matrix,
@@ -822,114 +680,88 @@ DA_DESeq2 <- function(object,
 #'
 #' @seealso \code{\link[limma]{voom}} for the mean-variance relationship
 #' estimation, \code{\link[limma]{lmFit}} for the linear model framework.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TMM"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_limma(ps_stool_16S, design = ~ group, coef = 2, norm = "TMM")
 
-DA_limma <- function(object,
-                     pseudo_count = FALSE,
-                     design = NULL,
-                     coef = 2,
-                     norm = c("TMM", "TMMwsp", "RLE", "upperquartile", # edgeR
-                              "posupperquartile", "none", # edgeR
-                              "ratio", "poscounts", "iterate", # DESeq2
-                              "TSS", "CSSmedian", "CSSdefault"), # others
-                     weights){
-
+DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
+    norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
+    "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+    weights){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "limma"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
-    if(norm == "TSS"){
+        abundance analysis.")
+    if(norm == "TSS")
         NFs = 1
-    } else {
+    else {
         # Check if the column with the normalization factors is present
         NF.col <- paste("NF", norm, sep = ".")
         if(!any(colnames(metadata) == NF.col))
             stop(paste0("Can't find the ", NF.col," column in your object. Make
-            sure to add the normalization factors column in your object first."
-                        ))
-
+                sure to add the normalization factors column in your object
+                first."))
         NFs = unlist(metadata[,NF.col])
         # DESeq2 NFs are supplied -> make them scaling factors!
-        if(is.element(norm, c("ratio", "poscounts", "iterate"))){
+        if(is.element(norm, c("ratio", "poscounts", "iterate")))
             NFs <- NFs/colSums(counts)
-        }
-        NFs = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
-    }
-
+        NFs = NFs/exp(mean(log(NFs)))} # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
     message(paste0("Differential abundance on ", norm," normalized data"))
-
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
-        else design <- as.formula(paste0("~", design))
-    }
-
+        else design <- as.formula(paste0("~", design))}
     if(is(design, "formula"))
-        design <- stats::model.matrix(object = design,
-                                      data = data.frame(metadata))
-
-    v <- limma::voom(counts = counts,
-                     design = design,
-                     lib.size = colSums(counts) * NFs,
-                     plot = FALSE)
-
+        design <- stats::model.matrix(object = design, data = data.frame(
+            metadata))
+    v <- limma::voom(counts = counts, design = design, lib.size = colSums(
+        counts) * NFs, plot = FALSE)
     if(missing(weights)){
         message("Estimating Differential Abundance without weighting")
-        fit <- limma::lmFit(object = v,
-                            design = design)
+        fit <- limma::lmFit(object = v, design = design)
     } else {
         message("Estimating Differential Abundance with weights")
         name <- paste(name,".weighted",sep = "")
-        fit <- limma::lmFit(object = v,
-                            design = design,
-                            weights = v$weights * weights)
-    }
-
+        fit <- limma::lmFit(object = v, design = design, weights =
+            stats::weights(v) * weights)}
     fit <- limma::eBayes(fit)
-
-    message(paste0("Extracting results for ",
-                   colnames(fit$coefficients)[coef],
-                   " coefficient"))
-
-    statInfo <- limma::topTable(fit,
-                                coef = 2,
-                                n = nrow(counts),
-                                sort.by="none")
-
-    pValMat <- cbind("rawP" = statInfo$P.Value,
-                     "adjP" = statInfo$adj.P.Val)
-    rownames(pValMat) = rownames(statInfo)
-
-    return(list("pValMat" = pValMat,
-                "statInfo" = statInfo,
-                "name" = name))
-
+    message(paste0("Extracting results for ", colnames(coef(fit[, coef])),
+        " coefficient"))
+    statInfo <- limma::topTable(fit, coef = coef, n = nrow(counts), sort.by =
+        "none")
+    pValMat <- statInfo[, c("P.Value", "adj.P.Val")]
+    colnames(pValMat) <- c("rawP", "adjP")
+    return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
 }# END - function: DA_limma
 
 #' @title DA_metagenomeSeq
 #'
-#' @importFrom phyloseq taxa_are_rows otu_table sample_data
+#' @importFrom phyloseq taxa_are_rows otu_table sample_data taxa_names
 #' @importFrom phyloseq phyloseq_to_metagenomeSeq
 #' @importFrom metagenomeSeq fitZig MRfulltable
 #' @importFrom stats model.matrix
@@ -945,7 +777,7 @@ DA_limma <- function(object,
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
 #' @inheritParams metagenomeSeq::fitZig
-#' @inheritParams metagenomeSeq::MRfulltable
+#' @inheritParams metagenomeSeq::MRcoefs
 #'
 #' @return A list object containing the matrix of p-values, the matrix of
 #' summary statistics for each tag, and a suggested name of the final object
@@ -954,112 +786,85 @@ DA_limma <- function(object,
 #' @seealso \code{\link[metagenomeSeq]{fitZig}} for the Zero-Inflated Gaussian
 #' regression model estimation and \code{\link[metagenomeSeq]{MRfulltable}}
 #' for results extraction.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.CSSmedian"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_metagenomeSeq(ps_stool_16S, design = ~ group, coef = 2, norm =
+#'     "CSSmedian")
 
-DA_metagenomeSeq <- function(object,
-                             pseudo_count = FALSE,
-                             design = NULL,
-                             coef = 2,
-                             norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                                      "posupperquartile", "none", # edgeR
-                                      "ratio", "poscounts", "iterate", # DESeq2
-                                      "TSS", "CSSmedian",
-                                      "CSSdefault")) # others
-    {
-
-
+DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL, coef =
+    2, norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
+    "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
     obj <- phyloseq::phyloseq_to_metagenomeSeq(object)
-
     # Name building
     name <- "metagenomeSeq"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+        abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
-    if(norm == "TSS"){
+    if(norm == "TSS")
         phyloseq::sample_data(obj)[NF.col] <- NFs <- 1L
-    } else {
+    else {
         # Check if the column with the normalization factors is present
         if(!any(colnames(metadata) == NF.col))
             stop(paste0("Can't find the ", NF.col," column in your object. Make
             sure to add the normalization factors column in your object first."
             ))
-
         NFs = unlist(metadata[,NF.col])
         # DESeq2 NFs are supplied -> make them scaling factors!
-        if(is.element(norm, c("ratio", "poscounts", "iterate"))){
+        if(is.element(norm, c("ratio", "poscounts", "iterate")))
             NFs <- NFs/colSums(counts)
-        }
-        NFs = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
-    }
-
+        NFs = NFs/exp(mean(log(NFs)))} # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
     message(paste0("Differential abundance on ", norm," normalized data"))
-
     metagenomeSeq::normFactors(object = obj) <- NFs
-
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
-        else design <- as.formula(paste0("~", design))
-    }
+        else design <- as.formula(paste0("~", design))}
 
     if(is(design, "formula")){
-        design <- as.formula(paste0(paste0(design,collapse = " ")," + ",NF.col))
-        design <- stats::model.matrix(object = design,
-                                      data = data.frame(metadata))
-    }
-
-    suppressWarnings(fit <- try(metagenomeSeq::fitZig(obj = obj,
-                                          mod = design,
-                                          verbose = FALSE,
-                                          useCSSoffset = FALSE,
-                                          control = zigControl(maxit = 1000)),
-                                silent = TRUE))
-
+        design <- as.formula(paste0(paste0(design,collapse = " "), " + ",
+            NF.col))
+        design <- stats::model.matrix(object = design, data = data.frame(
+            metadata))}
+    suppressWarnings(fit <- try(metagenomeSeq::fitZig(obj = obj, mod = design,
+        verbose = FALSE, useCSSoffset = FALSE, control = zigControl(maxit =
+        1000)), silent = TRUE))
     if(is(fit, "try-error")){
         res = matrix(NA, ncol = 2, nrow = nrow(counts))
         stop("Error! Something went wrong during fitZig estimation.")
     } else {
-        message(paste0("Extracting results for ",
-                       colnames(fit@eb$coefficients)[coef],
-                       " coefficient"))
-        # You need to specify all OTUs to get the full table from MRfulltable.
-        res <- metagenomeSeq::MRfulltable(obj = fit,
-                                          number = nrow(counts),
-                                          coef = coef)
-    }
-
-    pValMat <- cbind("rawP" = res$pvalues,
-                     "adjP" = res$adjPvalues)
-    rownames(pValMat) = rownames(res)
-    colnames(res) <- c("rawP", "adjP")
-    pValMat <- as.matrix(res)
-
-    lods <- fit@eb$lods
-    statInfo <- cbind(res,lods)
-    return(list("pValMat" = pValMat,
-                "statInfo" = statInfo,
-                "name" = name))
-
+        statInfo <- metagenomeSeq::MRcoefs(obj = fit, by = coef, number = nrow(
+            counts))
+        statInfo <- statInfo[phyloseq::taxa_names(object),]
+        message(paste0("Extracting results for ", colnames(statInfo[coef]),
+            " coefficient"))}
+    pValMat <- statInfo[, c("pvalues", "adjPvalues")]
+    colnames(pValMat) = c("rawP", "adjP")
+    return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
 }# END - function: DA_metagenomeSeq
 
 #' @title DA_ALDEx2
@@ -1074,6 +879,16 @@ DA_metagenomeSeq <- function(object,
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
+#' @param mc.samples An integer. The number of Monte Carlo samples to use when
+#' estimating the underlying distributions. Since we are estimating central
+#' tendencies, 128 is usually sufficient.
+#' @param denom A character string. Indicates which features to retain as the
+#' denominator for the Geometric Mean calculation. Using "iqlr" accounts for
+#' data with systematic variation and centers the features on the set features
+#' that have variance that is between the lower and upper quartile of variance.
+#' Using "zero" is a more extreme case where there are many non-zero features in
+#' one condition but many zeros in another. In this case the geometric mean of
+#' each group is calculated using the set of per-group non-zero features.
 #' @inheritParams ALDEx2::aldex
 #'
 #' @return A list object containing the matrix of p-values, the matrix of
@@ -1083,101 +898,76 @@ DA_metagenomeSeq <- function(object,
 #' @seealso \code{\link[ALDEx2]{aldex}} for the Dirichlet-Multinomial model
 #' estimation. Several and more complex tests are present in the ALDEx2
 #' framework.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.none"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_ALDEx2(ps_stool_16S, conditions = group, test = "t", denom = "iqlr",
+#'     norm = "none")
 
-DA_ALDEx2 <- function(object,
-                      pseudo_count = FALSE,
-                      conditions = NULL,
-                      mc.samples = 128,
-                      test = c("t","wilcox"),
-                      denom = "iqlr",
-                      norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                               "posupperquartile", "none", # edgeR
-                               "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSSmedian", "CSSdefault")) # others
-{
+DA_ALDEx2 <- function(object, pseudo_count = FALSE, conditions = NULL,
+    mc.samples = 128, test = c("t","wilcox"), denom = "iqlr", norm = c("TMM",
+    "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none", "ratio",
+    "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "ALDEx2"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+            abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
-
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col)){
         stop(paste0("Can't find the ", NF.col," column in your object. Make
         sure to add the normalization factors column in your object first."
-        ))
-    }
-
+        ))}
     name <- paste(name, ".", norm, sep = "")
-
-    NFs = unlist(metadata[,NF.col])
+    NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault",
-                          "TSS"))){
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
-    }
-
     NFs <- NFs/exp(mean(log(NFs)))
-    norm_counts <- round(counts %*% diag(1/NFs),
-                         digits = 0)
+    norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-
     if(is.null(conditions))
         stop("Please supply the name of the variable of interest or the
-             entire character vector.")
+            entire character vector.")
     else if(length(conditions) == 1)
-        conditions = unlist(metadata[,conditions])
-
+        conditions = unlist(metadata[, conditions])
     name <- paste(name, ".", denom, sep = "")
-
     if(!is.element(test, c("t","wilcox")) | length(test) != 1)
         stop("Please choose between p-values produced by Welch t-test (t) or by
-             the Wilcoxon test (wilcox).")
-
+            the Wilcoxon test (wilcox).")
     name <- paste(name, ".", test, sep = "")
-
-    statInfo <- ALDEx2::aldex(reads = norm_counts,
-                              conditions = conditions,
-                              mc.samples = mc.samples,
-                              test = test,
-                              effect = TRUE,
-                              include.sample.summary = FALSE,
-                              denom = denom,
-                              verbose = TRUE)
-
-    if(test == "t"){
-        pValMat <- cbind("rawP" = statInfo$we.ep,
-                         "adjP" = statInfo$we.eBH)
-    } else
-        pValMat <- cbind("rawP" = statInfo$wi.ep,
-                         "adjP" = statInfo$wi.eBH)
-
-    return(list("pValMat" = pValMat,
-                "statInfo" = statInfo,
-                "name" = name))
-
+    statInfo <- ALDEx2::aldex(reads = norm_counts, conditions = conditions,
+        mc.samples = mc.samples, test = test, effect = TRUE,
+        include.sample.summary = FALSE, denom = denom, verbose = TRUE)
+    if(test == "t")
+        pValMat <- data.frame(statInfo[, c("we.ep", "we.eBH")])
+    else pValMat <- data.frame(statInfo[, c("wi.ep", "wi.eBH")])
+    colnames(pValMat) <- c("rawP", "adjP")
+    return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
 }# END - function: DA_ALDEx2
 
 #' @title DA_corncob
@@ -1191,11 +981,20 @@ DA_ALDEx2 <- function(object,
 #'
 #' @param object phyloseq object.
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
+#' @param formula an object of class \code{formula} without the response: a
+#' symbolic description of the model to be fitted to the abundance.
+#' @param phi.formula an object of class \code{formula} without the response: a
+#' symbolic description of the model to be fitted to the dispersion.
 #' @param coefficient The coefficient of interest as a single word formed by the
 #' variable name and the non reference level. (e.g.: 'ConditionDisease' if the
 #' reference level for the variable 'Condition' is 'control').
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
+#' @param test Character. Hypothesis testing procedure to use. One of
+#' \code{"Wald"} or \code{"LRT"} (likelihood ratio test).
+#' @param boot Boolean. Defaults to \code{FALSE}. Indicator of whether or not to
+#' use parametric bootstrap algorithm. (See \code{\link[corncob]{pbWald}} and
+#' \code{\link[corncob]{pbLRT}}).
 #' @inheritParams corncob::differentialTest
 #'
 #' @return A list object containing the matrix of p-values, the matrix of
@@ -1205,120 +1004,92 @@ DA_ALDEx2 <- function(object,
 #' @seealso \code{\link[corncob]{bbdml}} and
 #' \code{\link[corncob]{differentialTest}} for differential abundance and
 #' differential variance evaluation.
+#'
+#' @examples
+#' library(phyloseq)
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.none"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_corncob(ps_stool_16S, formula = ~ group, phi.formula = ~ group,
+#'     formula_null = ~ 1, phi.formula_null = ~ 1, coefficient = "groupgrp2",
+#'     norm = "none", test = "Wald")
 
-DA_corncob <- function(object,
-                       pseudo_count = FALSE,
-                       formula,
-                       phi.formula,
-                       formula_null,
-                       phi.formula_null,
-                       test,
-                       boot = FALSE,
-                       coefficient = NULL,
-                       norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                                "posupperquartile", "none", # edgeR
-                                "ratio", "poscounts", "iterate", # DESeq2
-                                "TSS", "CSSmedian", "CSSdefault")) # others)
-{
-
+DA_corncob <- function(object, pseudo_count = FALSE, formula, phi.formula,
+    formula_null, phi.formula_null, test, boot = FALSE, coefficient = NULL,
+    norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
+    "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "corncob"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+            abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
-    if(!any(colnames(metadata) == NF.col)){
+    if(!any(colnames(metadata) == NF.col))
         stop(paste0("Can't find the ", NF.col," column in your object. Make
-        sure to add the normalization factors column in your object first."
-        ))
-    }
-
+            sure to add the normalization factors column in your object first."
+            ))
     name <- paste(name, ".", norm, sep = "")
-
-    NFs = unlist(metadata[,NF.col])
+    NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault",
-                          "TSS"))){
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
-    }
-
     NFs <- NFs/exp(mean(log(NFs)))
-    norm_counts <- round(counts %*% diag(1/NFs),
-                         digits = 0)
+    norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-
     message(paste0("Differential abundance on ", norm," normalized data"))
-
-    if(missing(test)){
+    if(missing(test))
         stop("Please supply the test to perform, 'Wald' or 'LRT'.")
-    } else name <- paste(name, ".", test, sep = "")
-
+    else name <- paste(name, ".", test, sep = "")
     if(boot)
         name <- paste(name, ".", "boot", sep = "")
-
     ## differential expression
     requireNamespace("phyloseq")
-    fit <- corncob::differentialTest(formula = formula,
-                                     phi.formula = phi.formula,
-                                     formula_null = formula_null,
-                                     phi.formula_null = phi.formula_null,
-                                     data = norm_counts,
-                                     sample_data = metadata,
-                                     test = test,
-                                     boot = boot)
-
+    fit <- corncob::differentialTest(formula = formula, phi.formula =
+        phi.formula, formula_null = formula_null, phi.formula_null =
+        phi.formula_null, data = norm_counts, sample_data = metadata, test =
+        test, boot = boot)
     # differentialTest's output has a complex structure:
     # extraction of summary table for each estimated model
     # mu.(Intercept), mu.condition, and phi.(Intercept), phi.condition
     # only the mu.condition is of interest.
-
-    if(is.null(coefficient) | !is.element(coefficient,fit$restrictions_DA)){
+    if(is.null(coefficient) | !is.element(coefficient,fit[["restrictions_DA"]]))
         stop("Please supply the coefficient of interest as a single word formed
-        by the variable name and the non reference level. (e.g.:
-        'ConditionDisease' if the reference level for the variable 'Condition'
-        is 'control')")
-    }
-
-    statInfo <- plyr::ldply(.data = fit$all_models,
-                            .fun = function(model) {
-                                stats::coef(model)[paste0("mu.",coefficient),]
-                            })
-
-    if(length(fit$restrictions_DA)>0){
-        message(paste("Differential abundance across",
-                      paste0(fit$restrictions_DA, collapse = " and ")))
-    }
-    if(length(fit$restrictions_DV)>0){
-        message(paste("Differential variability across",
-                      paste0(fit$restrictions_DV, collapse = " and ")))
-    }
-
-    pValMat <- data.frame("pval" = fit$p, "adjp" = fit$p_fdr)
-    rownames(statInfo) <- rownames(pValMat) <- rownames(counts)
+            by the variable name and the non reference level. (e.g.:
+            'ConditionDisease' if the reference level for the variable
+            'Condition' is 'control')")
+    statInfo <- plyr::ldply(.data = fit[["all_models"]], .fun = function(model){
+        stats::coef(model)[paste0("mu.",coefficient),]})
+    if(length(fit[["restrictions_DA"]])>0)
+        message(paste("Differential abundance across", paste0(
+            fit[["restrictions_DA"]], collapse = " and ")))
+    if(length(fit[["restrictions_DV"]])>0)
+        message(paste("Differential variability across", paste0(
+            fit[["restrictions_DV"]], collapse = " and ")))
+    pValMat <- data.frame("rawP" = fit[["p"]], "adjP" = fit[["p_fdr"]])
+    rownames(statInfo) <- rownames(pValMat) <- names(fit[["p"]])
     list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name)
-
 }# END - function: corncob
 
 #' @title DA_MAST
@@ -1349,130 +1120,108 @@ DA_corncob <- function(object,
 #'
 #' @seealso \code{\link[MAST]{zlm}} for the Truncated Gaussian Hurdle model
 #' estimation.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.none"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- group
+#' DA_MAST(ps_stool_16S, rescale = "median", design = ~ group, norm = "none",
+#'     coefficient = "groupgrp2")
 
-DA_MAST <- function(object,
-                    pseudo_count = FALSE,
-                    rescale = c("median","default"),
-                    design,
-                    coefficient = NULL,
-                    norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                             "posupperquartile", "none", # edgeR
-                             "ratio", "poscounts", "iterate", # DESeq2
-                             "TSS", "CSSmedian", "CSSdefault")) # others
-{
-
+DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median",
+    "default"), design, coefficient = NULL, norm = c("TMM", "TMMwsp", "RLE",
+    "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
+    "iterate", "TSS", "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "MAST"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+            abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
-    if(!any(colnames(metadata) == NF.col)){
+    if(!any(colnames(metadata) == NF.col))
         stop(paste0("Can't find the ", NF.col," column in your object. Make
-        sure to add the normalization factors column in your object first."
-        ))
-    }
-
+            sure to add the normalization factors column in your object first."
+            ))
     name <- paste(name, ".", norm, sep = "")
-
-    NFs = unlist(metadata[,NF.col])
+    NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault",
-                          "TSS"))){
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
-    }
-
     NFs <- NFs/exp(mean(log(NFs)))
-    norm_counts <- round(counts %*% diag(1/NFs),
-                         digits = 0)
+    norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-
-    message(paste0("Differential abundance on ", norm," normalized data"))
-
-    if(length(rescale) > 1 | !is.element(rescale,c("default","median"))){
+    message(paste0("Differential abundance on ", norm, " normalized data"))
+    if(length(rescale) > 1 | !is.element(rescale,c("default","median")))
         stop("Please choose between 'default' or 'median' for the rescale
-             parameter. 'median' is suggested for metagenomics data.")
-    } else if(rescale == "median"){
+            parameter. 'median' is suggested for metagenomics data.")
+    else if(rescale == "median"){
         message(paste0("per ",rescale,"-lib.size rescaled data"))
         tpm <- norm_counts * median(colSums(norm_counts)) / colSums(norm_counts)
     } else {
         message(paste0(rescale," (per million) rescaled data"))
-        tpm <- norm_counts * 10^6 / colSums(norm_counts)
-    }
-
+        tpm <- norm_counts * 10^6 / colSums(norm_counts)}
     name <- paste(name, ".", rescale, sep = "")
     tpm <- log2(tpm + 1)
-    sca <- MAST::FromMatrix(exprsArray = tpm,
-                            cData = metadata)
+    sca <- MAST::FromMatrix(exprsArray = tpm, cData = metadata)
     # here, we keep all OTUs so that we can fairly compare MAST and the other
     # methods. So, no adaptive thresholding or filtering by gene expression.
-    SummarizedExperiment::assays(sca) <-
-        list(tpm = SummarizedExperiment::assay(sca))
+    SummarizedExperiment::assays(sca) <- list(tpm =
+        SummarizedExperiment::assay(sca))
     ngeneson <- apply(norm_counts, 2, function(x) mean(x>0))
-    metadata$cngeneson <- ngeneson - mean(ngeneson)
-    SummarizedExperiment::colData(sca)$cngeneson <- metadata$cngeneson
-
+    metadata[, "cngeneson"] <- ngeneson - mean(ngeneson)
+    SummarizedExperiment::colData(sca)[, "cngeneson"] <- metadata[, "cngeneson"]
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
-        else design <- as.formula(paste0("~", design))
-    }
-
-    if(is(design, "formula")){
-        design <- as.formula(paste0(paste0(design,
-                                           collapse = " "), " + cngeneson"))
-    }
-
+        else design <- as.formula(paste0("~", design))}
+    if(is(design, "formula"))
+        design <- as.formula(paste0(paste0(design, collapse = " "),
+            " + cngeneson"))
     ## differential expression
-    fit <- MAST::zlm(formula = design,
-                     sca = sca,
-                     method = "bayesglm",
-                     ebayes = TRUE)
-    if(!is.element(coefficient, colnames(fit@coefC)))
+    fit <- MAST::zlm(formula = design, sca = sca, method = "bayesglm", ebayes =
+        TRUE)
+    if(!is.element(coefficient, colnames(coef(fit, "C"))))
         stop("Please supply the coefficient of interest as a single word formed
-        by the variable name and the non reference level. (e.g.:
-        'ConditionDisease' if the reference level for the variable 'Condition'
-        is 'control')")
-    summaryDt = MAST::summary(fit, doLRT = coefficient)$datatable
-
+            by the variable name and the non reference level. (e.g.:
+            'ConditionDisease' if the reference level for the variable
+            'Condition' is 'control')")
+    summaryDt = data.frame(MAST::summary(fit, doLRT = coefficient)[[
+        "datatable"]])
     contrast <- component <- NULL
-    fcHurdle <- merge(x = summaryDt[contrast == coefficient &
-                                        component == 'H',
-                                c("primerid", "Pr(>Chisq)")],
-                      y = summaryDt[contrast == coefficient &
-                                        component == "logFC",
-                                c("primerid", "coef", "ci.hi", "ci.lo")],
-                      by = "primerid")
-    statInfo = data.frame(logFC = fcHurdle$coef,
-                          logFC.lo = fcHurdle$ci.lo,
-                          logFC.hi = fcHurdle$ci.hi,
-                          pval = fcHurdle$`Pr(>Chisq)`,
-                          padj = p.adjust(fcHurdle$`Pr(>Chisq)`, 'BH'))
-    rownames(statInfo) <- fcHurdle$primerid
-
-    pValMat <- statInfo[, c("pval", "padj")]
+    fcHurdle <- merge(x = summaryDt[summaryDt[,"contrast"] == coefficient &
+        summaryDt[,"component"] == 'H', c("primerid", "Pr..Chisq.")], y =
+        summaryDt[summaryDt[,"contrast"] == coefficient & summaryDt[,
+        "component"] == "logFC", c("primerid", "coef", "ci.hi", "ci.lo")],
+        by = "primerid")
+    statInfo = data.frame(logFC = fcHurdle[, "coef"], logFC.lo = fcHurdle[,
+        "ci.lo"], logFC.hi = fcHurdle[, "ci.hi"], rawP = fcHurdle[,
+        "Pr..Chisq."], adjP = stats::p.adjust(fcHurdle[, "Pr..Chisq."], 'BH'))
+    rownames(statInfo) <- fcHurdle[, "primerid"]
+    pValMat <- statInfo[, c("rawP", "adjP")]
+    statInfo <- statInfo[rownames(counts),]
+    pValMat <- pValMat[rownames(counts),]
     list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name)
 }# END - function: MAST
 
@@ -1505,118 +1254,95 @@ DA_MAST <- function(object,
 #' mean-variance trend, \code{\link[Seurat]{ScaleData}} to scale and center
 #' features in the dataset, and \code{\link[Seurat]{FindMarkers}} to perform
 #' differential abundance analysis.
+#'
+#' @examples
+#' data(ps_stool_16S)
+#' # Calculate the scaling factors
+#' ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+#'
+#' # The phyloseq object now contains the scaling factors:
+#' scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.none"]
+#' head(scaleFacts)
+#'
+#' # Differential abundance
+#' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+#'     ps_stool_16S), replace = TRUE)
+#' phyloseq::sample_data(ps_stool_16S)$group <- as.factor(group)
+#' DA_Seurat(ps_stool_16S, group.by = "group", reference.level = "grp1", norm =
+#'     "none")
 
-DA_Seurat <- function(object,
-                      pseudo_count = FALSE,
-                      test.use = "wilcox",
-                      group.by = NULL,
-                      reference.level = NULL,
-                      norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                               "posupperquartile", "none", # edgeR
-                               "ratio", "poscounts", "iterate", # DESeq2
-                               "TSS", "CSSmedian", "CSSdefault")) # others
-{
-
+DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
+    group.by = NULL, reference.level = NULL, norm = c("TMM", "TMMwsp", "RLE",
+    "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
+    "iterate", "TSS", "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
-    {
         object <- t(object)
-    } else {}
-
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
     metadata <- phyloseq::sample_data(object)
-
     # Name building
     name <- "Seurat"
-
     # add 1 if any zero counts
-    if (any(counts == 0) & pseudo_count)
-    {
+    if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        name <- paste(name,".pseudo",sep = "")
-    } else {}
-
+        name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
         stop("Please choose one normalization for this istance of differential
-             abundance analysis.")
-
+            abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col)){
         stop(paste0("Can't find the ", NF.col," column in your object. Make
-        sure to add the normalization factors column in your object first."
-        ))
-    }
-
+            sure to add the normalization factors column in your object first."
+            ))}
     name <- paste(name, ".", norm, sep = "")
-
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault",
-                          "TSS"))){
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
-    }
-
     NFs <- NFs/exp(mean(log(NFs)))
-    norm_counts <- round(counts %*% diag(1/NFs),
-                         digits = 0)
+    norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-
     message(paste0("Differential abundance on ", norm," normalized data"))
-
     # Initialize the Seurat object with the raw (non-normalized data).
     # If the chosen normalization is 'none', then this is true.
     # Keep all features expressed in >= 1 sample
     # Keep all samples with at least 1 detected feature.
-    sobj <- Seurat::CreateSeuratObject(counts = norm_counts,
-                                       min.cells = 1,
-                                       min.features = 1)
-
-    sobj <- Seurat::AddMetaData(object = sobj,
-                                metadata = data.frame(metadata),
-                                col.name = colnames(metadata))
-
+    sobj <- Seurat::CreateSeuratObject(counts = norm_counts, min.cells = 1,
+        min.features = 1)
+    sobj <- Seurat::AddMetaData(object = sobj, metadata = data.frame(metadata),
+        col.name = colnames(metadata))
     if(is.null(group.by) | is.null(reference.level)){
         stop("Please supply the variable to study differential abundance for and
-             its reference level.")
-    } else{
-        if(!is(unlist(sobj[[group.by]]),"factor")){
+            its reference level.")
+    } else {
+        if(!is(unlist(sobj[[group.by]]),"factor"))
             stop(paste(group.by,"variable is not a factor. Please supply a
-                       factor."))
-        } else{
-            if(!is.element(reference.level,levels(unlist(sobj[[group.by]])))){
-                stop(paste(reference.level, "is not a level of the",  group.by,
-                           "variable. Please supply a present category."))
-            }
-        }
-    }
+                factor."))
+        else
+            if(!is.element(reference.level,levels(unlist(sobj[[group.by]]))))
+                stop(paste(reference.level, "is not a level of the", group.by,
+                    "variable. Please supply a present category."))}
 
     message("Differential abundance analysis on ", group.by, " variable.")
-
-    sobj <- Seurat::NormalizeData(object = sobj,
-                                  normalization.method = "LogNormalize",
-                                  scale.factor = 10000)
-    sobj <- Seurat::FindVariableFeatures(object = sobj,
-                                         nfeatures = round(nrow(counts)*0.1,
-                                                           digits = 0))
-    sobj <- Seurat::ScaleData(object = sobj,
-                              vars.to.regress = c("nCount_RNA"))
-
-    statInfo <- Seurat::FindMarkers(sobj,
-                                    test.use = test.use,
-                                    group.by = group.by,
-                                    ident.1 = reference.level,
-                                    logfc.threshold = 0)
-
+    sobj <- Seurat::NormalizeData(object = sobj, normalization.method =
+        "LogNormalize", scale.factor = 10000)
+    sobj <- Seurat::FindVariableFeatures(object = sobj, nfeatures = round(nrow(
+        counts)*0.1, digits = 0))
+    sobj <- Seurat::ScaleData(object = sobj, vars.to.regress = c("nCount_RNA"))
+    statInfo_ <- Seurat::FindMarkers(sobj, test.use = test.use, group.by =
+        group.by, ident.1 = reference.level, logfc.threshold = 0, min.cpt = 0)
+    computed_features <- match(gsub(pattern = "_", x = rownames(counts),
+        replacement = "-"),rownames(statInfo_))
+    statInfo <- data.frame(matrix(NA, ncol = ncol(statInfo_), nrow = nrow(
+        counts)))
+    statInfo <- statInfo_[computed_features,]
     name <- paste(name, ".", test.use, sep = "")
-
-    pValMat <- data.frame(pval = statInfo$p_val,
-                          adjp = statInfo$p_val_adj)
-    rownames(pValMat) <- rownames(statInfo)
-
+    pValMat <- statInfo[, c("p_val", "p_val_adj")]
+    colnames(pValMat) <- c("rawP","adjP")
+    rownames(pValMat) <- rownames(statInfo) <- rownames(counts)
     list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name)
-
 }# END - function: DA_Seurat

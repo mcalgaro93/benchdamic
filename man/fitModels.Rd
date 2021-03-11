@@ -37,7 +37,7 @@ data and computes the mean difference (MD) and zero probability difference
 (ZPD) between estimated and observed values.
 }
 \examples{
-\dontrun{
+\donttest{
 data(ps_stool_16S)
 
 # Estimate the counts assuming several distributions

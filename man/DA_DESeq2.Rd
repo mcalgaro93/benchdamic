@@ -20,26 +20,26 @@ DA_DESeq2(
 
 \item{pseudo_count}{Add 1 to all counts if TRUE (default = FALSE).}
 
-\item{design}{(Required). A \code{\link{formula}} which specifies the design of the experiment,
-taking the form \code{formula(~ x + y + z)}. That is, a formula with right-hand side only.
-By default, the functions in this package and DESeq2
-will use the last variable in the formula (e.g. \code{z})
-for presenting results (fold changes, etc.) and plotting.
-When considering your specification of experimental design, you will want to 
-re-order the levels so that the \code{NULL} set is first.
-For example, the following line of code would ensure that Enterotype 1 is used as the 
-reference sample class in tests by setting it to the first of the factor levels
-using the \code{\link{relevel}} function:
-
-\code{sample_data(entill)$Enterotype <- relevel(sample_data(entill)$Enterotype, "1")}}
+\item{design}{(Required). A \code{\link{formula}} which specifies the design
+of the experiment, taking the form \code{formula(~ x + y + z)}. That is, a
+formula with right-hand side only. By default, the functions in this package
+and DESeq2 will use the last variable in the formula (e.g. \code{z}) for
+presenting results (fold changes, etc.) and plotting. When considering your
+specification of experimental design, you will want to  re-order the levels
+so that the \code{NULL} set is first. For example, the following line of code
+would ensure that Enterotype 1 is used as the reference sample class in tests
+by setting it to the first of the factor levels using the
+\code{\link{relevel}} function:
+\code{sample_data(entill)$Enterotype <-
+relevel(sample_data(entill)$Enterotype, "1")}}
 
 \item{contrast}{character vector with exactly three elements: the name of a
 factor in the design formula, the name of the numerator level for the fold
 change, and the name of the denominator level for the fold change.}
 
 \item{alpha}{the significance cutoff used for optimizing the independent
-filtering (by default 0.1). If the adjusted p-value cutoff (FDR) will be a
-value other than 0.1, \code{alpha} should be set to that value.}
+filtering (by default 0.05). If the adjusted p-value cutoff (FDR) will be a
+value other than 0.05, alpha should be set to that value.}
 
 \item{norm}{name of the normalization method used to compute the
 normalization factors to use in the differential abundance analysis.}
@@ -54,6 +54,22 @@ the parameters passed to the function.
 }
 \description{
 Fast run for DESeq2 differential abundance detection method.
+}
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+
+# The phyloseq object now contains the normalization factors:
+normFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.poscounts"]
+head(normFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_DESeq2(ps_stool_16S, design = ~ group, contrast = c("group", "grp2",
+    "grp1"), norm = "poscounts")
 }
 \seealso{
 \code{\link[phyloseq]{phyloseq_to_deseq2}} for phyloseq to DESeq2

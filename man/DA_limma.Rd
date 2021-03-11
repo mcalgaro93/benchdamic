@@ -23,7 +23,10 @@ DA_limma(
 matrix with rows corresponding to samples and columns to coefficients to be
 estimated.}
 
-\item{coef}{column number or column name specifying which coefficient or contrast of the linear model is of interest. For \code{topTable}, can also be a vector of column subscripts, in which case the gene ranking is by F-statistic for that set of contrasts.}
+\item{coef}{column number or column name specifying which coefficient or
+contrast of the linear model is of interest. For \code{topTable}, can also be
+a vector of column subscripts, in which case the gene ranking is by
+F-statistic for that set of contrasts.}
 
 \item{norm}{name of the normalization method used to compute the
 normalization factors to use in the differential abundance analysis.}
@@ -41,6 +44,21 @@ considering the parameters passed to the function.
 }
 \description{
 Fast run for limma voom differential abundance detection method.
+}
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TMM"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_limma(ps_stool_16S, design = ~ group, coef = 2, norm = "TMM")
 }
 \seealso{
 \code{\link[limma]{voom}} for the mean-variance relationship

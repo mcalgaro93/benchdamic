@@ -46,21 +46,19 @@ Calculate scaling factors from a phyloseq object to scale the raw library
 sizes. Inherited from edgeR `calcNormFactors` function.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the scaling factors
 ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
 
 # The phyloseq object now contains the scaling factors:
-scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.TMM"]
 head(scaleFacts)
 
 # VERY IMPORTANT: to convert scaling factors to normalization factors
 # multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * sample_sums(ps_stool_16S)
+normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 # Renormalize: multiply to 1
 normFacts = normFacts/exp(mean(log(normFacts)))
-}
 }
 \seealso{
 \code{\link[edgeR]{calcNormFactors}} for details.

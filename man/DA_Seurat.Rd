@@ -76,6 +76,22 @@ considering the parameters passed to the function.
 \description{
 Fast run for Seurat differential abundance detection method.
 }
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.none"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- as.factor(group)
+DA_Seurat(ps_stool_16S, group.by = "group", reference.level = "grp1", norm =
+    "none")
+}
 \seealso{
 \code{\link[Seurat]{CreateSeuratObject}} to create the Seurat
 object, \code{\link[Seurat]{AddMetaData}} to add metadata information,

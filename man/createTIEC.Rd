@@ -14,24 +14,57 @@ p-values, and method's name (See vignette for detailed information).}
 \value{
 A \code{list} of \code{data.frame}s:
 \itemize{
- \item{\code{df_pval}}{3 columns per number_of_features x methods x
- comparisons rows data.frame. The three columns are called Comparison, pval,
- and method;}
- \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
- For each set of method and comparison, the proportion of false discoveries,
- considering 3 threshold (0.01, 0.05, 0.1) are reported;}
- \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to compare
- the mean observed p-value distribution across comparisons, with the
- theoretical uniform distribution;}
- \item{\code{df_KS}}{5 columns and methods x comparisons rows data.frame. For
- each set of method and comparison, the Kolmogorov-Smirnov test statistics
- and p-values are reported in KS and KS_pval columns respectively.}
-}
+    \item{\code{df_pval}}{3 columns per number_of_features x methods x
+    comparisons rows data.frame. The three columns are called Comparison,
+    pval, and method;}
+    \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
+    For each set of method and comparison, the proportion of false
+    discoveries, considering 3 threshold (0.01, 0.05, 0.1) are reported;}
+    \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to
+    compare the mean observed p-value distribution across comparisons, with
+    the theoretical uniform distribution;}
+    \item{\code{df_KS}}{5 columns and methods x comparisons rows data.frame.
+    For each set of method and comparison, the Kolmogorov-Smirnov test
+    statistics and p-values are reported in KS and KS_pval columns
+    respectively.}}
 }
 \description{
 Extract the list of p-values from the outputs of the differential abundance
 detection methods to compute several statistics to study the ability to
 control the type I error.
+}
+\examples{
+data(ps_stool_16S)
+
+# Add some normalization/scaling factors to the phyloseq object
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+
+# Create mocks
+set.seed(123)
+mock_df <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 10)
+
+# Run some methods
+Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
+    phyloseq::sample_data(ps_stool_16S)[,"group"] <- x
+    returnList = list()
+    returnList = within(returnList, {
+        da.edger <- DA_edgeR(object = ps_stool_16S, group = unlist(
+            phyloseq::sample_data(ps_stool_16S)[,"group"]), design =
+            as.formula("~ group"), coef = 2, norm = "TMM")
+        da.deseq <- DA_DESeq2(object = ps_stool_16S, design = as.formula(
+            "~ group"), norm = "poscounts", contrast = c("group","grp2",
+            "grp1"))
+    })
+    return(returnList)})
+
+# Prepare results for Type I Error Control
+TIEC_summary <- createTIEC(Stool_16S_mockDA)
+
+# Plot the results
+plotFPR(df_FPR = TIEC_summary$df_FPR)
+plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0,0.1))
+plotKS(df_KS = TIEC_summary$df_KS)
 }
 \seealso{
 [benchdamic::createMocks()]

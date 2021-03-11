@@ -25,8 +25,8 @@ for testing. Typically, a vector of group labels. For \code{aldex.glm}, use
 a \code{model.matrix}.}
 
 \item{mc.samples}{An integer. The number of Monte Carlo samples to use when
-estimating the underlying distributions. Since we are estimating central tendencies,
-128 is usually sufficient.}
+estimating the underlying distributions. Since we are estimating central
+tendencies, 128 is usually sufficient.}
 
 \item{test}{A character string. Indicates which tests to perform. "t" runs
 Welch's t and Wilcoxon tests. "kw" runs Kruskal-Wallace and glm tests.
@@ -34,12 +34,12 @@ Welch's t and Wilcoxon tests. "kw" runs Kruskal-Wallace and glm tests.
 "corr" runs a correlation test using \code{cor.test}.}
 
 \item{denom}{A character string. Indicates which features to retain as the
-denominator for the Geometric Mean calculation. Using "iqlr" accounts for data
-with systematic variation and centers the features on the set features that have
-variance that is between the lower and upper quartile of variance. Using "zero"
-is a more extreme case where there are many non-zero features in one condition but
-many zeros in another. In this case the geometric mean of each group is calculated
-using the set of per-group non-zero features.}
+denominator for the Geometric Mean calculation. Using "iqlr" accounts for
+data with systematic variation and centers the features on the set features
+that have variance that is between the lower and upper quartile of variance.
+Using "zero" is a more extreme case where there are many non-zero features in
+one condition but many zeros in another. In this case the geometric mean of
+each group is calculated using the set of per-group non-zero features.}
 
 \item{norm}{name of the normalization method used to compute the
 normalization factors to use in the differential abundance analysis.}
@@ -51,6 +51,22 @@ considering the parameters passed to the function.
 }
 \description{
 Fast run for the ALDEx2's differential abundance detection method.
+}
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.none"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_ALDEx2(ps_stool_16S, conditions = group, test = "t", denom = "iqlr",
+    norm = "none")
 }
 \seealso{
 \code{\link[ALDEx2]{aldex}} for the Dirichlet-Multinomial model

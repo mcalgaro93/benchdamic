@@ -23,17 +23,22 @@ DA_corncob(
 
 \item{pseudo_count}{Add 1 to all counts if TRUE (default = FALSE).}
 
-\item{formula}{an object of class \code{formula} without the response: a symbolic description of the model to be fitted to the abundance}
+\item{formula}{an object of class \code{formula} without the response: a
+symbolic description of the model to be fitted to the abundance.}
 
-\item{phi.formula}{an object of class \code{formula} without the response: a symbolic description of the model to be fitted to the dispersion}
+\item{phi.formula}{an object of class \code{formula} without the response: a
+symbolic description of the model to be fitted to the dispersion.}
 
 \item{formula_null}{Formula for mean under null, without response}
 
 \item{phi.formula_null}{Formula for overdispersion under null, without response}
 
-\item{test}{Character. Hypothesis testing procedure to use. One of \code{"Wald"} or \code{"LRT"} (likelihood ratio test).}
+\item{test}{Character. Hypothesis testing procedure to use. One of
+\code{"Wald"} or \code{"LRT"} (likelihood ratio test).}
 
-\item{boot}{Boolean. Defaults to \code{FALSE}. Indicator of whether or not to use parametric bootstrap algorithm. (See \code{\link[corncob]{pbWald}} and \code{\link[corncob]{pbLRT}}).}
+\item{boot}{Boolean. Defaults to \code{FALSE}. Indicator of whether or not to
+use parametric bootstrap algorithm. (See \code{\link[corncob]{pbWald}} and
+\code{\link[corncob]{pbLRT}}).}
 
 \item{coefficient}{The coefficient of interest as a single word formed by the
 variable name and the non reference level. (e.g.: 'ConditionDisease' if the
@@ -49,6 +54,24 @@ considering the parameters passed to the function.
 }
 \description{
 Fast run for corncob differential abundance detection method.
+}
+\examples{
+library(phyloseq)
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "none")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.none"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_corncob(ps_stool_16S, formula = ~ group, phi.formula = ~ group,
+    formula_null = ~ 1, phi.formula_null = ~ 1, coefficient = "groupgrp2",
+    norm = "none", test = "Wald")
 }
 \seealso{
 \code{\link[corncob]{bbdml}} and

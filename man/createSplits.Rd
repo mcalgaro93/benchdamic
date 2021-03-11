@@ -15,7 +15,7 @@ createSplits(object, varName = NULL, paired = NULL, balanced = TRUE, N = 1000)
 paired samples will remain in the same split. (default = NULL).}
 
 \item{balanced}{If \code{TRUE} a balanced design will be created for the
-splits.}
+splits. (Ignored if paired is supplied).}
 
 \item{N}{number of splits to generate.}
 }
@@ -29,4 +29,17 @@ Given the phyloseq object from which the random splits should be created,
 this function produces a list of 2 `data.frame` objects: \code{Subset1} and
 \code{Subset2} with as many rows as the number of splits and as many columns
 as the half of the number of samples.
+}
+\examples{
+data(ps_plaque_16S)
+set.seed(123)
+# Balanced design for repeated measures
+splits_df <- createSplits(object = ps_plaque_16S, varName =
+    "HMP_BODY_SUBSITE", paired = "RSID", balanced = TRUE, N = 100)
+# Balanced design for independent samples
+splits_df <- createSplits(object = ps_plaque_16S, varName =
+    "HMP_BODY_SUBSITE", balanced = TRUE, N = 100)
+# Unbalanced design
+splits_df <- createSplits(object = ps_plaque_16S, varName =
+    "HMP_BODY_SUBSITE", balanced = FALSE, N = 100)
 }

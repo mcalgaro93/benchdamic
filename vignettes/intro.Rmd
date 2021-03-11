@@ -458,10 +458,10 @@ ps_plaque_16S <- tax_glom(ps_plaque_16S_filtered, taxrank = "GENUS")
 
 ```{r}
 set.seed(123)
-splits_df <- createSplits(object = ps_plaque_16S,
-                          varName = "HMP_BODY_SUBSITE",
-                          paired = "RSID",
-                          balanced = TRUE,
+splits_df <- createSplits(object = ps_plaque_16S, 
+                          varName = "HMP_BODY_SUBSITE", 
+                          paired = "RSID", 
+                          balanced = TRUE, 
                           N = 100)
 ```
 

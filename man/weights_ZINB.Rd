@@ -44,12 +44,10 @@ parametrized by three parameters: the mean value and the dispersion of the
 negative binomial distribution, and the probability of the zero component.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the ZINB weights
 zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
 head(zinbweights)
-}
 }
 \seealso{
 \code{\link[zinbwave]{zinbFit}} for zero-inflated negative binomial

@@ -15,3 +15,10 @@ A named vector containing the color codes.
 \description{
 Produce a qualitative set of colors.
 }
+\examples{
+# Given qualitative variable
+cond <- factor(c("A","A","B","B","C","D"), levels = c("A","B","C","D"))
+
+# Associate a color to each level (or unique value, if not a factor)
+cond_colors = createColors(cond)
+}

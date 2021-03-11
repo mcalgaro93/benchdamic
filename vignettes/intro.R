@@ -220,10 +220,10 @@ data("ps_plaque_16S")
 
 ## -----------------------------------------------------------------------------
 set.seed(123)
-splits_df <- createSplits(object = ps_plaque_16S,
-                          varName = "HMP_BODY_SUBSITE",
-                          paired = "RSID",
-                          balanced = TRUE,
+splits_df <- createSplits(object = ps_plaque_16S, 
+                          varName = "HMP_BODY_SUBSITE", 
+                          paired = "RSID", 
+                          balanced = TRUE, 
                           N = 100)
 
 ## ----normalization_plaque-----------------------------------------------------

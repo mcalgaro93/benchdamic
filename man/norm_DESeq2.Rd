@@ -35,21 +35,19 @@ Calculate normalization factors from a phyloseq object to scale the raw
 library sizes. Inherited from DESeq2 `estimateSizeFactors` function.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the normalization factors
 ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
 
 # The phyloseq object now contains the normalization factors:
-normFacts <- sample_data(ps_stool_16S)[,"NF.poscounts"]
+normFacts <- phyloseq::sample_data(ps_stool_16S)[,"NF.poscounts"]
 head(normFacts)
 
 # VERY IMPORTANT: to convert normalization factors to scaling factors divide
 # them by the library sizes and renormalize.
-scaleFacts = normFacts / sample_sums(ps_stool_16S)
+scaleFacts = normFacts / phyloseq::sample_sums(ps_stool_16S)
 # Renormalize: multiply to 1
 scaleFacts = scaleFacts/exp(mean(log(scaleFacts)))
-}
 }
 \seealso{
 \code{\link[DESeq2]{estimateSizeFactors}} for details.

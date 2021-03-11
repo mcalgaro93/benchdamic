@@ -18,20 +18,18 @@ Calculate the raw library sizes from a phyloseq object. If used to divide
 counts, known as Total Sum Scaling normalization (TSS).
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the scaling factors
 ps_stool_16S <- norm_TSS(object = ps_stool_16S)
 
 # The phyloseq object now contains the scaling factors:
-scaleFacts <- sample_data(ps_stool_16S)[,"NF.TSS"]
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TSS"]
 head(scaleFacts)
 
 # VERY IMPORTANT: to convert scaling factors to normalization factors
 # multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * sample_sums(ps_stool_16S)
+normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 # Renormalize: multiply to 1
 normFacts = normFacts/exp(mean(log(normFacts)))
 # In this case they will be ones.
-}
 }

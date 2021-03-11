@@ -26,12 +26,10 @@ function without assuming the presence of any group in the samples (design
 matrix equal to a column of ones.)
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
-counts = as(otu_table(ps_stool_16S), "matrix")
+counts = as(phyloseq::otu_table(ps_stool_16S), "matrix")
 
 # Fit model on the counts matrix
 ZIG <- fitZIG(counts, scale = "median")
 head(ZIG)
-}
 }

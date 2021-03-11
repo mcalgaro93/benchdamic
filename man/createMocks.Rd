@@ -24,10 +24,8 @@ number of samples is given, the lower even integer will be considered in
 order to obtain a balanced design for the mocks.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Generate the patterns for 100 mock comparison for an experiment
-mocks <- createMocks(nsamples = nsamples(ps_stool_16S), N = 100)
+mocks <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 100)
 head(mocks)
-}
 }

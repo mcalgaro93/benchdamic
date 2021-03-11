@@ -23,21 +23,19 @@ sizes. Inherited from metagenomeSeq `calcNormFactors` function which performs
 the Cumulative Sum Scaling normalization.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the scaling factors
 ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
 
 # The phyloseq object now contains the scaling factors:
-scaleFacts <- sample_data(ps_stool_16S)[,"NF.CSSmedian"]
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.CSSmedian"]
 head(scaleFacts)
 
 # VERY IMPORTANT: to convert scaling factors to normalization factors
 # multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * sample_sums(ps_stool_16S)
+normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
 # Renormalize: multiply to 1
 normFacts = normFacts/exp(mean(log(normFacts)))
-}
 }
 \seealso{
 \code{\link[metagenomeSeq]{calcNormFactors}} for details.

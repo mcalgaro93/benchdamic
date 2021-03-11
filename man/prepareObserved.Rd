@@ -26,9 +26,8 @@ Average count value continuity corrected logarithms and fraction of zeroes by
 taxon.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
-counts = as(otu_table(ps_stool_16S), "matrix")
+counts = as(phyloseq::otu_table(ps_stool_16S), "matrix")
 
 # Fit some models on the counts matrix
 HURDLE <- fitHURDLE(counts, scale = "median")
@@ -37,9 +36,9 @@ NB <- fitNB(counts)
 # Then log-transform the observed counts
 # For HURDLE model remember to specify the "scale" parameter
 observed_for_HURDLE <- prepareObserved(counts, scale = "median")
-# For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not necessary
+# For NB, ZINB, ZIG, and DM distributions  the "scale" parameter is not
+# necessary
 observed <- prepareObserved(counts)
-}
 }
 \seealso{
 \code{\link{meanDifferences}}

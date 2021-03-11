@@ -22,15 +22,21 @@ DA_edgeR(
 
 \item{pseudo_count}{Add 1 to all counts if TRUE (default = FALSE).}
 
-\item{group}{vector or factor giving the experimental group/condition for each sample/library.}
+\item{group}{vector or factor giving the experimental group/condition for
+each sample/library.}
 
-\item{design}{numeric design matrix. Defaults to \code{model.matrix(~group)} if \code{group} is specified and otherwise to a single column of ones.}
+\item{design}{numeric design matrix. Defaults to \code{model.matrix(~group)}
+if \code{group} is specified and otherwise to a single column of ones.}
 
-\item{contrast}{numeric vector or matrix specifying one or more contrasts of the linear model coefficients to be tested equal to zero.}
+\item{contrast}{numeric vector or matrix specifying one or more contrasts of
+the linear model coefficients to be tested equal to zero.}
 
-\item{robust}{logical, should the estimation of \code{prior.df} be robustified against outliers?}
+\item{robust}{logical, should the estimation of \code{prior.df} be
+robustified against outliers?}
 
-\item{coef}{integer or character index vector indicating which coefficients of the linear model are to be tested equal to zero. Ignored if \code{contrast} is not \code{NULL}.}
+\item{coef}{integer or character index vector indicating which coefficients
+of the linear model are to be tested equal to zero. Ignored if
+\code{contrast} is not \code{NULL}.}
 
 \item{norm}{name of the normalization method used to compute the
 normalization factors to use in the differential abundance analysis.}
@@ -46,22 +52,20 @@ name of the final object considering the parameters passed to the function.
 Fast run for edgeR differential abundance detection method.
 }
 \examples{
-\dontrun{
 data(ps_stool_16S)
 # Calculate the scaling factors
 ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
 
 # The phyloseq object now contains the scaling factors:
-scaleFacts <- sample_data(ps_stool_16S)[,"NF.TMM"]
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.TMM"]
 head(scaleFacts)
 
 # Differential abundance
-group <- sample(x = c("grp1","grp2"), size = nsamples(ps_stool_16S),
-replace = TRUE)
-sample_data(ps_stool_16S)$group <- group
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
 DA_edgeR(ps_stool_16S, group = group, design = ~ group, coef = 2,
-norm = "TMM")
-}
+    norm = "TMM")
 }
 \seealso{
 \code{\link[edgeR]{DGEList}} for the edgeR DEG object creation,

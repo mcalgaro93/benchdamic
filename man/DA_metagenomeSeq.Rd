@@ -36,6 +36,22 @@ considering the parameters passed to the function.
 \description{
 Fast run for the metagenomeSeq's differential abundance detection method.
 }
+\examples{
+data(ps_stool_16S)
+# Calculate the scaling factors
+ps_stool_16S <- norm_CSS(object = ps_stool_16S, method = "median")
+
+# The phyloseq object now contains the scaling factors:
+scaleFacts <- phyloseq::sample_data(ps_stool_16S)[, "NF.CSSmedian"]
+head(scaleFacts)
+
+# Differential abundance
+group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
+    ps_stool_16S), replace = TRUE)
+phyloseq::sample_data(ps_stool_16S)$group <- group
+DA_metagenomeSeq(ps_stool_16S, design = ~ group, coef = 2, norm =
+    "CSSmedian")
+}
 \seealso{
 \code{\link[metagenomeSeq]{fitZig}} for the Zero-Inflated Gaussian
 regression model estimation and \code{\link[metagenomeSeq]{MRfulltable}}

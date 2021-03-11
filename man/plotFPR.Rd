@@ -19,3 +19,45 @@ A ggplot object.
 Draw the boxplots of the proportions of p-values lower than 0.01, 0.05, and
 0.1 thresholds for each method.
 }
+\examples{
+data(ps_stool_16S)
+
+# Add some normalization/scaling factors to the phyloseq object
+ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
+ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+
+# Compute zero inflated weights
+zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
+# Create mocks
+set.seed(123)
+mock_df <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 10)
+
+# Run some methods
+Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
+    phyloseq::sample_data(ps_stool_16S)[,"group"] <- x
+    returnList = list()
+    returnList = within(returnList, {
+        da.edger <- DA_edgeR(object = ps_stool_16S, group = unlist(
+            phyloseq::sample_data(ps_stool_16S)[,"group"]), design =
+            as.formula("~ group"), coef = 2, norm = "TMM")
+        da.edger.zinb <- DA_edgeR(object = ps_stool_16S, group = unlist(
+            phyloseq::sample_data(ps_stool_16S)[,"group"]), design =
+            as.formula("~ group"), coef = 2, norm = "TMM",weights =
+            zinbweights)
+        da.deseq <- DA_DESeq2(object = ps_stool_16S, design = as.formula(
+            "~ group"), norm = "poscounts", contrast = c("group","grp2",
+            "grp1"))
+        da.deseq.zinb <- DA_DESeq2(object = ps_stool_16S, design =
+            as.formula("~ group"), norm = "poscounts", contrast = c("group",
+            "grp2","grp1"), weights = zinbweights)
+    })
+    return(returnList)})
+
+# Prepare results for Type I Error Control
+TIEC_summary <- createTIEC(Stool_16S_mockDA)
+
+# Plot the results
+plotFPR(df_FPR = TIEC_summary$df_FPR)
+plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0,0.1))
+plotKS(df_KS = TIEC_summary$df_KS)
+}

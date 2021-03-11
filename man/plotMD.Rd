@@ -27,7 +27,7 @@ A function to plot mean difference (MD) and zero probability difference (ZPD)
 values between estimated and observed values.
 }
 \examples{
-\dontrun{
+\donttest{
 data(ps_stool_16S)
 
 # Estimate the counts assuming several distributions
