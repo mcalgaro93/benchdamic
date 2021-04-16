@@ -36,7 +36,11 @@ Imports: stats,
     MGLM,
     ggplot2,
     RColorBrewer,
-    plyr
+    plyr,
+    ffpe,
+    reshape2,
+    ggdendro,
+    graphics
 Suggests: knitr, 
     rmarkdown,
     HMP16SData,

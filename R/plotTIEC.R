@@ -75,10 +75,11 @@ createTIEC <- function(object){
             if(!is.element("name", names(method)))
                 stop("'name' character not found for one of the methods in
                     input.")
-            if(!is.element("rawP", colnames(method$pValMat)))
+            pValMat <- method[["pValMat"]]
+            if(!is.element("rawP", colnames(pValMat)))
                 stop("'rawP' column not found in 'pValMat' matrix.")
-            data.frame(pval = method$pValMat[, "rawP"], Method = factor(
-                method$name)) }, .id = "Method") })
+            data.frame(pval = pValMat[, "rawP"], Method = factor(
+                method[["name"]])) }, .id = "Method") })
     # Melt down to a single data frame with the Comparison column added
     df_pval <- plyr::ldply(df_list_pval, .id = "Comparison")
     ### FPR ###
@@ -86,10 +87,10 @@ createTIEC <- function(object){
     df_pval_FPR <- plyr::ddply(.data = df_pval, .variables = ~ Comparison +
         Method, .fun = function(x){
             # index for not NA p-values
-            k_pval <- !is.na(x$pval)
-            x$FPR_obs001 <- sum(x$pval < 0.01, na.rm = TRUE) / sum(k_pval)
-            x$FPR_obs005 <- sum(x$pval < 0.05, na.rm = TRUE) / sum(k_pval)
-            x$FPR_obs01 <- sum(x$pval < 0.1, na.rm = TRUE) / sum(k_pval)
+            k_pval <- !is.na(x[, "pval"])
+            x$FPR_obs001 <- sum(x[, "pval"] < 0.01, na.rm = TRUE) / sum(k_pval)
+            x$FPR_obs005 <- sum(x[, "pval"] < 0.05, na.rm = TRUE) / sum(k_pval)
+            x$FPR_obs01 <- sum(x[, "pval"] < 0.1, na.rm = TRUE) / sum(k_pval)
             return(x)})
     # Compute the mean for each FPR threshold
     df_FPR <- plyr::ddply(.data = df_pval_FPR, .variables = ~ Comparison +
@@ -101,9 +102,9 @@ createTIEC <- function(object){
     df_QQ_KS <- suppressWarnings(plyr::ddply(.data = df_pval, .variables = ~
         Comparison + Method, .fun = function(x){
             # Ordered list of p-values
-            x <- x[order(x$pval),]
+            x <- x[order(x[, "pval"]),]
             # Index of not NA p-values
-            k_pval <- !is.na(x$pval)
+            k_pval <- !is.na(x[, "pval"])
             # Theoretical uniform distribution
             x$pval_theoretical[k_pval] <- (seq_len(sum(k_pval))) / (sum(k_pval))
             x$pval_theoretical_rounded[k_pval] <- round((seq_len(sum(k_pval))) /
