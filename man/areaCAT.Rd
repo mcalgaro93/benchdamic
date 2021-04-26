@@ -8,9 +8,9 @@ areaCAT(concordance, plotIt = FALSE)
 }
 \arguments{
 \item{concordance}{A long format \code{data.frame} produced by
-[benchdamic::createConcordance()] function.}
+\link{createConcordance} function.}
 
-\item{plotIt}{Plot the concordance (default = FALSE).}
+\item{plotIt}{Plot the concordance (default \code{plotIt = FALSE}).}
 }
 \value{
 A long format \code{data.frame} object with several columns:
@@ -79,5 +79,5 @@ concordance_pvalues = createConcordance(object = Plaque_16S_splitsDA, slot =
 concordance_area <- areaCAT(concordance = concordance_pvalues)
 }
 \seealso{
-[benchdamic::createConcordance()] and [bechdamic::plotConcordance()]
+\code{\link{createConcordance}} and \code{\link{plotConcordance}}
 }

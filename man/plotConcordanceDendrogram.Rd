@@ -8,7 +8,7 @@ plotConcordanceDendrogram(hc, direction = "v", cols)
 }
 \arguments{
 \item{hc}{Hierarchical clustering results produced in
-[benchdamic::plotConcordance()] function.}
+\link{plotConcordance} function.}
 
 \item{direction}{vertical (default \code{direction = "v"}) or horizontal
 (\code{direction = "h"}).}
@@ -22,6 +22,6 @@ a \code{ggplot2} object
 Plots the method's dendrogram of concordances.
 }
 \seealso{
-[benchdamic::createConcordance()] and [bechdamic::plotConcordance()]
+\code{\link{createConcordance}} and \code{\link{plotConcordance}}
 }
 \keyword{internal}

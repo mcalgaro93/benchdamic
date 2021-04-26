@@ -639,7 +639,7 @@ DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
             the numerator level for the fold change, and the name of the
             denominator level for the fold change."))
     else message(paste0("Extracting results for ", contrast[1]," variable, ",
-        contrast[2], " vs ", contrast[3]))
+        contrast[2], " / ", contrast[3]))
     res <- DESeq2::results(ddsRes, alpha = alpha, contrast = contrast)
     statInfo <- as(res, "data.frame")
     pValMat <- statInfo[,c("pvalue", "padj")]
@@ -844,7 +844,6 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL, coef =
         if(grepl("~", design))
             design <- as.formula(design)
         else design <- as.formula(paste0("~", design))}
-
     if(is(design, "formula")){
         design <- as.formula(paste0(paste0(design,collapse = " "), " + ",
             NF.col))
@@ -1237,9 +1236,9 @@ DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median",
 #' @param object phyloseq object.
 #' @param pseudo_count Add 1 to all counts if TRUE (default = FALSE).
 #' @inheritParams Seurat::FindMarkers
-#' @param group.by the name of a factor variable to group samples.
-#' @param reference.level the level of the factor variable to take as reference
-#' to compute differential abundance.
+#' @param contrast character vector with exactly three elements: the name of a
+#' factor in the design formula, the name of the numerator level for the fold
+#' change, and the name of the denominator level for the fold change.
 #' @param norm name of the normalization method used to compute the
 #' normalization factors to use in the differential abundance analysis.
 #'
@@ -1268,13 +1267,12 @@ DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median",
 #' group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
 #'     ps_stool_16S), replace = TRUE)
 #' phyloseq::sample_data(ps_stool_16S)$group <- as.factor(group)
-#' DA_Seurat(ps_stool_16S, group.by = "group", reference.level = "grp1", norm =
-#'     "none")
+#' DA_Seurat(ps_stool_16S, contrast = c("group","grp2","grp1"), norm = "none")
 
 DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
-    group.by = NULL, reference.level = NULL, norm = c("TMM", "TMMwsp", "RLE",
-    "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
-    "iterate", "TSS", "CSSmedian", "CSSdefault")){
+    contrast, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
+    "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
+    "CSSmedian", "CSSdefault")){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -1315,26 +1313,34 @@ DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
         min.features = 1)
     sobj <- Seurat::AddMetaData(object = sobj, metadata = data.frame(metadata),
         col.name = colnames(metadata))
-    if(is.null(group.by) | is.null(reference.level)){
-        stop("Please supply the variable to study differential abundance for and
-            its reference level.")
-    } else {
-        if(!is(unlist(sobj[[group.by]]),"factor"))
-            stop(paste(group.by,"variable is not a factor. Please supply a
+    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3))
+        stop(paste0("Please supply a character vector with exactly three
+            elements: the name of a factor in the design formula, the name of
+            the numerator level for the fold change, and the name of the
+            denominator level for the fold change."))
+    else {
+        if(!is(unlist(sobj[[contrast[1]]]),"factor"))
+            stop(paste(contrast[1]," variable is not a factor. Please supply a
                 factor."))
-        else
-            if(!is.element(reference.level,levels(unlist(sobj[[group.by]]))))
-                stop(paste(reference.level, "is not a level of the", group.by,
-                    "variable. Please supply a present category."))}
-
-    message("Differential abundance analysis on ", group.by, " variable.")
+        else{
+            if(!is.element(contrast[2],levels(unlist(sobj[[contrast[1]]]))))
+                stop(paste(contrast[2], "is not a level of the", contrast[1],
+                    "variable. Please supply a present category."))
+            if(!is.element(contrast[3],levels(unlist(sobj[[contrast[1]]]))))
+                stop(paste(contrast[3], "is not a level of the", contrast[1],
+                    "variable. Please supply a present category."))
+        }
+    }
+    message(paste0("Extracting results for ", contrast[1]," variable, ",
+        contrast[2], " / ", contrast[3]))
     sobj <- Seurat::NormalizeData(object = sobj, normalization.method =
         "LogNormalize", scale.factor = 10000)
     sobj <- Seurat::FindVariableFeatures(object = sobj, nfeatures = round(nrow(
         counts)*0.1, digits = 0))
     sobj <- Seurat::ScaleData(object = sobj, vars.to.regress = c("nCount_RNA"))
     statInfo_ <- Seurat::FindMarkers(sobj, test.use = test.use, group.by =
-        group.by, ident.1 = reference.level, logfc.threshold = 0, min.cpt = 0)
+        contrast[1], ident.1 = contrast[2], ident.2 = contrast[3],
+        logfc.threshold = 0, min.cpt = 0)
     computed_features <- match(gsub(pattern = "_", x = rownames(counts),
         replacement = "-"),rownames(statInfo_))
     statInfo <- data.frame(matrix(NA, ncol = ncol(statInfo_), nrow = nrow(

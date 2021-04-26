@@ -8,7 +8,7 @@ plotConcordance(concordance, threshold = NULL, cols = NULL)
 }
 \arguments{
 \item{concordance}{A long format \code{data.frame} produced by
-[benchdamic::createConcordance()] function.}
+\link{createConcordance} function.}
 
 \item{threshold}{The threshold for rank (x-axis upper limit if all methods
 have a higher number of computed statistics).}
@@ -16,7 +16,7 @@ have a higher number of computed statistics).}
 \item{cols}{A named vector containing the color hex codes.}
 }
 \value{
-A 3 elements list of \code{ggplot2} class objects:
+A 2 elements list of \code{ggplot2} class objects:
 \itemize{
     \item{\code{concordanceDendrogram}}{ which contains the
     vertically directioned dendrogram for the methods involved in the
@@ -69,10 +69,10 @@ Plaque_16S_splitsDA <- lapply(X = split_list, FUN = function(subset){
 concordance_pvalues = createConcordance(object = Plaque_16S_splitsDA, slot =
     "pValMat", colName = "rawP", type = "pvalue")
 
-# plot the concordance for the ranks 1 to 50.
+# plot concordances from rank 1 to 50.
 concordance_plots <- plotConcordance(concordance = concordance_pvalues,
     threshold = 50)
 }
 \seealso{
-[benchdamic::createConcordance()]
+\code{\link{createConcordance}}
 }

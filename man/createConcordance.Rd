@@ -7,28 +7,28 @@
 createConcordance(object, slot = "pValMat", colName = "rawP", type = "pvalue")
 }
 \arguments{
-\item{object}{Output of the differential abundance tests on the comparisons
-of Subset1 and Subset2. Must follow a specific structure list with subset,
-comparison, and method levels. For each method, \code{pValMat},
-\code{statInfo} matrices and method's \code{name} must be present (See
-vignette for detailed information).}
+\item{object}{Output of differential abundance detection methods.
+\code{pValMat}, \code{statInfo} matrices, and method's \code{name} must be
+present (See vignette for detailed information).}
 
 \item{slot}{A character vector with 1 or number-of-methods-times repeats of
-the slot names where to extract values for each method (default = "pValMat").}
+the slot names where to extract values for each method
+(default \code{slot = "pValMat"}).}
 
 \item{colName}{A character vector with 1 or number-of-methods-times repeats
 of the column name of the slot where to extract values for each method
-(default = "rawP").}
+(default \code{colName = "rawP"}).}
 
 \item{type}{A character vector with 1 or number-of-methods-times repeats
 of the value type of the column selected where to extract values for each
-method. Two values are possible: "pvalue" or "logfc" (default = "pvalue").}
+method. Two values are possible: \code{"pvalue"} or \code{"logfc"}
+(default \code{type = "pvalue"}).}
 }
 \value{
 A long format \code{data.frame} object with several columns:
 \itemize{
     \item{\code{comparison}}{ which indicates the comparison number;}
-    \item{\code{n_features }}{ which indicates the total number of taxa in
+    \item{\code{n_features}}{ which indicates the total number of taxa in
     the comparison dataset;}
     \item{\code{method1}}{ which contains the first method name;}
     \item{\code{method2}}{ which contains the first method name;}
@@ -91,5 +91,5 @@ concordance_logfc_pvalues = createConcordance(object = Plaque_16S_splitsDA,
     c("logfc","pvalue"))
 }
 \seealso{
-[benchdamic::extractStatistics()] and [benchdamic::areaCAT()].
+\code{\link{extractStatistics}} and \code{\link{areaCAT}}.
 }

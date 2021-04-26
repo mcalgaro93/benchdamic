@@ -28,7 +28,7 @@
 #'     statistics and p-values are reported in KS and KS_pval columns
 #'     respectively.}}
 #'
-#' @seealso [benchdamic::createMocks()]
+#' @seealso \code{\link{createMocks}}
 #'
 #' @examples
 #' data(ps_stool_16S)
@@ -174,7 +174,7 @@ createColors <- function(variable){
 #' 0.1 thresholds for each method.
 #'
 #' @param df_FPR 5 columns per methods x comparisons rows data.frame produced by
-#' the [bechdamic::createTIEC()] function, containing the FPR values.
+#' the \code{\link{createTIEC}} function, containing the FPR values.
 #' @param cols named vector of colors.
 #'
 #' @return A ggplot object.
@@ -363,7 +363,7 @@ plotQQ <- function(df_QQ, cols = NULL, zoom = c(0,0.1)){
 #' distributions across the mock comparisons.
 #'
 #' @param df_KS 5 columns per methods x comparisons rows data.frame produced by
-#' the [benchdamic::createTIEC] function.
+#' the \code{\link{createTIEC}} function.
 #' @param cols named vector of colors.
 #'
 #' @return A ggplot object.

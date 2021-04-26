@@ -8,7 +8,7 @@ plotFPR(df_FPR, cols = NULL)
 }
 \arguments{
 \item{df_FPR}{5 columns per methods x comparisons rows data.frame produced by
-the [bechdamic::createTIEC()] function, containing the FPR values.}
+the \code{\link{createTIEC}} function, containing the FPR values.}
 
 \item{cols}{named vector of colors.}
 }

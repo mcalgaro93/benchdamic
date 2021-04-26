@@ -8,8 +8,7 @@ DA_Seurat(
   object,
   pseudo_count = FALSE,
   test.use = "wilcox",
-  group.by = NULL,
-  reference.level = NULL,
+  contrast,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
     "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")
 )
@@ -60,10 +59,9 @@ DA_Seurat(
  https://bioconductor.org/packages/release/bioc/html/DESeq2.html
 }}
 
-\item{group.by}{the name of a factor variable to group samples.}
-
-\item{reference.level}{the level of the factor variable to take as reference
-to compute differential abundance.}
+\item{contrast}{character vector with exactly three elements: the name of a
+factor in the design formula, the name of the numerator level for the fold
+change, and the name of the denominator level for the fold change.}
 
 \item{norm}{name of the normalization method used to compute the
 normalization factors to use in the differential abundance analysis.}
@@ -89,8 +87,7 @@ head(scaleFacts)
 group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(
     ps_stool_16S), replace = TRUE)
 phyloseq::sample_data(ps_stool_16S)$group <- as.factor(group)
-DA_Seurat(ps_stool_16S, group.by = "group", reference.level = "grp1", norm =
-    "none")
+DA_Seurat(ps_stool_16S, contrast = c("group","grp2","grp1"), norm = "none")
 }
 \seealso{
 \code{\link[Seurat]{CreateSeuratObject}} to create the Seurat

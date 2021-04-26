@@ -8,7 +8,7 @@ plotKS(df_KS, cols = NULL)
 }
 \arguments{
 \item{df_KS}{5 columns per methods x comparisons rows data.frame produced by
-the [benchdamic::createTIEC] function.}
+the \code{\link{createTIEC}} function.}
 
 \item{cols}{named vector of colors.}
 }

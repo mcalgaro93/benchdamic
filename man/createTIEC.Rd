@@ -67,5 +67,5 @@ plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0,0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
 }
 \seealso{
-[benchdamic::createMocks()]
+\code{\link{createMocks}}
 }

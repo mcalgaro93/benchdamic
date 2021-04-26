@@ -323,7 +323,7 @@ For each row of the `mock_df` data frame we run a bunch of DA methods. In this d
 
 -   `limma-voom` with *CSS* scaling factors;
 
-```{r DA_TIEC}
+```{r DA_TIEC, message=FALSE}
 # Random grouping each time
 Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x) {
   # Group assignment
@@ -659,9 +659,9 @@ pC <- plotConcordance(concordance = concordance, threshold = 30, cols = cols)
 plot_grid(plotlist = list(pC$concordanceDendrogram, pC$concordanceHeatmap), ncol = 2, align = "h", axis = "tb", rel_widths = c(1, 3))
 ```
 
-The WMC and BMC from rank 1 to rank 30 are reported in the plot above. 40 is the maximum rank because it is the number of taxa for which all methods have been able to calculate p-values. However, a custom threshold of 30 was supplied .
+The WMC and BMC from rank 1 to rank 30 are reported in the plot above. 69 is the maximum rank because it is the number of taxa for which all methods have been able to calculate p-values (in all comparisons). However, a custom threshold of 30 was supplied .
 
-It is common that WMC values (in red rectangles) are lower than BMC ones. Indeed, BMC is computed between different methods on the same data, while WMC is computed for a single method, run in different datasets.
+It is common that WMC values (in red rectangles) are lower than BMC ones. Indeed, BMC is computed between different methods on the same data, while WMC is computed for a single method, run in different datasets (some taxa are dataset-specific).
 
 `limma.CSSmedian` and `limma.TMM` methods show the highest BMC values. Regarding the WMC, `edgeR.TMM` has the lowest values while other methods have comparable ones.
 
@@ -671,10 +671,217 @@ While mock comparisons and random splits allow to evaluate type I error and conc
 
 While the lack of ground truth makes it challenging to assess the validity of DA results in real data, enrichment analysis can provide an alternative solution to rank methods in terms of their ability to identify as significant taxa that are known to be differentially abundant between two groups.
 
+## *A priori* knowledge
+
 Here, we leveraged the peculiar environment of the gingival site: the supragingival biofilm is directly exposed to the open atmosphere of the oral cavity, favoring the growth of aerobic species. In the subgingival biofilm, however, the atmospheric conditions gradually become strict anaerobic, favoring the growth of anaerobic species [@plaque_dynamics]. From the comparison of the two sites, we thus expected to find an abundance of aerobic microbes in the supragingival plaque and of anaerobic bacteria in the subgingival plaque. DA analysis should reflect this difference by finding an enrichment of aerobic (anaerobic) bacteria among the DA taxa with a positive (negative) log-fold-change.
 
-```{r}
+Firstly, the microbial metabolism information is necessary. These data comes from [@cigarettes] paper github repository ([https://github.com/waldronlab/nychanesmicrobiome](https://github.com/waldronlab/nychanesmicrobiome)), but they can be loaded using `data("microbial_metabolism")`.
 
+```{r}
+data("microbial_metabolism")
+head(microbial_metabolism)
+```
+
+The microbial genus and its type of metabolism are specified in the first and second column respectively. To match each taxon of the phyloseq object to its type of metabolism the next chunk of code can be used.
+
+```{r}
+# Extract genera from the phyloseq tax_table slot
+genera <- tax_table(ps_plaque_16S)[, "GENUS"]
+# Genera as rownames of microbial_metabolism data.frame
+rownames(microbial_metabolism) <- microbial_metabolism$Genus
+# Match OTUs to their metabolism
+priorInfo <- data.frame(genera, "Type" =  microbial_metabolism[genera, "Type"])
+unknown_metabolism <- is.na(priorInfo$Type)
+priorInfo[unknown_metabolism, "Type"] <- "Unknown"
+priorInfo$Type <- factor(priorInfo$Type)
+# Add a more informative names column
+priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|", 
+    priorInfo[, "GENUS"])
+```
+
+## Differential abundance
+
+Prepare some normalization/scaling factors.
+
+```{r}
+ps_plaque_16S <- norm_edgeR(
+  object = ps_plaque_16S,
+  method = "TMM"
+)
+ps_plaque_16S <- norm_edgeR(
+  object = ps_plaque_16S,
+  method = "none"
+)
+ps_plaque_16S <- norm_DESeq2(
+  object = ps_plaque_16S,
+  method = "poscounts"
+)
+ps_plaque_16S <- norm_CSS(
+  object = ps_plaque_16S,
+  "median"
+)
+```
+
+Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` object. For this reason many methods can be assessed without computational trade-offs.
+
+```{r, message=FALSE}
+# Convert to factor
+ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- factor(
+    ps_plaque_16S@sam_data$HMP_BODY_SUBSITE
+)
+# Reference level = "Subgingival Plaque"
+ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- relevel(
+    x = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE, 
+    ref = "Subgingival Plaque"
+)
+Plaque_16S_DA <- list()
+Plaque_16S_DA <- within(Plaque_16S_DA, {
+    # DA analysis
+    cat("edgeR...\n")
+    da.edger <- DA_edgeR(
+        object = ps_plaque_16S,
+        group = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE,
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        coef = 2,
+        norm = "TMM"
+    )
+    cat("DESeq2...\n")
+    da.deseq <- DA_DESeq2(
+        object = ps_plaque_16S,
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        norm = "poscounts",
+        contrast = c(
+          "HMP_BODY_SUBSITE",
+          "Supragingival Plaque",
+          "Subgingival Plaque"
+        )
+    )
+    cat("limma...\n")
+    da.limma <- DA_limma(
+        object = ps_plaque_16S,
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        coef = 2,
+        norm = "TMM"
+    )
+    cat("limma CSS...\n")
+    da.limma.css <- DA_limma(
+        object = ps_plaque_16S,
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        coef = 2,
+        norm = "CSSmedian"
+    )
+    cat("metagenomeSeq CSS...\n")
+    da.metagenomeseq.css <- DA_metagenomeSeq(
+        object = ps_plaque_16S,
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        coef = 2,
+        norm = "CSSmedian"
+    )
+    cat("ALDEx2 CSS...\n")
+    da.ALDEx2 <- DA_ALDEx2(
+        object = ps_plaque_16S,
+        conditions = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE,
+        test = "t",
+        norm = "none"
+    )
+    cat("corcob Wald...\n")
+    da.corconb.Wald <- DA_corncob(
+        object = ps_plaque_16S,
+        formula = ~ 1 + HMP_BODY_SUBSITE,
+        formula_null = ~ 1,
+        phi.formula = ~ 1 + HMP_BODY_SUBSITE,
+        phi.formula_null = ~ 1 + HMP_BODY_SUBSITE,
+        coefficient = "HMP_BODY_SUBSITESupragingival Plaque",
+        test = "Wald",
+        norm = "none"
+    )
+    cat("MAST Wald...\n")
+    da.MAST <- DA_MAST(
+        object = ps_plaque_16S,
+        rescale = "median",
+        design = ~ 1 + HMP_BODY_SUBSITE,
+        coefficient = "HMP_BODY_SUBSITESupragingival Plaque",
+        norm = "none"
+    )
+    cat("Seurat...\n")
+    da.Seurat <- DA_Seurat(
+        object = ps_plaque_16S,
+        test.use = "wilcox",
+        contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque","Subgingival Plaque"),
+        norm = "none"
+    )
+    cat("\n")
+})
+```
+
+`Plaque_16_DA` object contains the results for 9 methods. In order to extract p-values and directionality of DA (Over abundant or Under abundant) the `extractStatistics()` function can be used, defining the *direction* argument.
+
+Firstly, the order of methods should be investigated:
+
+```{r}
+names(Plaque_16S_DA)
+```
+
+In the *direction* argument, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's `statInfo` matrix must be supplied.
+
+```{r}
+# # Qesto serve per tenere le direction
+# Plaque_16S_DA_stats <- extractStatistics(
+#   object = Plaque_16S_DA,
+#   slot = "pValMat",
+#   colName = "adjP",
+#   type = "pvalue",
+#   verbose = "TRUE",
+#   direction = c("avg_logFC", # Seurat
+#                 "logFC", # MAST
+#                 "Estimate", # corncob
+#                 "effect", # ALDEx2
+#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+#                 "logFC", # limma
+#                 "logFC", # limma
+#                 "log2FoldChange", # DEseq2
+#                 "logFC") # edgeR
+# )
+# 
+# Plaque_16S_DA_info <- extractDA(
+#   object = Plaque_16S_DA,
+#   slot = "pValMat",
+#   colName = "adjP",
+#   type = "pvalue",
+#   verbose = TRUE,
+#   direction = c("avg_logFC", # Seurat
+#                 "logFC", # MAST
+#                 "Estimate", # corncob
+#                 "effect", # ALDEx2
+#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+#                 "logFC", # limma
+#                 "logFC", # limma
+#                 "log2FoldChange", # DEseq2
+#                 "logFC"), # edgeR
+#   threshold_pvalue = 0.05,
+#   threshold_logfc = 1,
+#   top = 10
+# )
+# 
+# enrichment <- createEnrichment(object = Plaque_16S_DA, 
+#   priorKnowledge = priorInfo, 
+#   enrichmentCol = "Type",  
+#   slot = "pValMat",
+#   colName = "rawP",
+#   type = "pvalue",
+#   # direction = NULL,
+#   direction = c("avg_logFC", # Seurat
+#                 "logFC", # MAST
+#                 "Estimate", # corncob
+#                 "effect", # ALDEx2
+#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+#                 "logFC", # limma
+#                 "logFC", # limma
+#                 "log2FoldChange", # DEseq2
+#                 "logFC"), # edgeR
+#   threshold_pvalue = 1,
+#   threshold_logfc = 0,
+#   top = 20)
 ```
 
 # References
