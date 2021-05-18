@@ -669,13 +669,13 @@ It is common that WMC values (in red rectangles) are lower than BMC ones. Indeed
 
 While mock comparisons and random splits allow to evaluate type I error and concordance, these analyses do not assess the correctness of the discoveries. Even the method with the highest WMC could nonetheless consistently identify false positive DA taxa.
 
-While the lack of ground truth makes it challenging to assess the validity of DA results in real data, enrichment analysis can provide an alternative solution to rank methods in terms of their ability to identify as significant taxa that are known to be differentially abundant between two groups.
+While the lack of ground truth makes it challenging to assess the validity of DA results in real data, enrichment analysis can provide an alternative solution to rank methods in terms of their ability to identify, as significant, taxa that are known to be differentially abundant between two groups.
 
 ## *A priori* knowledge
 
 Here, we leveraged the peculiar environment of the gingival site: the supragingival biofilm is directly exposed to the open atmosphere of the oral cavity, favoring the growth of aerobic species. In the subgingival biofilm, however, the atmospheric conditions gradually become strict anaerobic, favoring the growth of anaerobic species [@plaque_dynamics]. From the comparison of the two sites, we thus expected to find an abundance of aerobic microbes in the supragingival plaque and of anaerobic bacteria in the subgingival plaque. DA analysis should reflect this difference by finding an enrichment of aerobic (anaerobic) bacteria among the DA taxa with a positive (negative) log-fold-change.
 
-Firstly, the microbial metabolism information is necessary. These data comes from [@cigarettes] paper github repository ([https://github.com/waldronlab/nychanesmicrobiome](https://github.com/waldronlab/nychanesmicrobiome)), but they can be loaded using `data("microbial_metabolism")`.
+Firstly, the microbial metabolism information is necessary. These data comes from [@cigarettes] paper github repository (<https://github.com/waldronlab/nychanesmicrobiome>), but they can be loaded using `data("microbial_metabolism")`.
 
 ```{r}
 data("microbial_metabolism")
@@ -693,7 +693,8 @@ rownames(microbial_metabolism) <- microbial_metabolism$Genus
 priorInfo <- data.frame(genera, "Type" =  microbial_metabolism[genera, "Type"])
 unknown_metabolism <- is.na(priorInfo$Type)
 priorInfo[unknown_metabolism, "Type"] <- "Unknown"
-priorInfo$Type <- factor(priorInfo$Type)
+# Relabel 'F Anaerobic' to 'F_Anaerobic' to remove space
+priorInfo$Type <- factor(priorInfo$Type, levels = c("Aerobic","Anaerobic","F Anaerobic","Unknown"), labels = c("Aerobic","Anaerobic","F_Anaerobic","Unknown"))
 # Add a more informative names column
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|", 
     priorInfo[, "GENUS"])
@@ -784,7 +785,7 @@ Plaque_16S_DA <- within(Plaque_16S_DA, {
         test = "t",
         norm = "none"
     )
-    cat("corcob Wald...\n")
+    cat("corncob Wald...\n")
     da.corconb.Wald <- DA_corncob(
         object = ps_plaque_16S,
         formula = ~ 1 + HMP_BODY_SUBSITE,
@@ -807,14 +808,18 @@ Plaque_16S_DA <- within(Plaque_16S_DA, {
     da.Seurat <- DA_Seurat(
         object = ps_plaque_16S,
         test.use = "wilcox",
-        contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque","Subgingival Plaque"),
+        contrast = c("HMP_BODY_SUBSITE", "Supragingival Plaque", "Subgingival Plaque"),
         norm = "none"
     )
     cat("\n")
 })
 ```
 
-`Plaque_16_DA` object contains the results for 9 methods. In order to extract p-values and directionality of DA (Over abundant or Under abundant) the `extractStatistics()` function can be used, defining the *direction* argument.
+## Visualization
+
+`Plaque_16_DA` object contains the results for 9 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
+
+In the *direction* argument, which is set to `NULL` by default, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's `statInfo` matrix must be supplied.
 
 Firstly, the order of methods should be investigated:
 
@@ -822,66 +827,101 @@ Firstly, the order of methods should be investigated:
 names(Plaque_16S_DA)
 ```
 
-In the *direction* argument, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's `statInfo` matrix must be supplied.
+Following the methods' order, the *direction* parameter is supplied together with other parameters:
+
+-   *threshold_pvalue*, *threshold_logfc*, and *top* (optional), to set differential abundance thresholds;
+
+-   *slot*, *colName*, and *type*, which specify where to apply the above thresholds;
+
+-   *priorKnowledge*, *enrichmentCol*, and *namesCol*, to add enrichment information to DA analysis;
 
 ```{r}
-# # Qesto serve per tenere le direction
-# Plaque_16S_DA_stats <- extractStatistics(
-#   object = Plaque_16S_DA,
-#   slot = "pValMat",
-#   colName = "adjP",
-#   type = "pvalue",
-#   verbose = "TRUE",
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC") # edgeR
-# )
-# 
-# Plaque_16S_DA_info <- extractDA(
-#   object = Plaque_16S_DA,
-#   slot = "pValMat",
-#   colName = "adjP",
-#   type = "pvalue",
-#   verbose = TRUE,
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC"), # edgeR
-#   threshold_pvalue = 0.05,
-#   threshold_logfc = 1,
-#   top = 10
-# )
-# 
-# enrichment <- createEnrichment(object = Plaque_16S_DA, 
-#   priorKnowledge = priorInfo, 
-#   enrichmentCol = "Type",  
-#   slot = "pValMat",
-#   colName = "rawP",
-#   type = "pvalue",
-#   # direction = NULL,
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC"), # edgeR
-#   threshold_pvalue = 1,
-#   threshold_logfc = 0,
-#   top = 20)
+enrichment <- createEnrichment(
+    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
+    namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
+    direction = c("avg_logFC", # Seurat
+        "logFC", # MAST
+        "Estimate", # corncob
+        "effect", # ALDEx2
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "logFC", # limma
+        "logFC", # limma
+        "log2FoldChange", # DEseq2
+        "logFC"), # edgeR)
+    threshold_pvalue = 0.1,
+    threshold_logfc = 0,
+    top = NULL,
+    alternative = "greater",
+    verbose = TRUE
+)
 ```
+
+The produced *enrichment* object consists in a list of elements as long as the number of tested methods:
+
+-   the `data` slot contains information for each feature. P-values, adjusted p-values (or other statistics) in *stats* column, log fold changes (or other statistics, if specified) in *direction* column, differential abundace information in the *DA* column (according to the thresholds), the variable of interest for the enrichment analysis, and the name of the feature in the *feature* column;
+
+-   in the `tables` slot a maximum of *2 x (levels of enrichment variable)* contingency tables (*2x2*) are present;
+
+-   in the `tests` slot, the list of Fisher exact tests produced by the `fisher.test()` function are saved for each contingency table;
+
+-   in the `summaries` slot, the first elements of the contingency tables and the respective p-values are collected for graphical purposes.
+
+Considering the most liberal method of our example, *metagenomeSeq.CSSmedian,* we obtain 8 contingency tables. Both UP Abundant and DOWN Abundant taxa are found and the enrichment variable has Aerobic, Anaerobic, F_Anaerobic, and Unknown levels. For each level, we can build 2 contingency tables: one for DOWN Abundant vs non.DOWN Abundant features and one for UP Abundant vs non.UP Abundant features. The enrichment is tested using Fisher exact test. The `plotContingency()` function summarize all these information.
+
+```{r}
+plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic", "F_Anaerobic", "Unknown"), method = "metagenomeSeq.CSSmedian")
+```
+
+To summarize enrichment analysis for all the methods simultaneously, the `plotEnrichment()` function can be used. Only Aerobic and Anaerobic levels are plotted:
+
+```{r, fig.width=7, fig.height=7}
+plotEnrichment(enrichment = enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"))
+```
+
+Since "Subgingival Plaque" is the reference level for each method, the coefficients extracted from the methods are referred to the "Supragingival Plaque" class. Five out of nine methods identify, as expected, a statistically significant ($0.001 < p \le 0.05$) amount of DOWN Abundant Anaerobic features in Supragingival Plaque. Moreover, *metagenomeSeq.CSSmedian* finds some UP Abundant Aerobic genera in Supragingival Plaque but, together with *edgeR.TMM*, some Anaerobic genera as UP Abundant, which are probably false positives. *Seurat.none.wilcox*, *ALDEx2.none.iqlr.t*, and *limma.CSSmedian* have instead a more conservative behavior, but still they can find some DOWN Abundant genera towards the expected direction. Finally, *MAST.none* doesn't find any DA feature.
+
+To investigate the DA features, the `plotMutualFindings()` function can be used. While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
+
+```{r, fig.width=6, fig.height=6}
+plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 2)
+```
+
+In this example, only Anaerobic genera are found as DA by more than 1 method simultaneously. Among them *Prevotella*, *Fusobacterium*, *Catonella*, and *Dialister* genera are found as DOWN Abundant in Supragingival Plaque by the majority of methods. Only the Bacteroides genus is considered UP Abundant in Supragingival Plaque by *edgeR.TMM*. However, the same feature is found as DOWN Abundant by *metagenomeSeq.CSSmedian*.
+
+## True and False Positives
+
+To evaluate the overall performances we can study a statistic based on the difference between putative True Positives (TP) and the putative False Positives (FP). To build the matrix to plot, the `createPositives()` can be used. In details, the correctness of the DA features is evaluated comparing the direction of the top ranked features to the expected direction supplied by the user in the *TP* and *FP* lists. The procedure is performed for several thresholds of *top* parameter in order to observe a trend, if present.
+
+```{r}
+positives <- createPositives(
+    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
+    namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
+    direction = c("avg_logFC", # Seurat
+        "logFC", # MAST
+        "Estimate", # corncob
+        "effect", # ALDEx2
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "logFC", # limma
+        "logFC", # limma
+        "log2FoldChange", # DEseq2
+        "logFC"), # edgeR)
+    threshold_pvalue = 1,
+    threshold_logfc = 0,
+    top = seq.int(from = 0, to = 50, by = 5), 
+    alternative = "greater",
+    verbose = FALSE,
+    TP = list(c("DOWN Abundant", "Anaerobic"), c("UP Abundant", "Aerobic")),
+    FP = list(c("DOWN Abundant", "Aerobic"), c("UP Abundant", "Anaerobic"))
+)
+head(positives)
+```
+
+Finally, the `plotPositives()` function can be used to summarize the methods' performances. Higher values usually represents better performances. In our example, all methods show similar values of the statistics from the top 5, to the top 20 ranked features.
+
+```{r}
+plotPositives(positives)
+```
+
+*MAST.none.median* and *ALDEx2.none.iqlr.t* methods are obviously very conservative and are located on the lower part of the plot. Very liberal methods, such as *metagenomeSeq.CSSmedian* and *edgeR.TMM* show instead the highest values. This means that their findings are in line with the *a priori* knowledge supplied by the user, however we are considering a toy example with only 88 features.
 
 # References

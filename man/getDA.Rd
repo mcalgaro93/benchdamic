@@ -86,7 +86,6 @@ da.limma <- DA_limma(
 getDA(method = da.limma, slot = "pValMat", colName = "rawP", type = "pvalue",
     direction = NULL, threshold_pvalue = 0.1, threshold_logfc = 0,
     top = NULL)
-
 # top 10 feature with highest logFC are DA
 getDA(method = da.limma, slot = "pValMat", colName = "rawP", type = "pvalue",
     direction = "logFC", threshold_pvalue = 1, threshold_logfc = 0, top = 10)

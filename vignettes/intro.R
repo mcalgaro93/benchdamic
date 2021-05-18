@@ -370,7 +370,8 @@ rownames(microbial_metabolism) <- microbial_metabolism$Genus
 priorInfo <- data.frame(genera, "Type" =  microbial_metabolism[genera, "Type"])
 unknown_metabolism <- is.na(priorInfo$Type)
 priorInfo[unknown_metabolism, "Type"] <- "Unknown"
-priorInfo$Type <- factor(priorInfo$Type)
+# Relabel 'F Anaerobic' to 'F_Anaerobic' to remove space
+priorInfo$Type <- factor(priorInfo$Type, levels = c("Aerobic","Anaerobic","F Anaerobic","Unknown"), labels = c("Aerobic","Anaerobic","F_Anaerobic","Unknown"))
 # Add a more informative names column
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|", 
     priorInfo[, "GENUS"])
@@ -453,7 +454,7 @@ Plaque_16S_DA <- within(Plaque_16S_DA, {
         test = "t",
         norm = "none"
     )
-    cat("corcob Wald...\n")
+    cat("corncob Wald...\n")
     da.corconb.Wald <- DA_corncob(
         object = ps_plaque_16S,
         formula = ~ 1 + HMP_BODY_SUBSITE,
@@ -476,7 +477,7 @@ Plaque_16S_DA <- within(Plaque_16S_DA, {
     da.Seurat <- DA_Seurat(
         object = ps_plaque_16S,
         test.use = "wilcox",
-        contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque","Subgingival Plaque"),
+        contrast = c("HMP_BODY_SUBSITE", "Supragingival Plaque", "Subgingival Plaque"),
         norm = "none"
     )
     cat("\n")
@@ -486,61 +487,57 @@ Plaque_16S_DA <- within(Plaque_16S_DA, {
 names(Plaque_16S_DA)
 
 ## -----------------------------------------------------------------------------
-# # Qesto serve per tenere le direction
-# Plaque_16S_DA_stats <- extractStatistics(
-#   object = Plaque_16S_DA,
-#   slot = "pValMat",
-#   colName = "adjP",
-#   type = "pvalue",
-#   verbose = "TRUE",
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC") # edgeR
-# )
-# 
-# Plaque_16S_DA_info <- extractDA(
-#   object = Plaque_16S_DA,
-#   slot = "pValMat",
-#   colName = "adjP",
-#   type = "pvalue",
-#   verbose = TRUE,
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC"), # edgeR
-#   threshold_pvalue = 0.05,
-#   threshold_logfc = 1,
-#   top = 10
-# )
-# 
-# enrichment <- createEnrichment(object = Plaque_16S_DA, 
-#   priorKnowledge = priorInfo, 
-#   enrichmentCol = "Type",  
-#   slot = "pValMat",
-#   colName = "rawP",
-#   type = "pvalue",
-#   # direction = NULL,
-#   direction = c("avg_logFC", # Seurat
-#                 "logFC", # MAST
-#                 "Estimate", # corncob
-#                 "effect", # ALDEx2
-#                 "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-#                 "logFC", # limma
-#                 "logFC", # limma
-#                 "log2FoldChange", # DEseq2
-#                 "logFC"), # edgeR
-#   threshold_pvalue = 1,
-#   threshold_logfc = 0,
-#   top = 20)
+enrichment <- createEnrichment(
+    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
+    namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
+    direction = c("avg_logFC", # Seurat
+        "logFC", # MAST
+        "Estimate", # corncob
+        "effect", # ALDEx2
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "logFC", # limma
+        "logFC", # limma
+        "log2FoldChange", # DEseq2
+        "logFC"), # edgeR)
+    threshold_pvalue = 0.1,
+    threshold_logfc = 0,
+    top = NULL,
+    alternative = "greater",
+    verbose = TRUE
+)
+
+## -----------------------------------------------------------------------------
+plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic", "F_Anaerobic", "Unknown"), method = "metagenomeSeq.CSSmedian")
+
+## ---- fig.width=7, fig.height=7-----------------------------------------------
+plotEnrichment(enrichment = enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"))
+
+## ---- fig.width=6, fig.height=6-----------------------------------------------
+plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 2)
+
+## -----------------------------------------------------------------------------
+positives <- createPositives(
+    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
+    namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
+    direction = c("avg_logFC", # Seurat
+        "logFC", # MAST
+        "Estimate", # corncob
+        "effect", # ALDEx2
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "logFC", # limma
+        "logFC", # limma
+        "log2FoldChange", # DEseq2
+        "logFC"), # edgeR)
+    threshold_pvalue = 1,
+    threshold_logfc = 0,
+    top = seq.int(from = 0, to = 50, by = 5), 
+    alternative = "greater",
+    verbose = FALSE,
+    TP = list(c("DOWN Abundant", "Anaerobic"), c("UP Abundant", "Aerobic")),
+    FP = list(c("DOWN Abundant", "Aerobic"), c("UP Abundant", "Anaerobic"))
+)
+head(positives)
+
+## -----------------------------------------------------------------------------
+plotPositives(positives)
 
