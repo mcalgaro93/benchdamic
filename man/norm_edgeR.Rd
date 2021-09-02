@@ -17,7 +17,7 @@ norm_edgeR(
 )
 }
 \arguments{
-\item{object}{phyloseq object containing the counts to be normalized.}
+\item{object}{a phyloseq object containing the counts to be normalized.}
 
 \item{method}{normalization method to be used. Choose between \code{TMM},
 \code{TMMwsp}, \code{RLE}, \code{upperquartile}, \code{posupperquartile} or
