@@ -9,7 +9,7 @@ norm_CSS(object, method = "default")
 \arguments{
 \item{object}{phyloseq object containing the counts to be normalized.}
 
-\item{method}{Normalization scaling parameter (default
+\item{method}{normalization scaling parameter (default
 \code{method = "default"}). If \code{"median"}, the median of the
 normalization factors is used as scaling (Paulson et al. 2013).}
 }
