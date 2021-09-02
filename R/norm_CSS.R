@@ -10,7 +10,7 @@
 #' the Cumulative Sum Scaling normalization.
 #'
 #' @param object phyloseq object containing the counts to be normalized.
-#' @param method  Normalization scaling parameter (default
+#' @param method  normalization scaling parameter (default
 #' \code{method = "default"}). If \code{"median"}, the median of the
 #' normalization factors is used as scaling (Paulson et al. 2013).
 #'
