@@ -8,7 +8,7 @@
 #' Calculate scaling factors from a phyloseq object to scale the raw library
 #' sizes. Inherited from edgeR \code{\link{calcNormFactors}} function.
 #'
-#' @param object phyloseq object containing the counts to be normalized.
+#' @param object a phyloseq object containing the counts to be normalized.
 #' @param method normalization method to be used. Choose between \code{TMM},
 #' \code{TMMwsp}, \code{RLE}, \code{upperquartile}, \code{posupperquartile} or
 #' \code{none}.
