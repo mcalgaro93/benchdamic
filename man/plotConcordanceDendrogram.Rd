@@ -8,7 +8,7 @@ plotConcordanceDendrogram(hc, direction = "v", cols)
 }
 \arguments{
 \item{hc}{Hierarchical clustering results produced in
-\link{plotConcordance} function.}
+\code{\link{plotConcordance}} function.}
 
 \item{direction}{vertical (default \code{direction = "v"}) or horizontal
 (\code{direction = "h"}).}

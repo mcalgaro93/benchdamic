@@ -40,12 +40,12 @@ Imports: stats,
     ffpe,
     reshape2,
     ggdendro,
-    graphics
+    graphics,
+    cowplot
 Suggests: knitr, 
     rmarkdown,
     HMP16SData,
     curatedMetagenomicData,
-    cowplot,
     BiocStyle
 VignetteBuilder: knitr
 LazyData: TRUE

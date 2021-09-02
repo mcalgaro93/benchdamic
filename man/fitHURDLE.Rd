@@ -10,23 +10,25 @@ fitHURDLE(counts, scale = "default")
 \item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
 samples by column.}
 
-\item{scale}{Character vector, either 'median' or 'default' to choose between
-the median of the library size or one million to scale raw counts.}
+\item{scale}{Character vector, either \code{median} or \code{default} to
+choose between the median of the library size or one million to scale raw
+counts.}
 }
 \value{
 A data frame containing the continuity corrected logarithms of the
-average fitted values for each row of the `counts` matrix in the `Y` column,
-and the estimated probability to observe a zero in the `Y0` column.
+average fitted values for each row of the matrix of counts in the \code{Y}
+column, and the estimated probability to observe a zero in the \code{Y0}
+column.
 }
 \description{
 Fit a truncated gaussian hurdle model for each taxon of the count data. The
-hurdle model estimation procedure is performed by MAST `zlm` function without
-assuming the presence of any group in the samples (design matrix equal to a
-column of ones.)
+hurdle model estimation procedure is performed by MAST \code{\link{zlm}}
+function without assuming the presence of any group in the samples (design
+matrix equal to a column of ones.)
 }
 \examples{
-data(ps_stool_16S)
-counts = as(phyloseq::otu_table(ps_stool_16S), "matrix")
+# Generate some random counts
+counts = matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 
 # Fit model on the counts matrix
 HURDLE <- fitHURDLE(counts, scale = "median")

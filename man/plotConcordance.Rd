@@ -8,7 +8,7 @@ plotConcordance(concordance, threshold = NULL, cols = NULL)
 }
 \arguments{
 \item{concordance}{A long format \code{data.frame} produced by
-\link{createConcordance} function.}
+\code{\link{createConcordance}} function.}
 
 \item{threshold}{The threshold for rank (x-axis upper limit if all methods
 have a higher number of computed statistics).}
@@ -29,49 +29,37 @@ Produce a list of graphical outputs summarizing the between and
 within method concordance.
 }
 \examples{
-data("ps_plaque_16S")
+data(ps_plaque_16S)
+# Balanced design for independent samples
+my_splits <- createSplits(
+    object = ps_plaque_16S, varName = "HMP_BODY_SUBSITE", balanced = TRUE,
+    N = 10 # N = 100 suggested
+)
 
-set.seed(123)
-phyloseq::sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- factor(
-    phyloseq::sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
-split_list <- createSplits(object = ps_plaque_16S,
-                           varName = "HMP_BODY_SUBSITE",
-                           paired = "RSID",
-                           balanced = TRUE,
-                           N = 10) # At least 100 is suggested
+# Initialize some limma based methods
+my_limma <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2,
+    norm = c("TMM", "CSSmedian"))
 
-# Run some methods
-# lapply -> Subset1 and Subset2
-Plaque_16S_splitsDA <- lapply(X = split_list, FUN = function(subset){
-    # apply -> Comparison1, Comparison2, ..., Comparison10
-    apply(X = subset, MARGIN = 1, FUN = function(splits) {
-        # Splitting
-        ps <- phyloseq::prune_samples(phyloseq::sample_names(ps_plaque_16S)
-            \%in\% splits, ps_plaque_16S)
-        # Keep only present taxa
-        ps <- phyloseq::filter_taxa(ps, function(x) sum(x>0)>0, 1)
-        # Adding scaling and normalization factors
-        ps <- norm_edgeR(object = ps, method = "TMM")
-        ps <- norm_CSS(object = ps, method = "median")
-        # DA analysis
-        returnList = list()
-        returnList = within(returnList, {
-            da.limma <- DA_limma(object = ps, design = ~ 1 +
-                HMP_BODY_SUBSITE, coef = 2, norm = "TMM")
-            da.limma.css <- DA_limma(object = ps, design = ~ 1 +
-                HMP_BODY_SUBSITE, coef = 2, norm = "CSSmedian")
-        })
-        return(returnList)
-    })
-})
+# Set the normalization methods according to the DA methods
+my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
+    method = c("TMM", "median"))
+
+# Run methods on split datasets
+Plaque_16S_splitsDA <- runSplits(split_list = my_splits,
+    method_list = my_limma, normalization_list = my_norm,
+    object = ps_plaque_16S)
 
 # Concordance for p-values
-concordance_pvalues = createConcordance(object = Plaque_16S_splitsDA, slot =
-    "pValMat", colName = "rawP", type = "pvalue")
+concordance_pvalues <- createConcordance(
+    object = Plaque_16S_splitsDA, slot =
+        "pValMat", colName = "rawP", type = "pvalue"
+)
 
 # plot concordances from rank 1 to 50.
-concordance_plots <- plotConcordance(concordance = concordance_pvalues,
-    threshold = 50)
+plotConcordance(
+    concordance = concordance_pvalues,
+    threshold = 50
+)
 }
 \seealso{
 \code{\link{createConcordance}}

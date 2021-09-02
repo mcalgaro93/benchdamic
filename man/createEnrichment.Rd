@@ -107,29 +107,20 @@ priorInfo$Type <- factor(priorInfo$Type)
 # Add a more informative names column
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), priorInfo[, "GENUS"])
 
-# DA analysis
-# Add scaling factors
-ps_plaque_16S <- norm_edgeR(object = ps_plaque_16S, method = "TMM")
-ps_plaque_16S <- norm_CSS(object = ps_plaque_16S, method = "median")
+# Add some normalization/scaling factors to the phyloseq object
+my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
+    method = c("TMM", "median"))
+ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
+    object = ps_plaque_16S)
+
+# Initialize some limma based methods
+my_limma <- set_limma(design = ~ 1 + HMP_BODY_SUBSITE, coef = 2,
+    norm = c("TMM", "CSSmedian"))
 
 # Perform DA analysis
-Plaque_16S_DA <- list()
-Plaque_16S_DA <- within(Plaque_16S_DA, {
-    # DA analysis
-    da.limma <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-    )
-    da.limma.css <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "CSSmedian"
-    )
-})
+Plaque_16S_DA <- runDA(method_list = my_limma, object = ps_plaque_16S)
 
+# Enrichment analysis
 enrichment <- createEnrichment(object = Plaque_16S_DA,
     priorKnowledge = priorInfo, enrichmentCol = "Type", namesCol = "GENUS",
     slot = "pValMat", colName = "adjP", type = "pvalue", direction = "logFC",

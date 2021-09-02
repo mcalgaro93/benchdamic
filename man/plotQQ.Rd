@@ -23,44 +23,33 @@ A ggplot object.
 Draw the average QQ-plots across the mock comparisons.
 }
 \examples{
+# Load some data
 data(ps_stool_16S)
 
+# Generate the patterns for 10 mock comparison for an experiment
+# (N = 1000 is suggested)
+mocks <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 10)
+head(mocks)
+
 # Add some normalization/scaling factors to the phyloseq object
-ps_stool_16S <- norm_edgeR(object = ps_stool_16S, method = "TMM")
-ps_stool_16S <- norm_DESeq2(object = ps_stool_16S, method = "poscounts")
+my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
+    method = c("TMM", "median"))
+ps_stool_16S <- runNormalizations(normalization_list = my_norm,
+    object = ps_stool_16S)
 
-# Compute zero inflated weights
-zinbweights <- weights_ZINB(object = ps_stool_16S, K = 0, design = "~ 1")
-# Create mocks
-set.seed(123)
-mock_df <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 10)
+# Initialize some limma based methods
+my_limma <- set_limma(design = ~ group, coef = 2,
+    norm = c("TMM", "CSSmedian"))
 
-# Run some methods
-Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x){
-    phyloseq::sample_data(ps_stool_16S)[,"group"] <- x
-    returnList = list()
-    returnList = within(returnList, {
-        da.edger <- DA_edgeR(object = ps_stool_16S, group = unlist(
-            phyloseq::sample_data(ps_stool_16S)[,"group"]), design =
-            as.formula("~ group"), coef = 2, norm = "TMM")
-        da.edger.zinb <- DA_edgeR(object = ps_stool_16S, group = unlist(
-            phyloseq::sample_data(ps_stool_16S)[,"group"]), design =
-            as.formula("~ group"), coef = 2, norm = "TMM",weights =
-            zinbweights)
-        da.deseq <- DA_DESeq2(object = ps_stool_16S, design = as.formula(
-            "~ group"), norm = "poscounts", contrast = c("group","grp2",
-            "grp1"))
-        da.deseq.zinb <- DA_DESeq2(object = ps_stool_16S, design =
-            as.formula("~ group"), norm = "poscounts", contrast = c("group",
-            "grp2","grp1"), weights = zinbweights)
-    })
-    return(returnList)})
+# Run methods on mock datasets
+results <- runMocks(mocks = mocks, method_list = my_limma,
+    object = ps_stool_16S)
 
 # Prepare results for Type I Error Control
-TIEC_summary <- createTIEC(Stool_16S_mockDA)
+TIEC_summary <- createTIEC(results)
 
 # Plot the results
 plotFPR(df_FPR = TIEC_summary$df_FPR)
-plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0,0.1))
+plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
 }

@@ -8,7 +8,7 @@ plotConcordanceHeatmap(c_df, threshold, cols)
 }
 \arguments{
 \item{c_df}{A simplified concordance \code{data.frame} produced in
-\link{plotConcordance} function.}
+\code{\link{plotConcordance}} function.}
 
 \item{threshold}{The threshold for rank (x-axis upper limit if all methods
 have a higher number of computed statistics).}

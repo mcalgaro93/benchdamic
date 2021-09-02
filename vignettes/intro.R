@@ -62,7 +62,7 @@ head(meanDifferences(
 
 ## ----fitting, warning=FALSE---------------------------------------------------
 GOF_stool_16S <- fitModels(
-  object = ps_stool_16S,
+  counts = as(otu_table(ps_stool_16S), "matrix"),
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("median", "default"),
   scale_HURDLE = c("median", "default")
@@ -117,95 +117,76 @@ plot_grid(plotRMSE(GOF_stool_16S, difference = "MD"),
 
 ## ----createMocks--------------------------------------------------------------
 set.seed(123)
-mock_df <- createMocks(
-  nsamples = nsamples(ps_stool_16S),
+my_mocks <- createMocks(
+  nsamples = phyloseq::nsamples(ps_stool_16S),
   N = 10
-) # At least 1000 is suggested
+) # At least N = 1000 is suggested
 
-## ----normalization------------------------------------------------------------
-ps_stool_16S <- norm_edgeR(
-  object = ps_stool_16S,
-  method = "TMM"
-)
-ps_stool_16S <- norm_DESeq2(
-  object = ps_stool_16S,
-  method = "poscounts"
-)
-ps_stool_16S <- norm_CSS(
-  object = ps_stool_16S,
-  "median"
-)
+## ----normalizationManual, eval=FALSE------------------------------------------
+#  ps_stool_16S <- norm_edgeR(
+#    object = ps_stool_16S,
+#    method = "TMM"
+#  )
+#  ps_stool_16S <- norm_DESeq2(
+#    object = ps_stool_16S,
+#    method = "poscounts"
+#  )
+#  ps_stool_16S <- norm_CSS(
+#    object = ps_stool_16S,
+#    "median"
+#  )
+
+## ----setNormalization---------------------------------------------------------
+my_normalizations <- setNormalizations(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"), method = c("TMM", "poscounts", "median"))
+ps_stool_16S <- runNormalizations(normalization_list = my_normalizations, object = ps_stool_16S)
+
+## ----weights------------------------------------------------------------------
 zinbweights <- weights_ZINB(
   object = ps_stool_16S,
   K = 0,
   design = "~ 1"
 )
 
+## -----------------------------------------------------------------------------
+my_edgeR <- set_edgeR(
+    pseudo_count = FALSE,
+    group_name = "group", 
+    design = ~ group, 
+    robust = FALSE, 
+    coef = 2, 
+    norm = "TMM", 
+    weights_logical = c(TRUE, FALSE), 
+    expand = TRUE
+)
+my_DESeq2 <- set_DESeq2(
+    pseudo_count = FALSE,
+    design = ~ group,
+    contrast = c("group", "grp2", "grp1"),
+    norm = "poscounts", 
+    weights_logical = c(TRUE, FALSE), 
+    alpha = 0.05,
+    expand = TRUE
+)
+my_limma <- set_limma(
+    pseudo_count = FALSE,
+    design = ~ group,
+    coef = 2,
+    norm = c("TMM", "TMM", "CSSmedian"),
+    weights_logical = c(FALSE, TRUE, FALSE), 
+    expand = FALSE)
+
+my_methods <- c(my_edgeR, my_DESeq2, my_limma)
+
 ## ----DA_TIEC, message=FALSE---------------------------------------------------
 # Random grouping each time
-Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x) {
-  # Group assignment
-  sample_data(ps_stool_16S)$group <- x
-  ### DA analysis ###
-  returnList <- list()
-  returnList <- within(returnList, {
-    da.edger <- DA_edgeR(
-      object = ps_stool_16S,
-      group = unlist(sample_data(ps_stool_16S)[, "group"]),
-      design = as.formula("~ group"),
-      coef = 2,
-      norm = "TMM"
-    )
-    da.edger.zinb <- DA_edgeR(
-      object = ps_stool_16S,
-      group = unlist(sample_data(ps_stool_16S)[, "group"]),
-      design = as.formula("~ group"),
-      coef = 2,
-      norm = "TMM",
-      weights = zinbweights
-    )
-    da.deseq <- DA_DESeq2(
-      object = ps_stool_16S,
-      design = as.formula("~ group"),
-      norm = "poscounts",
-      contrast = c("group", "grp2", "grp1")
-    )
-    da.deseq.zinb <- DA_DESeq2(
-      object = ps_stool_16S,
-      design = as.formula("~ group"),
-      norm = "poscounts",
-      contrast = c("group", "grp2", "grp1"),
-      weights = zinbweights
-    )
-    da.limma <- DA_limma(
-      object = ps_stool_16S,
-      design = ~group,
-      coef = 2,
-      norm = "TMM"
-    )
-    da.limma.zinb <- DA_limma(
-      object = ps_stool_16S,
-      design = ~group,
-      coef = 2,
-      norm = "TMM",
-      weights = zinbweights
-    )
-    da.limma.css <- DA_limma(
-      object = ps_stool_16S,
-      design = ~group,
-      coef = 2,
-      norm = "CSSmedian"
-    )
-  })
-  return(returnList)
-})
+Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object = ps_stool_16S, weights = zinbweights)
 
 ## ----customExample, eval=FALSE------------------------------------------------
-#  DA_yourMethod <- function(parameters) # others
+#  DA_yourMethod <- function(object, parameters) # others
 #  {
 #    ### your method code ###
 #  
-#    ### extract important variables ###
+#    ### extract important statistics ###
 #    vector_of_pval <- NA # contains the p-values
 #    vector_of_adjusted_pval <- NA # contains the adjusted p-values
 #    name_of_your_features <- NA # contains the OTU, or ASV, or other feature names. Usually extracted from the rownames of the count data
@@ -222,6 +203,20 @@ Stool_16S_mockDA <- apply(X = mock_df, MARGIN = 1, FUN = function(x) {
 #      "name" = name
 #    ))
 #  } # END - function: DA_yourMethod
+
+## ----customExampleInstances, eval=FALSE---------------------------------------
+#  my_custom_method <- list(
+#      customMethod.1 = list(method = "DA_yourMethod", parameters),
+#      customMethod.2 = list(method = "DA_yourMethod", parameters)
+#  )
+
+## ----customExampleRun, eval=FALSE---------------------------------------------
+#  # Add the custom method instances to the others
+#  my_methods <- c(my_edgeR, my_DESeq2, my_limma, my_custom_method)
+#  # Run all the methods on a specific data object...
+#  runDA(my_methods = my_methods, object = dataObject)
+#  # ... Or on the mock datasets to investigate TIEC
+#  runMocks(mocks = mock_df, my_methods = my_methods, object = dataObject)
 
 ## ----createTIEC---------------------------------------------------------------
 TIEC_summary <- createTIEC(Stool_16S_mockDA)
@@ -263,7 +258,8 @@ data("ps_plaque_16S")
 ## -----------------------------------------------------------------------------
 set.seed(123)
 sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- factor(sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
-split_list <- createSplits(
+
+my_splits <- createSplits(
   object = ps_plaque_16S,
   varName = "HMP_BODY_SUBSITE",
   paired = "RSID",
@@ -271,65 +267,18 @@ split_list <- createSplits(
   N = 10
 ) # At least 100 is suggested
 
+## -----------------------------------------------------------------------------
+my_edgeR_noWeights <- set_edgeR(group_name = "HMP_BODY_SUBSITE", design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "TMM")
+my_DESeq2_noWeights <- set_DESeq2(contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque", "Subgingival Plaque"), design = ~ HMP_BODY_SUBSITE, norm = "poscounts")
+my_limma_noWeights <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = c("TMM", "CSSmedian"))
+
+my_methods_noWeights <- c(my_edgeR_noWeights, my_DESeq2_noWeights, my_limma_noWeights)
+
+## -----------------------------------------------------------------------------
+str(my_normalizations)
+
 ## ---- message=FALSE-----------------------------------------------------------
-# lapply -> Subset1 and Subset2
-Plaque_16S_splitsDA <- lapply(X = split_list, FUN = function(subset) {
-  # apply -> Comparison1, Comparison2, ..., ComparisonN
-  apply(X = subset, MARGIN = 1, FUN = function(splits) {
-    # Splitting
-    # cat("Splitting the samples...\n")
-    ps <- prune_samples(sample_names(ps_plaque_16S) %in% splits, ps_plaque_16S)
-    # Keep only present taxa
-    # cat("Removing not present taxa...\n")
-    ps <- filter_taxa(ps, function(x) sum(x > 0) > 0, 1)
-    # Adding scaling and normalization factors
-    # cat("Computing normalizations...\n")
-    ps <- norm_edgeR(object = ps, method = "TMM")
-    ps <- norm_DESeq2(object = ps, method = "poscounts")
-    ps <- norm_CSS(object = ps, method = "median")
-    ### DA analysis ###
-    # Uncomment the cat code to receive messages
-    # cat("Differential abundance:\n")
-    returnList <- list()
-    returnList <- within(returnList, {
-      # cat("edgeR...\n")
-      da.edger <- DA_edgeR(
-        object = ps,
-        group = ps@sam_data$HMP_BODY_SUBSITE,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-      )
-      # cat("DESeq2...\n")
-      da.deseq <- DA_DESeq2(
-        object = ps,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        norm = "poscounts",
-        contrast = c(
-          "HMP_BODY_SUBSITE",
-          "Subgingival Plaque",
-          "Supragingival Plaque"
-        )
-      )
-      # cat("limma...\n")
-      da.limma <- DA_limma(
-        object = ps,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-      )
-      # cat("limma CSS...\n")
-      da.limma.css <- DA_limma(
-        object = ps,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "CSSmedian"
-      )
-      # cat("\n")
-    })
-    return(returnList)
-  })
-})
+Plaque_16S_splitsDA <- runSplits(split_list = my_splits, method_list = my_methods_noWeights, normalization_list = my_normalizations, object = ps_plaque_16S)
 
 ## -----------------------------------------------------------------------------
 concordance <- createConcordance(object = Plaque_16S_splitsDA, slot = "pValMat", colName = "rawP", type = "pvalue")
@@ -339,23 +288,23 @@ head(concordance)
 names(Plaque_16S_splitsDA$Subset1$Comparison1)
 
 ## -----------------------------------------------------------------------------
-names(Plaque_16S_splitsDA$Subset1$Comparison1$da.limma.css$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$da.limma$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$da.deseq$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$da.edger$statInfo)
+names(Plaque_16S_splitsDA$Subset1$Comparison1$edgeR.TMM$statInfo)
+names(Plaque_16S_splitsDA$Subset1$Comparison1$DESeq2.poscounts$statInfo)
+names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.CSSmedian$statInfo)
+names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.TMM$statInfo)
+
+## ---- eval=FALSE--------------------------------------------------------------
+#  concordance_alternative <- createConcordance(
+#    object = Plaque_16S_splitsDA,
+#    slot = "statInfo",
+#    colName = c("logFC", "log2FoldChange", "logFC", "logFC"),
+#    type = "logfc"
+#  )
 
 ## -----------------------------------------------------------------------------
-concordance_alternative <- createConcordance(
-  object = Plaque_16S_splitsDA,
-  slot = "statInfo",
-  colName = c("logFC", "logFC", "log2FoldChange", "logFC"),
-  type = "logfc"
-)
-
-## -----------------------------------------------------------------------------
-pC <- plotConcordance(concordance = concordance, threshold = 30, cols = cols)
-
-plot_grid(plotlist = list(pC$concordanceDendrogram, pC$concordanceHeatmap), ncol = 2, align = "h", axis = "tb", rel_widths = c(1, 3))
+pC <- plotConcordance(concordance = concordance, threshold = 30)
+cowplot::plot_grid(plotlist = pC, ncol = 2, align = "h", axis = "tb",
+        rel_widths = c(1, 3))
 
 ## -----------------------------------------------------------------------------
 data("microbial_metabolism")
@@ -377,21 +326,24 @@ priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|",
     priorInfo[, "GENUS"])
 
 ## -----------------------------------------------------------------------------
-ps_plaque_16S <- norm_edgeR(
-  object = ps_plaque_16S,
-  method = "TMM"
-)
-ps_plaque_16S <- norm_edgeR(
-  object = ps_plaque_16S,
-  method = "none"
-)
-ps_plaque_16S <- norm_DESeq2(
-  object = ps_plaque_16S,
-  method = "poscounts"
-)
-ps_plaque_16S <- norm_CSS(
-  object = ps_plaque_16S,
-  "median"
+none_normalization <- setNormalizations(fun = "norm_edgeR", method = "none")
+my_normalizations_enrichment <- c(my_normalizations, none_normalization)
+ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, object = ps_plaque_16S)
+
+## -----------------------------------------------------------------------------
+my_metagenomeSeq <- set_metagenomeSeq(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "CSSmedian")
+my_ALDEx2 <- set_ALDEx2(conditions = "HMP_BODY_SUBSITE", test = "t", norm = "none")
+my_corncob <- set_corncob(formula = ~ HMP_BODY_SUBSITE, phi.formula = ~ HMP_BODY_SUBSITE, formula_null = ~ 1, phi.formula_null = ~ HMP_BODY_SUBSITE, test = "Wald", coefficient = "HMP_BODY_SUBSITESupragingival Plaque", norm = "none")
+my_MAST <- set_MAST(rescale = "median", design = ~ HMP_BODY_SUBSITE, coefficient = "HMP_BODY_SUBSITESupragingival Plaque", norm = "none")
+my_Seurat <- set_Seurat(test.use = "wilcox", contrast = c("HMP_BODY_SUBSITE", "Supragingival Plaque", "Subgingival Plaque"), norm = "none")
+
+my_methods_enrichment <- c(
+    my_methods_noWeights, 
+    my_metagenomeSeq, 
+    my_ALDEx2, 
+    my_corncob, 
+    my_MAST, 
+    my_Seurat
 )
 
 ## ---- message=FALSE-----------------------------------------------------------
@@ -404,84 +356,7 @@ ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- relevel(
     x = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE, 
     ref = "Subgingival Plaque"
 )
-Plaque_16S_DA <- list()
-Plaque_16S_DA <- within(Plaque_16S_DA, {
-    # DA analysis
-    cat("edgeR...\n")
-    da.edger <- DA_edgeR(
-        object = ps_plaque_16S,
-        group = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-    )
-    cat("DESeq2...\n")
-    da.deseq <- DA_DESeq2(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        norm = "poscounts",
-        contrast = c(
-          "HMP_BODY_SUBSITE",
-          "Supragingival Plaque",
-          "Subgingival Plaque"
-        )
-    )
-    cat("limma...\n")
-    da.limma <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-    )
-    cat("limma CSS...\n")
-    da.limma.css <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "CSSmedian"
-    )
-    cat("metagenomeSeq CSS...\n")
-    da.metagenomeseq.css <- DA_metagenomeSeq(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "CSSmedian"
-    )
-    cat("ALDEx2 CSS...\n")
-    da.ALDEx2 <- DA_ALDEx2(
-        object = ps_plaque_16S,
-        conditions = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE,
-        test = "t",
-        norm = "none"
-    )
-    cat("corncob Wald...\n")
-    da.corconb.Wald <- DA_corncob(
-        object = ps_plaque_16S,
-        formula = ~ 1 + HMP_BODY_SUBSITE,
-        formula_null = ~ 1,
-        phi.formula = ~ 1 + HMP_BODY_SUBSITE,
-        phi.formula_null = ~ 1 + HMP_BODY_SUBSITE,
-        coefficient = "HMP_BODY_SUBSITESupragingival Plaque",
-        test = "Wald",
-        norm = "none"
-    )
-    cat("MAST Wald...\n")
-    da.MAST <- DA_MAST(
-        object = ps_plaque_16S,
-        rescale = "median",
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coefficient = "HMP_BODY_SUBSITESupragingival Plaque",
-        norm = "none"
-    )
-    cat("Seurat...\n")
-    da.Seurat <- DA_Seurat(
-        object = ps_plaque_16S,
-        test.use = "wilcox",
-        contrast = c("HMP_BODY_SUBSITE", "Supragingival Plaque", "Subgingival Plaque"),
-        norm = "none"
-    )
-    cat("\n")
-})
+Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, object = ps_plaque_16S, weights = NULL)
 
 ## -----------------------------------------------------------------------------
 names(Plaque_16S_DA)
@@ -490,15 +365,15 @@ names(Plaque_16S_DA)
 enrichment <- createEnrichment(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
-    direction = c("avg_logFC", # Seurat
-        "logFC", # MAST
-        "Estimate", # corncob
-        "effect", # ALDEx2
-        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-        "logFC", # limma
-        "logFC", # limma
+    direction = c("logFC", # edgeR
         "log2FoldChange", # DEseq2
-        "logFC"), # edgeR)
+        "logFC", # limma
+        "logFC", # limma
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "effect", # ALDEx2
+        "Estimate", # corncob
+        "logFC",# MAST
+        "avg_log2FC"), # Seurat
     threshold_pvalue = 0.1,
     threshold_logfc = 0,
     top = NULL,
@@ -507,27 +382,27 @@ enrichment <- createEnrichment(
 )
 
 ## -----------------------------------------------------------------------------
-plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic", "F_Anaerobic", "Unknown"), method = "metagenomeSeq.CSSmedian")
+plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic"), method = "metagenomeSeq.CSSmedian")
 
 ## ---- fig.width=7, fig.height=7-----------------------------------------------
 plotEnrichment(enrichment = enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"))
 
 ## ---- fig.width=6, fig.height=6-----------------------------------------------
-plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 2)
+plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
 
 ## -----------------------------------------------------------------------------
 positives <- createPositives(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
-    direction = c("avg_logFC", # Seurat
-        "logFC", # MAST
-        "Estimate", # corncob
-        "effect", # ALDEx2
-        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
-        "logFC", # limma
-        "logFC", # limma
+    direction = c("logFC", # edgeR
         "log2FoldChange", # DEseq2
-        "logFC"), # edgeR)
+        "logFC", # limma
+        "logFC", # limma
+        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
+        "effect", # ALDEx2
+        "Estimate", # corncob
+        "logFC",# MAST
+        "avg_log2FC"), # Seurat
     threshold_pvalue = 1,
     threshold_logfc = 0,
     top = seq.int(from = 0, to = 50, by = 5), 

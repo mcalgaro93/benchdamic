@@ -12,19 +12,20 @@ samples by column.}
 }
 \value{
 A data frame containing the continuity corrected logarithms of the
-average fitted values for each row of the `counts` matrix in the `Y` column,
-and the estimated probability to observe a zero in the `Y0` column.
+average fitted values for each row of the matrix of counts in the \code{Y}
+column, and the estimated probability to observe a zero in the \code{Y0}
+column.
 }
 \description{
 Fit a Zero-Inflated Negative Binomial (ZINB) distribution for each taxon of
 the countdata. The ZINB estimation procedure is performed by zinbwave
-`zinbFit` function with `commondispersion = FALSE`, regularization parameter
-`epsilon = 1e10`, and not assuming the presence of any group in the samples
-(design matrix equal to a column of ones.)
+\code{\link{zinbFit}} function with \code{commondispersion = FALSE},
+regularization parameter \code{epsilon = 1e10}, and not assuming the presence
+of any group in the samples (design matrix equal to a column of ones.)
 }
 \examples{
-data(ps_stool_16S)
-counts = as(phyloseq::otu_table(ps_stool_16S), "matrix")
+# Generate some random counts
+counts = matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 
 # Fit model on the counts matrix
 ZINB <- fitZINB(counts)
