@@ -221,6 +221,6 @@ set_edgeR <- function(pseudo_count = FALSE, group_name = NULL,
                                          "design" = deparse(design),
                                          "coef" = coef), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

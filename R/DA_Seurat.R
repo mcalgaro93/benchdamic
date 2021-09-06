@@ -178,6 +178,6 @@ set_Seurat <- function(pseudo_count = FALSE, test.use = c("wilcox", "t"),
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("contrast" = contrast), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

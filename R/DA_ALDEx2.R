@@ -157,6 +157,6 @@ set_ALDEx2 <- function(pseudo_count = FALSE, conditions = NULL,
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("conditions" = conditions), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

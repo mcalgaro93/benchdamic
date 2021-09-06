@@ -118,7 +118,7 @@ runNormalizations <- function(normalization_list, object) {
             return(object)
         },
         error = function(e) {
-            message("Error: ", conditionMessage(e))
+            message(conditionMessage(e))
         }
     )
 }

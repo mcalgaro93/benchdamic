@@ -51,7 +51,7 @@ runDA <- function(method_list, object, weights) {
             return(out)
         },
         error = function(e) {
-            message("Error: ", conditionMessage(e))
+            message(conditionMessage(e))
         }
     )
 }

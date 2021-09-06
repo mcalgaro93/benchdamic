@@ -183,6 +183,6 @@ set_DESeq2 <- function(pseudo_count = FALSE, design = NULL,
         x <- append(x = x, values = list("design" = deparse(design),
                                          "contrast" = contrast), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

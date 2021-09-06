@@ -94,7 +94,7 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
         control = metagenomeSeq::zigControl(maxit = 1000)), silent = TRUE))
     if(is(fit, "try-error")){
         res = matrix(NA, ncol = 2, nrow = nrow(counts))
-        stop("Error! Something went wrong during fitZig estimation.")
+        stop("Something went wrong during fitZig estimation.")
     } else {
         statInfo <- metagenomeSeq::MRcoefs(obj = fit, by = coef, number = nrow(
             counts))
@@ -162,7 +162,7 @@ set_metagenomeSeq <- function(pseudo_count = FALSE, design = NULL, coef = 2,
         x <- append(x = x, values = list("design" = deparse(design),
                                          "coef" = coef), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }
 

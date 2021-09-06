@@ -182,6 +182,6 @@ set_MAST <- function(pseudo_count = FALSE, rescale = c("median", "default"),
         x <- append(x = x, values = list("design" = design,
                                          "coefficient" = coefficient), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

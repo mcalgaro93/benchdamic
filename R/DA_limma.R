@@ -167,6 +167,6 @@ set_limma <- function(pseudo_count = FALSE, design = NULL, coef = 2,
         x <- append(x = x, values = list("design" = deparse(design),
                                          "coef" = coef), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }

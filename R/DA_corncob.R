@@ -185,6 +185,6 @@ set_corncob <- function(pseudo_count = FALSE, formula = NULL, phi.formula = NULL
                                          "phi.formula_null" = phi.formula_null,
                                          "coefficient" = coefficient), after = 2)
     })
-    names(out) <- paste0(method, ".", 1:length(out))
+    names(out) <- paste0(method, ".", seq_along(out))
     return(out)
 }
