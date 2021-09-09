@@ -60,12 +60,13 @@ head(meanDifferences(
   observed = observed_hurdle
 ))
 
-## ----fitting, warning=FALSE---------------------------------------------------
+## ----fitting------------------------------------------------------------------
 GOF_stool_16S <- fitModels(
   counts = as(otu_table(ps_stool_16S), "matrix"),
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("median", "default"),
-  scale_HURDLE = c("median", "default")
+  scale_HURDLE = c("median", "default"),
+  verbose = FALSE
 )
 
 ## ----RMSE_MD------------------------------------------------------------------

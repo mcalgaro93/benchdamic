@@ -4,11 +4,14 @@
 \alias{fitNB}
 \title{fitNB}
 \usage{
-fitNB(counts)
+fitNB(counts, verbose = TRUE)
 }
 \arguments{
 \item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
 samples by column.}
+
+\item{verbose}{an optional logical value. If \code{TRUE} information on the
+steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A data frame containing the continuity corrected logarithms of the

@@ -160,47 +160,48 @@ RMSE <- function(differences) {
 #'
 #' head(GOF)
 fitModels <- function(counts, models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
-    scale_ZIG = c("default", "median"), scale_HURDLE = c("default", "median")) {
+    scale_ZIG = c("default", "median"), scale_HURDLE = c("default", "median"),
+    verbose = TRUE) {
     fittedModels <- list()
     observed <- prepareObserved(counts)
     if ("NB" %in% models) {
-        fitted <- fitNB(counts)
+        fitted <- fitNB(counts, verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["NB"]] <- data.frame(observed, MD)
     }
     if ("ZINB" %in% models) {
-        fitted <- fitZINB(counts)
+        fitted <- fitZINB(counts, verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["ZINB"]] <- data.frame(observed, MD)
     }
     if ("DM" %in% models) {
-        fitted <- fitDM(counts)
+        fitted <- fitDM(counts, verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["DM"]] <- data.frame(observed, MD)
     }
     if ("ZIG" %in% models) {
-        fitted <- fitZIG(counts, scale_ZIG[1])
+        fitted <- fitZIG(counts, scale_ZIG[1], verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         name <- paste0("ZIG_", scale_ZIG[1])
         fittedModels[[name]] <- data.frame(observed, MD)
         if (length(scale_ZIG) == 2) {
-            fitted <- fitZIG(counts, scale_ZIG[2])
+            fitted <- fitZIG(counts, scale_ZIG[2], verbose = verbose)
             MD <- meanDifferences(estimated = fitted, observed = observed)
             name <- paste0("ZIG_", scale_ZIG[2])
             fittedModels[[name]] <- data.frame(observed, MD)
         }
     }
     if ("HURDLE" %in% models) {
-        fitted <- fitHURDLE(counts, scale_HURDLE[1])
+        fitted <- fitHURDLE(counts, scale_HURDLE[1], verbose = verbose)
         observed <- prepareObserved(counts, scale = scale_HURDLE[1])
         MD <- meanDifferences(estimated = fitted, observed = observed)
         name <- paste0("HURDLE_", scale_HURDLE[1])
         fittedModels[[name]] <- data.frame(observed, MD)
         if (length(scale_HURDLE) == 2) {
-            fitted <- fitHURDLE(counts, scale_HURDLE[2])
+            fitted <- fitHURDLE(counts, scale_HURDLE[2], verbose = verbose)
             observed <- prepareObserved(counts, scale = scale_HURDLE[2])
             MD <- meanDifferences(estimated = fitted, observed = observed)
-            name <- paste0("HURDLE_", scale_HURDLE[2])
+            name <- paste0("HURDLE_", scale_HURDLE[2], verbose = verbose)
             fittedModels[[name]] <- data.frame(observed, MD)
         }
     }

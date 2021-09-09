@@ -4,7 +4,7 @@
 \alias{fitHURDLE}
 \title{fitHURDLE}
 \usage{
-fitHURDLE(counts, scale = "default")
+fitHURDLE(counts, scale = "default", verbose = TRUE)
 }
 \arguments{
 \item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
@@ -13,6 +13,9 @@ samples by column.}
 \item{scale}{Character vector, either \code{median} or \code{default} to
 choose between the median of the library size or one million to scale raw
 counts.}
+
+\item{verbose}{an optional logical value. If \code{TRUE} information on the
+steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A data frame containing the continuity corrected logarithms of the

@@ -194,12 +194,13 @@ head(meanDifferences(
 
 A wrapper function to simultaneously perform the estimates and the mean differences is `fitModels()`.
 
-```{r fitting, warning=FALSE}
+```{r fitting}
 GOF_stool_16S <- fitModels(
   counts = as(otu_table(ps_stool_16S), "matrix"),
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("median", "default"),
-  scale_HURDLE = c("median", "default")
+  scale_HURDLE = c("median", "default"),
+  verbose = FALSE
 )
 ```
 

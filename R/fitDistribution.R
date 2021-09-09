@@ -11,6 +11,8 @@
 #' equal to a column of ones.)
 #' @param counts a matrix of counts with features (OTUs, ASVs, genes) by row and
 #' samples by column.
+#' @param verbose an optional logical value. If \code{TRUE} information on the
+#' steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A data frame containing the continuity corrected logarithms of the
 #' average fitted values for each row of the `counts` matrix in the `Y` column,
@@ -22,14 +24,20 @@
 #' # Fit model on the matrix of counts
 #' NB <- fitNB(counts)
 #' head(NB)
-fitNB <- function(counts) {
-    cat("Model: Negative Binomial \n")
+fitNB <- function(counts, verbose = TRUE) {
+    if(verbose)
+        message("Model: Negative Binomial")
     # Default normalization
     normFacts <- edgeR::calcNormFactors(counts)
     # DGEList object creation
     dge <- edgeR::DGEList(counts = counts, norm.factors = normFacts)
     # Dispersion estimate
-    disp <- edgeR::estimateDisp(y = dge, tagwise = TRUE)
+    if(verbose){
+        message("Estimating dispersions")
+        disp <- edgeR::estimateDisp(y = dge, tagwise = TRUE)
+    } else {
+        disp <- suppressMessages(edgeR::estimateDisp(y = dge, tagwise = TRUE))
+    }
     # GLM
     disps <- edgeR::getDispersion(disp)
     fit <- edgeR::glmFit(edgeR::getCounts(dge), dispersion = disps)
@@ -65,11 +73,12 @@ fitNB <- function(counts) {
 #' # Fit model on the counts matrix
 #' ZINB <- fitZINB(counts)
 #' head(ZINB)
-fitZINB <- function(counts) {
-    cat("Model: Zero-Inflated Negative Binomial \n")
+fitZINB <- function(counts, verbose = TRUE) {
+    if(verbose)
+        message("Model: Zero-Inflated Negative Binomial")
     fit <- zinbwave::zinbFit(
-        Y = counts, epsilon = 1e10, commondispersion =
-            TRUE, BPPARAM = BiocParallel::SerialParam()
+        Y = counts, epsilon = 1e10, commondispersion = TRUE,
+        BPPARAM = BiocParallel::SerialParam(), verbose = verbose
     )
     mu <- t(zinbwave::getMu(fit))
     pi <- t(zinbwave::getPi(fit))
@@ -107,8 +116,9 @@ fitZINB <- function(counts) {
 #' # Fit model on the counts matrix
 #' HURDLE <- fitHURDLE(counts, scale = "median")
 #' head(HURDLE)
-fitHURDLE <- function(counts, scale = "default") {
-    cat("Model: Truncated Gaussian Hurdle \n")
+fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
+    if(verbose)
+        message("Model: Truncated Gaussian Hurdle")
     # tpm scaling
     if (scale == "median") {
         tpm <- counts * stats::median(colSums(counts)) / colSums(counts)
@@ -120,7 +130,11 @@ fitHURDLE <- function(counts, scale = "default") {
     # log2 + 1 transformation
     tpm <- log2(tpm + 1)
     # Single Cell object
-    sca <- MAST::FromMatrix(tpm)
+    if(verbose){
+        sca <- MAST::FromMatrix(tpm)
+    } else {
+        sca <- suppressMessages(MAST::FromMatrix(tpm))
+    }
     # Normalization suggested in MAST vignette
     ngeneson <- colSums(SummarizedExperiment::assay(sca))
     CD <- SummarizedExperiment::colData(sca)
@@ -151,6 +165,7 @@ fitHURDLE <- function(counts, scale = "default") {
 #'
 #' @importFrom metagenomeSeq newMRexperiment cumNormStat cumNorm normFactors
 #'     fitZig zigControl
+#' @importFrom utils capture.output
 #' @importFrom stats median
 #' @export
 #' @description
@@ -175,11 +190,16 @@ fitHURDLE <- function(counts, scale = "default") {
 #' # Fit model on the counts matrix
 #' ZIG <- fitZIG(counts, scale = "median")
 #' head(ZIG)
-fitZIG <- function(counts, scale = "default") {
-    cat("Model: Zero-Inflated Gaussian \n")
+fitZIG <- function(counts, scale = "default", verbose = TRUE) {
+    if(verbose)
+        message("Model: Zero-Inflated Gaussian")
     MGS <- metagenomeSeq::newMRexperiment(counts = counts)
     # Normalization
-    MGSp <- metagenomeSeq::cumNormStat(MGS)
+    if(verbose){
+        MGSp <- metagenomeSeq::cumNormStat(MGS)
+    } else {
+        MGSp <- suppressMessages(metagenomeSeq::cumNormStat(MGS))
+    }
     MGS <- metagenomeSeq::cumNorm(MGS, MGSp)
     normFactor <- metagenomeSeq::normFactors(MGS)
     # scaling
@@ -193,10 +213,15 @@ fitZIG <- function(counts, scale = "default") {
     # Design matrix
     desMat <- cbind(1, normFactor = normFactor)
     # Estimation
-    zig <- metagenomeSeq::fitZig(MGS, desMat,
-        control =
-            metagenomeSeq::zigControl(maxit = 1000), useCSSoffset = FALSE
-    )
+    if(verbose){
+        zig <- metagenomeSeq::fitZig(MGS, desMat,
+            control = metagenomeSeq::zigControl(maxit = 1000),
+            useCSSoffset = FALSE)
+    } else {
+        invisible(utils::capture.output(zig <- metagenomeSeq::fitZig(MGS, desMat,
+            control = metagenomeSeq::zigControl(maxit = 1000),
+            useCSSoffset = FALSE)))
+    }
     # Coefficient extraction (metagenomeSeq::MRcoefs() changes the order, use @)
     mu <- tcrossprod(coef(zig@fit), desMat)
     Y <- rowMeans(mu) * log(2)
@@ -231,15 +256,16 @@ fitZIG <- function(counts, scale = "default") {
 #' # Fit model on the counts matrix
 #' DM <- fitDM(counts)
 #' head(DM)
-fitDM <- function(counts) {
-    cat("Model: Dirichlet Multinomial \n")
+fitDM <- function(counts, verbose = TRUE) {
+    if(verbose)
+        message("Model: Dirichlet Multinomial")
     # library sizes
     ls <- colSums(counts)
     data <- t(counts)
     # Design only intercept
     desFormula <- stats::as.formula("data ~ 1")
     # Model fit
-    dmFit <- MGLM::MGLMreg(data ~ 1L, dist = "DM", display = TRUE)
+    dmFit <- MGLM::MGLMreg(data ~ 1L, dist = "DM", display = verbose)
     # fitted_values <- dmFit@fitted * ls
     # Coefficent extraction
     alpha_i <- exp(coef(dmFit))

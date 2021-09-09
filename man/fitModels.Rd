@@ -8,7 +8,8 @@ fitModels(
   counts,
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("default", "median"),
-  scale_HURDLE = c("default", "median")
+  scale_HURDLE = c("default", "median"),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ normalization factors for the zero-inflated gaussian model.}
 \item{scale_HURDLE}{character vector, either \code{median} or \code{default}
 to choose between the median of the library size or one million to scale raw
 counts for the truncated gaussian hurdle model.}
+
+\item{verbose}{an optional logical value. If \code{TRUE} information on the
+steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 list of \code{data.frame} objects for each model. The first two

@@ -46,7 +46,8 @@ Suggests: knitr,
     rmarkdown,
     HMP16SData,
     curatedMetagenomicData,
-    BiocStyle
+    BiocStyle,
+    testthat
 VignetteBuilder: knitr
 LazyData: TRUE
 RoxygenNote: 7.1.1
