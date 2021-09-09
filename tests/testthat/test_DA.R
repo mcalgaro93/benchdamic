@@ -21,8 +21,8 @@ test_that("DA methods produce pValMat and statInfo", code = {
         expect_equal(name, da[["name"]])
     }
 
-    da <- DA_edgeR(ps, group = group, design = ~ 1 + group, coef = 2, norm =
-                       "TMM")
+    da <- DA_edgeR(ps, group_name = "group", design = ~ 1 + group, coef = 2,
+        norm = "TMM")
     expectations(da, name = "edgeR.TMM")
     da <- DA_DESeq2(ps, design = ~ 1 + group, norm = "poscounts", contrast = c(
         "group","grp2","grp1"))
@@ -42,7 +42,7 @@ test_that("DA methods produce pValMat and statInfo", code = {
     da <- DA_MAST(ps, rescale = "median",design = ~ 1 + group, coefficient =
                       "groupgrp2", norm = "none")
     expectations(da, name = "MAST.none.median")
-    da <- DA_Seurat(ps, test.use = "wilcox", group.by = "group",
-                    reference.level = "grp1", norm = "none")
+    da <- DA_Seurat(ps, test.use = "wilcox",
+        contrast = c("group", "grp2", "grp1"), norm = "none")
     expectations(da, name = "Seurat.none.wilcox")
 })

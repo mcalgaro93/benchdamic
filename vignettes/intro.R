@@ -184,24 +184,29 @@ Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object 
 ## ----customExample, eval=FALSE------------------------------------------------
 #  DA_yourMethod <- function(object, parameters) # others
 #  {
-#    ### your method code ###
+#      ### your method code ###
 #  
-#    ### extract important statistics ###
-#    vector_of_pval <- NA # contains the p-values
-#    vector_of_adjusted_pval <- NA # contains the adjusted p-values
-#    name_of_your_features <- NA # contains the OTU, or ASV, or other feature names. Usually extracted from the rownames of the count data
+#      ### extract important statistics ###
+#      vector_of_pval <- NA # contains the p-values
+#      vector_of_adjusted_pval <- NA # contains the adjusted p-values
+#      name_of_your_features <- NA # contains the OTU, or ASV, or other feature
+#                                  # names. Usually extracted from the rownames of
+#                                  # the count data
+#      vector_of_logFC <- NA # contains the logFCs
+#      vector_of_statistics <- NA # contains other statistics
 #  
-#    ### prepare the output ###
-#    name <- "write.here.the.name"
-#    pValMat <- data.frame(
-#      "pval" = vector_of_pval,
-#      "adjp" = vector_of_adjusted_pval
-#    )
-#    rownames(pValMat) <- name_of_your_features # Be sure that your method hasn't changed the order of the features. If it happens, you'll need to re-establish the original order.
-#    return(list(
-#      "pValMat" = pValMat,
-#      "name" = name
-#    ))
+#      ### prepare the output ###
+#      pValMat <- data.frame("rawP" = vector_of_pval,
+#                            "adjP" = vector_of_adjusted_pval)
+#      statInfo <- data.frame("logFC" = vector_of_logFC,
+#                             "statistics" = vector_of_statistics)
+#      name <- "write.here.the.name"
+#      # Be sure that your method hasn't changed the order of the features. If it
+#      # happens, you'll need to re-establish the original order.
+#      rownames(pValMat) <- rownames(statInfo) <- name_of_your_features
+#  
+#      # Return the output as a list
+#      return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
 #  } # END - function: DA_yourMethod
 
 ## ----customExampleInstances, eval=FALSE---------------------------------------
