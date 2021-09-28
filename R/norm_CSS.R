@@ -13,6 +13,8 @@
 #' @param method  normalization scaling parameter (default
 #' \code{method = "default"}). If \code{"median"}, the median of the
 #' normalization factors is used as scaling (Paulson et al. 2013).
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A new column containing the CSS scaling factors is added to the
 #' phyloseq \code{sample_data} slot.
@@ -42,13 +44,17 @@
 #' # Renormalize: multiply to 1
 #' normFacts = normFacts/exp(colMeans(log(normFacts)))
 
-norm_CSS <- function(object, method = "default")
+norm_CSS <- function(object, method = "default", verbose = TRUE)
 {
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
     counts <- as(phyloseq::otu_table(object), "matrix")
     obj <- metagenomeSeq::newMRexperiment(counts = counts)
-    normFacts <- metagenomeSeq::calcNormFactors(obj = obj)
+    if(verbose){
+        normFacts <- metagenomeSeq::calcNormFactors(obj = obj)
+    } else {
+        normFacts <- suppressMessages(metagenomeSeq::calcNormFactors(obj = obj))
+    }
     normFacts <- drop(as(normFacts, "matrix"))
     # Default: log2(normFacts/1000 + 1)
     # Original metagenomeSeq paper: log2(normFacts/median(libsize) +1)
@@ -58,7 +64,9 @@ norm_CSS <- function(object, method = "default")
         normFacts <- log2(normFacts/stats::median(normFacts) + 1)
     else stop("Please choose a scaling method between 'default' or 'median'.")
     # Remember to useCSSoffset = FALSE in fitZig function
-    phyloseq::sample_data(object)[,paste0("NF.CSS", method)] <-
-        normFacts
+    NF.col <- paste("NF", method, sep = ".CSS")
+    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(verbose)
+        message(NF.col, " column has been added.")
     return(object)
 }# END - function: norm_CSS

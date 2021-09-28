@@ -66,7 +66,7 @@ GOF_stool_16S <- fitModels(
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("median", "default"),
   scale_HURDLE = c("median", "default"),
-  verbose = FALSE
+  verbose = TRUE
 )
 
 ## ----RMSE_MD------------------------------------------------------------------
@@ -139,7 +139,7 @@ my_mocks <- createMocks(
 
 ## ----setNormalization---------------------------------------------------------
 my_normalizations <- setNormalizations(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"), method = c("TMM", "poscounts", "median"))
-ps_stool_16S <- runNormalizations(normalization_list = my_normalizations, object = ps_stool_16S)
+ps_stool_16S <- runNormalizations(normalization_list = my_normalizations, object = ps_stool_16S, verbose = TRUE)
 
 ## ----weights------------------------------------------------------------------
 zinbweights <- weights_ZINB(
@@ -178,9 +178,9 @@ my_limma <- set_limma(
 
 my_methods <- c(my_edgeR, my_DESeq2, my_limma)
 
-## ----DA_TIEC, message=FALSE---------------------------------------------------
+## ----DA_TIEC------------------------------------------------------------------
 # Random grouping each time
-Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object = ps_stool_16S, weights = zinbweights)
+Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object = ps_stool_16S, weights = zinbweights, verbose = FALSE)
 
 ## ----customExample, eval=FALSE------------------------------------------------
 #  DA_yourMethod <- function(object, parameters) # others
@@ -283,8 +283,8 @@ my_methods_noWeights <- c(my_edgeR_noWeights, my_DESeq2_noWeights, my_limma_noWe
 ## -----------------------------------------------------------------------------
 str(my_normalizations)
 
-## ---- message=FALSE-----------------------------------------------------------
-Plaque_16S_splitsDA <- runSplits(split_list = my_splits, method_list = my_methods_noWeights, normalization_list = my_normalizations, object = ps_plaque_16S)
+## -----------------------------------------------------------------------------
+Plaque_16S_splitsDA <- runSplits(split_list = my_splits, method_list = my_methods_noWeights, normalization_list = my_normalizations, object = ps_plaque_16S, verbose = FALSE)
 
 ## -----------------------------------------------------------------------------
 concordance <- createConcordance(object = Plaque_16S_splitsDA, slot = "pValMat", colName = "rawP", type = "pvalue")
@@ -334,7 +334,7 @@ priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|",
 ## -----------------------------------------------------------------------------
 none_normalization <- setNormalizations(fun = "norm_edgeR", method = "none")
 my_normalizations_enrichment <- c(my_normalizations, none_normalization)
-ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, object = ps_plaque_16S)
+ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, object = ps_plaque_16S, verbose = FALSE)
 
 ## -----------------------------------------------------------------------------
 my_metagenomeSeq <- set_metagenomeSeq(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "CSSmedian")
@@ -362,7 +362,7 @@ ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- relevel(
     x = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE, 
     ref = "Subgingival Plaque"
 )
-Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, object = ps_plaque_16S, weights = NULL)
+Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, object = ps_plaque_16S, weights = zinbweights)
 
 ## -----------------------------------------------------------------------------
 names(Plaque_16S_DA)

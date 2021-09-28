@@ -4,13 +4,16 @@
 \alias{runNormalizations}
 \title{runNormalizations}
 \usage{
-runNormalizations(normalization_list, object)
+runNormalizations(normalization_list, object, verbose = TRUE)
 }
 \arguments{
 \item{normalization_list}{a list object containing the normalization methods
 and their parameters.}
 
 \item{object}{a phyloseq object.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A phyloseq object containing the normalization/scaling factors.

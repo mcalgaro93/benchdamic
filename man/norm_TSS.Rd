@@ -4,12 +4,15 @@
 \alias{norm_TSS}
 \title{norm_TSS}
 \usage{
-norm_TSS(object, method = "TSS")
+norm_TSS(object, method = "TSS", verbose = TRUE)
 }
 \arguments{
 \item{object}{phyloseq object containing the counts to be normalized.}
 
 \item{method}{normalization method to be used.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A new column containing the TSS scaling factors is added to the

@@ -151,32 +151,51 @@ createSplits <- function(object, varName = NULL, paired = NULL, balanced = TRUE,
 #' results <- runSplits(split_list = my_splits, method_list = my_limma,
 #'     normalization_list = my_norm, object = ps_plaque_16S)
 
-runSplits <- function(split_list, method_list, normalization_list, object){
-    out <- lapply(X = split_list, FUN = function(subset) {
+runSplits <- function(split_list, method_list, normalization_list, object,
+    verbose = TRUE){
+    # Create a list with element 1 and 2 corresponding to each subset
+    subsets <- seq_along(split_list)
+    # Name the elements
+    names(subsets) <- names(split_list)
+    out <- lapply(X = subsets, FUN = function(subset_number) {
+        subset <- split_list[[subset_number]]
+        if(verbose)
+            cat("- Subset", subset_number, "\n")
         # apply -> Comparison1, Comparison2, ..., ComparisonN
-        apply(X = subset, MARGIN = 1, FUN = function(splits) {
+        index <- seq_len(nrow(subset))
+        apply(X = cbind(index,subset), MARGIN = 1, FUN = function(splits) {
+            i <- splits[1]
+            splits <- splits[-1]
+            if(verbose)
+                cat("  - Comparison", i, "\n")
             # Splitting
-            cat("Splitting the samples...\n")
+            if(verbose)
+                message("    Splitting the samples...")
             ps <- phyloseq::prune_samples(phyloseq::sample_names(object) %in%
                 splits, object)
             # Keep only present taxa
-            cat("Removing not present taxa...\n")
+            if(verbose)
+                message("    Removing not present taxa...")
             ps <- phyloseq::filter_taxa(ps, function(x) sum(x > 0) > 0, 1)
             # Adding scaling and normalization factors
-            cat("Computing normalizations...\n")
+            if(verbose)
+                message("    Computing normalizations...")
             ps <- runNormalizations(normalization_list = normalization_list,
-                object = ps)
+                object = ps, verbose = verbose)
             # Compute weights if necessary
             weights_info <- unlist(lapply(X = method_list, FUN = function(x){
                 x[["weights"]]
             }))
             if(sum(weights_info) > 0){
-                cat("Computing ZINB weights...\n")
+                if(verbose)
+                    message("    Computing ZINB weights...")
                 weights <- weights_ZINB(ps, design = ~ 1)
             } else weights <- NULL
             ### DA analysis ###
-            cat("Differential abundance:\n")
-            runDA(method_list = method_list, object = ps, weights = weights)
+            if(verbose)
+                message("    Differential abundance:")
+            runDA(method_list = method_list, object = ps, weights = weights,
+                verbose = verbose)
         })
     })
     return(out)

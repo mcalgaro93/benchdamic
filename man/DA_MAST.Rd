@@ -11,7 +11,8 @@ DA_MAST(
   design,
   coefficient = NULL,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")
+    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+  verbose = TRUE
 )
 }
 \arguments{
@@ -36,6 +37,9 @@ normalization factors to use in the differential abundance analysis. If
 \code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
 "posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
 automatically transformed into normalization factors.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A list object containing the matrix of p-values `pValMat`, the matrix

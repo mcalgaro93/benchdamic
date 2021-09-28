@@ -4,7 +4,7 @@
 \alias{runSplits}
 \title{runSplits}
 \usage{
-runSplits(split_list, method_list, normalization_list, object)
+runSplits(split_list, method_list, normalization_list, object, verbose = TRUE)
 }
 \arguments{
 \item{split_list}{A list of 2 \code{data.frame} objects: \code{Subset1} and
@@ -16,6 +16,9 @@ runSplits(split_list, method_list, normalization_list, object)
 names and their parameters produced by \code{\link{setNormalizations}}.}
 
 \item{object}{a phyloseq object.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A named list containing the results for each method.

@@ -51,7 +51,8 @@
 DA_corncob <- function(object, pseudo_count = FALSE, formula, phi.formula,
     formula_null, phi.formula_null, test, boot = FALSE, coefficient = NULL,
     norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
-            "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")){
+    "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+    verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -62,28 +63,29 @@ DA_corncob <- function(object, pseudo_count = FALSE, formula, phi.formula,
     name <- "corncob"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count...")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-            abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+            " abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col))
-        stop(paste0("Can't find the ", NF.col," column in your object. Make
-            sure to add the normalization factors column in your object first."
-        ))
+        stop("Can't find the ", NF.col," column in your object. Make sure to",
+        " add the normalization factors column in your object first.")
     name <- paste(name, ".", norm, sep = "")
     NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm.factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
     NFs <- NFs/exp(mean(log(NFs)))
     norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-    message(paste0("Differential abundance on ", norm," normalized data"))
+    if(verbose)
+        message("Differential abundance on ", norm," normalized data")
     if(missing(test))
         stop("Please supply the test to perform, 'Wald' or 'LRT'.")
     else name <- paste(name, ".", test, sep = "")
@@ -92,26 +94,28 @@ DA_corncob <- function(object, pseudo_count = FALSE, formula, phi.formula,
     ## differential expression
     requireNamespace("phyloseq")
     fit <- corncob::differentialTest(formula = formula, phi.formula =
-                                         phi.formula, formula_null = formula_null, phi.formula_null =
-                                         phi.formula_null, data = norm_counts, sample_data = metadata, test =
-                                         test, boot = boot)
+        phi.formula, formula_null = formula_null, phi.formula_null =
+        phi.formula_null, data = norm_counts, sample_data = metadata, test =
+        test, boot = boot)
     # differentialTest's output has a complex structure:
     # extraction of summary table for each estimated model
     # mu.(Intercept), mu.condition, and phi.(Intercept), phi.condition
     # only the mu.condition is of interest.
     if(is.null(coefficient) | !is.element(coefficient,fit[["restrictions_DA"]]))
-        stop("Please supply the coefficient of interest as a single word formed
-            by the variable name and the non reference level. (e.g.:
-            'ConditionDisease' if the reference level for the variable
-            'Condition' is 'control')")
+        stop("Please supply the coefficient of interest as a single word",
+            " formed by the variable name and the non reference level. (e.g.:",
+            " 'ConditionDisease' if the reference level for the variable",
+            " 'Condition' is 'control')")
     statInfo <- plyr::ldply(.data = fit[["all_models"]], .fun = function(model){
         stats::coef(model)[paste0("mu.",coefficient),]})
     if(length(fit[["restrictions_DA"]])>0)
-        message(paste("Differential abundance across", paste0(
-            fit[["restrictions_DA"]], collapse = " and ")))
+        if(verbose)
+            message("Differential abundance across",
+                paste0(fit[["restrictions_DA"]], collapse = " and "))
     if(length(fit[["restrictions_DV"]])>0)
-        message(paste("Differential variability across", paste0(
-            fit[["restrictions_DV"]], collapse = " and ")))
+        if(verbose)
+            message("Differential variability across",
+                paste0(fit[["restrictions_DV"]], collapse = " and "))
     pValMat <- data.frame("rawP" = fit[["p"]], "adjP" = fit[["p_fdr"]])
     rownames(statInfo) <- rownames(pValMat) <- names(fit[["p"]])
     list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name)

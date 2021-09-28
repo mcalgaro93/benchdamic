@@ -4,7 +4,7 @@
 \alias{runDA}
 \title{runDA}
 \usage{
-runDA(method_list, object, weights)
+runDA(method_list, object, weights = NULL, verbose = TRUE)
 }
 \arguments{
 \item{method_list}{a list object containing the methods and their parameters.}
@@ -12,6 +12,9 @@ runDA(method_list, object, weights)
 \item{object}{a phyloseq object.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A named list containing the results for each method.

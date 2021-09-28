@@ -4,7 +4,12 @@
 \alias{norm_DESeq2}
 \title{norm_DESeq2}
 \usage{
-norm_DESeq2(object, method = c("ratio", "poscounts", "iterate"), ...)
+norm_DESeq2(
+  object,
+  method = c("ratio", "poscounts", "iterate"),
+  verbose = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{phyloseq object containing the counts to be normalized.}
@@ -23,6 +28,9 @@ cases with Paul McMurdie's phyloseq package for metagenomic samples. The
 \code{"iterate"} estimator iterates between estimating the dispersion with a
 design of ~1, and finding a size factor vector by numerically optimizing the
 likelihood of the ~1 model.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 
 \item{...}{other parameters for DESeq2
 \code{\link[DESeq2]{estimateSizeFactors}} function.}

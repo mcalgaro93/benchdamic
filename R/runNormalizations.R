@@ -84,6 +84,8 @@ setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS",
 #' @param normalization_list a list object containing the normalization methods
 #' and their parameters.
 #' @param object a phyloseq object.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A phyloseq object containing the normalization/scaling factors.
 #'
@@ -103,16 +105,20 @@ setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS",
 #'
 #' # Add them to the phyloseq object
 #' ps <- runNormalizations(normalization_list = my_normalizations, object = ps)
-runNormalizations <- function(normalization_list, object) {
+runNormalizations <- function(normalization_list, object, verbose = TRUE) {
     tryCatch(
         expr = {
             for(x in normalization_list){
                 fun <- as.character(x[["fun"]])
-                cat("Running now:", fun, "\n")
+                if(verbose)
+                    cat("      + Running now:", fun, "\n")
                 params <- unlist(lapply(x[-1], paste, collapse = "."))
                 param_names <- paste(names(x[-1]))
-                cat("Parameters:", paste(param_names, "=", params, sep = "", collapse = ", "), "\n")
-                args_list <- append(x = x[-1], values = list("object" = object), after = 0)
+                if(verbose)
+                    cat("        Parameters:", paste(param_names, "=", params,
+                        sep = "", collapse = ", "), "\n")
+                args_list <- append(x = x[-1], values = list("object" = object,
+                    "verbose" = verbose), after = 0)
                 object <- do.call(what = fun, args = args_list)
             }
             return(object)

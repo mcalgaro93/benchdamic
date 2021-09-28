@@ -50,7 +50,7 @@
 DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
     NULL, alpha = 0.05, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
     "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
-    "CSSmedian", "CSSdefault"), weights){
+    "CSSmedian", "CSSdefault"), weights, verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -64,57 +64,86 @@ DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
         message("Adding a pseudo count... \n")
         counts <- counts + 1
         phyloseq::otu_table(object) <- counts
-        name <- paste(name,".pseudo",sep = "")}
+        name <- paste(name,".pseudo",sep = "")
+    }
     if (is.character(design)){
         design <- as.formula(design)
     }
-    dds <- phyloseq::phyloseq_to_deseq2(object, design = design)
+    if(verbose){
+        dds <- phyloseq::phyloseq_to_deseq2(object, design = design)
+    } else {
+        suppressMessages(dds <-
+            phyloseq::phyloseq_to_deseq2(object, design = design))
+    }
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-        abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+        " abundance analysis.")
     # Check if the column with the normalization factors is present
     NF.col <- paste("NF", norm, sep = ".")
     if(!any(colnames(metadata) == NF.col))
-        stop(paste0("Can't find the ", NF.col," column in your object. Make sure
-            to add the normalization factors column in your object first."))
+        stop("Can't find the ", NF.col," column in your object.",
+             " Make sure to add the normalization factors column in your",
+             " object first.")
     NFs = unlist(metadata[,NF.col])
     # edgeR, TSS, and CSS NFs supplied -> make them normalization factors!
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault", "TSS"))){
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS"))){
         NFs <- NFs*colSums(counts)}
-    DESeq2::sizeFactors(dds) = NFs/exp(mean(log(NFs))) # Make NFs multiply to 1
+    # Make NFs multiply to 1
+    suppressMessages(expr = {
+        DESeq2::sizeFactors(dds) = NFs/exp(mean(log(NFs)))})
     name <- paste(name, ".", norm, sep = "")
-    message(paste0("Differential abundance on ", norm," normalized data"))
-    if(missing(weights))
-        message("Estimating Differential Abundance without weighting")
-    else {
+    if(verbose)
+        message("Differential abundance on ", norm, " normalized data")
+    if(missing(weights)){
+        if(verbose)
+            message("Estimating Differential Abundance without weighting.",
+                " No weights supplied.")
+    } else {
         if(is.null(weights)){
-            message("Estimating Differential Abundance without weighting")
+            if(verbose)
+                message("Estimating Differential Abundance without weighting")
         } else {
-            message("Estimating Differential Abundance with weights")
+            if(verbose)
+                message("Estimating Differential Abundance with weights")
             weights[which(weights < 1e-6)] <- 1e-06
-            SummarizedExperiment::assays(dds, withDimnames = FALSE)$weights <-
-                weights
-            name <- paste(name,".weighted",sep = "")
+            SummarizedExperiment::assays(dds,
+                withDimnames = FALSE)[["weights"]] <- weights
+            name <- paste(name, ".weighted", sep = "")
         }
     }
     ### Run DESeq
-    ddsRes <- DESeq2::DESeq(object = dds, test = "LRT", reduced = ~ 1,
-                            parallel = FALSE)
-    dispEsts <- DESeq2::dispersions(ddsRes)
+    if(verbose){
+        ddsRes <- DESeq2::DESeq(object = dds, test = "LRT", reduced = ~ 1,
+            parallel = FALSE, quiet = verbose)
+        dispEsts <- DESeq2::dispersions(ddsRes)
+    } else {
+        suppressMessages(expr = {
+            ddsRes <- DESeq2::DESeq(object = dds, test = "LRT", reduced = ~ 1,
+                parallel = FALSE)
+            dispEsts <- DESeq2::dispersions(ddsRes)})
+    }
     if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3))
-        stop(paste0("Please supply a character vector with exactly three
-            elements: the name of a factor in the design formula, the name of
-            the numerator level for the fold change, and the name of the
-            denominator level for the fold change."))
-    else message(paste0("Extracting results for ", contrast[1]," variable, ",
-                        contrast[2], " / ", contrast[3]))
-    res <- DESeq2::results(ddsRes, alpha = alpha, contrast = contrast)
+        stop("Please supply a character vector with exactly three elements:",
+            " the name of a factor in the design formula, the name",
+            " of the numerator level for the fold change, and the name of the",
+            " denominator level for the fold change.")
+    else {
+        if(verbose)
+            message("Extracting results for ", contrast[1], " variable, ",
+                contrast[2], " / ", contrast[3])
+    }
+    if(verbose){
+        res <- DESeq2::results(ddsRes, alpha = alpha, contrast = contrast)
+    } else {
+        res <- suppressMessages(
+            DESeq2::results(ddsRes, alpha = alpha, contrast = contrast))
+    }
     statInfo <- as(res, "data.frame")
     pValMat <- statInfo[,c("pvalue", "padj")]
     colnames(pValMat) <- c("rawP", "adjP")
     return(list("pValMat" = pValMat, "statInfo" = statInfo, "dispEsts" =
-                    dispEsts, "name" = name))
+        dispEsts, "name" = name))
 }# END - function: DA_DESeq2
 
 #' @title set_DESeq2

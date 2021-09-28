@@ -6,6 +6,8 @@
 #' @param method_list a list object containing the methods and their parameters.
 #' @param object a phyloseq object.
 #' @param weights an optional numeric matrix giving observational weights.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A named list containing the results for each method.
 #'
@@ -30,28 +32,32 @@
 #'
 #' # Run the methods
 #' results <- runDA(method_list = my_methods, object = ps)
-runDA <- function(method_list, object, weights) {
+runDA <- function(method_list, object, weights = NULL, verbose = TRUE) {
     tryCatch(
         expr = {
             out <- lapply(X = method_list, FUN = function(x) {
                 method <- as.character(x[["method"]])
-                cat("Running now:", method, "\n")
+                if(verbose)
+                    cat("      * Running now:", method, "\n")
                 params <- unlist(lapply(x[-1], paste, collapse = "."))
                 param_names <- paste(names(x[-1]))
-                cat("Parameters:", paste(param_names, "=", params, sep = "", collapse = ", "), "\n")
+                if(verbose)
+                    cat("        Parameters:", paste(param_names, "=", params,
+                        sep = "", collapse = ", "), "\n")
                 if(is.element(el = "weights", set = names(x)))
                     if(x[["weights"]]){
                         x["weights"] <- NULL
                         x <- append(x = x, values = list("weights" = weights))
                     } else x["weights"] <- NULL
-                args_list <- append(x = x[-1], values = list("object" = object), after = 0)
+                args_list <- append(x = x[-1], values = list("object" = object,
+                    "verbose" = verbose), after = 0)
                 do.call(what = method, args = args_list)
             })
             names(out) <- unlist(lapply(out, FUN = function(x) x[["name"]]))
             return(out)
         },
         error = function(e) {
-            message(conditionMessage(e))
+            stop(conditionMessage(e))
         }
     )
 }

@@ -24,6 +24,8 @@
 #' \code{"iterate"} estimator iterates between estimating the dispersion with a
 #' design of ~1, and finding a size factor vector by numerically optimizing the
 #' likelihood of the ~1 model.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #' @param ... other parameters for DESeq2
 #' \code{\link[DESeq2]{estimateSizeFactors}} function.
 #'
@@ -56,16 +58,24 @@
 #' scaleFacts = scaleFacts/exp(mean(log(scaleFacts)))
 
 norm_DESeq2 <- function(object, method = c("ratio", "poscounts", "iterate"),
-                        ...){
+    verbose = TRUE, ...){
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
     ## Calculate size factors
-    obj <- phyloseq::phyloseq_to_deseq2(object, design = ~ 1)
+    if(verbose){
+        obj <- phyloseq::phyloseq_to_deseq2(object, design = ~ 1)
+    } else {
+        obj <- suppressMessages(
+            phyloseq::phyloseq_to_deseq2(object, design = ~ 1))
+    }
     if(missing(method))
         stop("Please supply a normalization method between 'ratio', 'poscounts'
             or 'iterate'.")
     normFacts <- DESeq2::sizeFactors(DESeq2::estimateSizeFactors(obj,
-                                                                 type = method, ...))
-    phyloseq::sample_data(object)[,paste("NF", method, sep = ".")] <- normFacts
+        type = method, ...))
+    NF.col <- paste("NF", method, sep = ".")
+    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(verbose)
+        message(NF.col, " column has been added.")
     return(object)
 }# END - function: norm_DESeq2

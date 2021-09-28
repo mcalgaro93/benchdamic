@@ -4,7 +4,7 @@
 \alias{norm_CSS}
 \title{norm_CSS}
 \usage{
-norm_CSS(object, method = "default")
+norm_CSS(object, method = "default", verbose = TRUE)
 }
 \arguments{
 \item{object}{phyloseq object containing the counts to be normalized.}
@@ -12,6 +12,9 @@ norm_CSS(object, method = "default")
 \item{method}{normalization scaling parameter (default
 \code{method = "default"}). If \code{"median"}, the median of the
 normalization factors is used as scaling (Paulson et al. 2013).}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A new column containing the CSS scaling factors is added to the

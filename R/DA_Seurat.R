@@ -3,6 +3,7 @@
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom Seurat CreateSeuratObject AddMetaData NormalizeData
 #' @importFrom Seurat FindVariableFeatures ScaleData FindMarkers
+#' @importFrom utils capture.output
 #' @export
 #' @description
 #' Fast run for Seurat differential abundance detection method.
@@ -39,9 +40,9 @@
 #' DA_Seurat(object = ps_NF, contrast = c("group","B","A"), norm = "none")
 
 DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
-                      contrast, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-                     "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
-                     "CSSmedian", "CSSdefault")){
+    contrast, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
+    "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
+    "CSSmedian", "CSSdefault"), verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -52,46 +53,47 @@ DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
     name <- "Seurat"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count...")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-            abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+            " abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col)){
-        stop(paste0("Can't find the ", NF.col," column in your object. Make
-            sure to add the normalization factors column in your object first."
-        ))}
+        stop("Can't find the ", NF.col," column in your object. Make sure to",
+            " add the normalization factors column in your object first.")}
     name <- paste(name, ".", norm, sep = "")
     NFs = unlist(metadata[,NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
     NFs <- NFs/exp(mean(log(NFs)))
     norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-    message(paste0("Differential abundance on ", norm," normalized data"))
+    if(verbose)
+        message("Differential abundance on ", norm," normalized data")
     # Initialize the Seurat object with the raw (non-normalized data).
     # If the chosen normalization is 'none', then this is true.
     # Keep all features expressed in >= 1 sample
     # Keep all samples with at least 1 detected feature.
     sobj <- Seurat::CreateSeuratObject(counts = norm_counts, min.cells = 1,
-                                       min.features = 1)
+        min.features = 1)
     sobj <- Seurat::AddMetaData(object = sobj, metadata = data.frame(metadata),
-                                col.name = colnames(metadata))
-    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3))
+        col.name = colnames(metadata))
+    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3)){
         stop(paste0("Please supply a character vector with exactly three
             elements: the name of a factor in the design formula, the name of
             the numerator level for the fold change, and the name of the
             denominator level for the fold change."))
-    else {
-        if(!is(unlist(sobj[[contrast[1]]]), "factor"))
+    } else {
+        if(!is(unlist(sobj[[contrast[1]]]), "factor")){
             stop(paste(contrast[1]," variable is not a factor. Please supply a
                 factor."))
-        else{
+        } else {
             if(!is.element(contrast[2], levels(unlist(sobj[[contrast[1]]]))))
                 stop(paste(contrast[2], "is not a level of the", contrast[1],
                            "variable. Please supply a present category."))
@@ -100,18 +102,26 @@ DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
                            "variable. Please supply a present category."))
         }
     }
-    message(paste0("Extracting results for ", contrast[1]," variable, ",
-                   contrast[2], " / ", contrast[3]))
+    if(verbose)
+        message("Extracting results for ", contrast[1]," variable, ",
+            contrast[2], " / ", contrast[3])
     sobj <- Seurat::NormalizeData(object = sobj, normalization.method =
-                                      "LogNormalize", scale.factor = 10000)
+        "LogNormalize", scale.factor = 10000, verbose = verbose)
     sobj <- Seurat::FindVariableFeatures(object = sobj, nfeatures = round(nrow(
-        counts)*0.1, digits = 0))
-    sobj <- Seurat::ScaleData(object = sobj, vars.to.regress = c("nCount_RNA"))
-    statInfo_ <- Seurat::FindMarkers(sobj, test.use = test.use, group.by =
-                                         contrast[1], ident.1 = contrast[2], ident.2 = contrast[3],
-                                     logfc.threshold = 0, min.cpt = 0)
+        counts)*0.1, digits = 0), verbose = verbose) # loess.span = 1
+    sobj <- Seurat::ScaleData(object = sobj, vars.to.regress = c("nCount_RNA"),
+        verbose = verbose)
+    if(verbose){ # FindMarkers: If we set verbose = FALSE we'll get an error
+        statInfo_ <- Seurat::FindMarkers(sobj, test.use = test.use, group.by =
+            contrast[1], ident.1 = contrast[2], ident.2 = contrast[3],
+            logfc.threshold = 0, min.cpt = 0)
+    } else {
+        invisible(utils::capture.output(statInfo_ <- Seurat::FindMarkers(sobj,
+            test.use = test.use, group.by = contrast[1], ident.1 = contrast[2],
+            ident.2 = contrast[3], logfc.threshold = 0, min.cpt = 0)))
+    }
     computed_features <- match(gsub(pattern = "_", x = rownames(counts),
-                                    replacement = "-"),rownames(statInfo_))
+        replacement = "-"),rownames(statInfo_))
     statInfo <- data.frame(matrix(NA, ncol = ncol(statInfo_), nrow = nrow(
         counts)))
     statInfo <- statInfo_[computed_features,]

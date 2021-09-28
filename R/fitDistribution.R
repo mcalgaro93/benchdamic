@@ -213,15 +213,9 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
     # Design matrix
     desMat <- cbind(1, normFactor = normFactor)
     # Estimation
-    if(verbose){
-        zig <- metagenomeSeq::fitZig(MGS, desMat,
-            control = metagenomeSeq::zigControl(maxit = 1000),
-            useCSSoffset = FALSE)
-    } else {
-        invisible(utils::capture.output(zig <- metagenomeSeq::fitZig(MGS, desMat,
-            control = metagenomeSeq::zigControl(maxit = 1000),
-            useCSSoffset = FALSE)))
-    }
+    control = metagenomeSeq::zigControl(maxit = 1000, verbose = verbose)
+    zig <- metagenomeSeq::fitZig(MGS, desMat, control = control,
+        useCSSoffset = FALSE)
     # Coefficient extraction (metagenomeSeq::MRcoefs() changes the order, use @)
     mu <- tcrossprod(coef(zig@fit), desMat)
     Y <- rowMeans(mu) * log(2)

@@ -23,6 +23,8 @@
 #' is equal to "ratio", "poscounts", or "iterate" the normalization factors are
 #' automatically transformed into scaling factors.
 #' @param weights an optional numeric matrix giving observational weights.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A list object containing the matrix of p-values \code{pValMat},
 #' the dispersion estimates \code{dispEsts}, the matrix of summary statistics
@@ -57,7 +59,8 @@
 DA_edgeR <- function(object, pseudo_count = FALSE, group_name = NULL,
     design = NULL, robust = FALSE, coef = 2, norm = c( "TMM", "TMMwsp", "RLE",
     "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
-    "iterate", "TSS", "CSSmedian", "CSSdefault"), weights) {
+    "iterate", "TSS", "CSSmedian", "CSSdefault"), weights,
+    verbose = TRUE) {
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object)) {
         object <- t(object)
@@ -69,7 +72,8 @@ DA_edgeR <- function(object, pseudo_count = FALSE, group_name = NULL,
     name <- "edgeR"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count) {
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count... \n")
         counts <- counts + 1
         name <- paste(name, ".pseudo", sep = "")
     }
@@ -83,8 +87,9 @@ DA_edgeR <- function(object, pseudo_count = FALSE, group_name = NULL,
         # Check if the column with the normalization factors is present
         NF.col <- paste("NF", norm, sep = ".")
         if (!any(colnames(metadata) == NF.col)) {
-            stop(paste0("Can't find the ", NF.col, " column in your object. Be
-            sure to add the normalization factors column in your object first."))
+            stop("Can't find the ", NF.col," column in your object.",
+                 " Make sure to add the normalization factors column in your",
+                 " object first.")
         }
         NFs <- unlist(metadata[, NF.col])
         # DESeq2 NFs are size factors. To obtain normalized counts
@@ -96,16 +101,20 @@ DA_edgeR <- function(object, pseudo_count = FALSE, group_name = NULL,
         NFs <- NFs / exp(mean(log(NFs)))
     } # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
-    message(paste0("Differential abundance on ", norm, " normalized data"))
+    if(verbose)
+        message("Differential abundance on ", norm, " normalized data")
     group <- unlist(metadata[, group_name])
     dge <- edgeR::DGEList(counts = counts, norm.factors = NFs, group = group)
     if (missing(weights)) {
-        message("Estimating Differential Abundance without weighting")
+        if(verbose)
+            message("Estimating Differential Abundance without weighting")
     } else {
         if(is.null(weights)){
-            message("Estimating Differential Abundance without weighting")
+            if(verbose)
+                message("Estimating Differential Abundance without weighting")
         } else {
-            message("Estimating Differential Abundance with weights")
+            if(verbose)
+                message("Estimating Differential Abundance with weights")
             dge$weights <- weights
             name <- paste(name, ".weighted", sep = "")
         }
@@ -125,21 +134,22 @@ DA_edgeR <- function(object, pseudo_count = FALSE, group_name = NULL,
     if (!robust) {
         dge <- edgeR::estimateDisp(y = dge, design = design)
     } else {
-        message(paste0("Estimating robust dispersions"))
+        if(verbose)
+            message("Estimating robust dispersions")
         dge <- edgeR::estimateGLMRobustDisp(y = dge, design = design)
         name <- paste(name, ".robust", sep = "")
     }
-    message(paste0("Extracting results"))
+    if(verbose)
+        message("Extracting results")
     dispEsts <- edgeR::getDispersion(dge)
     glmFit <- edgeR::glmQLFit(
         y = dge, dispersion = dispEsts,
         robust = robust, design = design
     )
     glmRes <- edgeR::glmQLFTest(glmFit, coef = coef)
-    message(paste0(
-        "Extracting results for ", colnames(coef(glmRes))[coef],
-        " coefficient"
-    ))
+    if(verbose)
+        message("Extracting results for ", colnames(coef(glmRes))[coef],
+            " coefficient")
     statInfo <- glmRes[["table"]]
     pval <- statInfo[, "PValue"]
     pValMat <- data.frame("rawP" = pval, "adjP" = stats::p.adjust(pval, "BH"))

@@ -47,7 +47,7 @@
 DA_ALDEx2 <- function(object, pseudo_count = FALSE, conditions = NULL,
     mc.samples = 128, test = c("t","wilcox"), denom = "iqlr", norm = c("TMM",
     "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none", "ratio",
-    "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault")){
+    "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"), verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -58,40 +58,48 @@ DA_ALDEx2 <- function(object, pseudo_count = FALSE, conditions = NULL,
     name <- "ALDEx2"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count... \n")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-            abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+            " abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col)){
-        stop(paste0("Can't find the ", NF.col," column in your object. Make
-        sure to add the normalization factors column in your object first."
-        ))}
+        stop("Can't find the ", NF.col," column in your object.",
+             " Make sure to add the normalization factors column in your",
+             " object first.")}
     name <- paste(name, ".", norm, sep = "")
     NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
     if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
+        "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
         NFs <- NFs * colSums(counts)
     NFs <- NFs/exp(mean(log(NFs)))
     norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
     if(is.null(conditions))
-        stop("Please supply the name of the variable of interest or the
-            entire character vector.")
+        stop("Please supply the name of the variable of interest or the",
+            " entire character vector.")
     else if(length(conditions) == 1)
         conditions = unlist(metadata[, conditions])
     name <- paste(name, ".", denom, sep = "")
     if(!is.element(test, c("t","wilcox")) | length(test) != 1)
-        stop("Please choose between p-values produced by Welch t-test (t) or by
-            the Wilcoxon test (wilcox).")
+        stop("Please choose between p-values produced by Welch t-test (t) or",
+             " by the Wilcoxon test (wilcox).")
     name <- paste(name, ".", test, sep = "")
-    statInfo <- ALDEx2::aldex(reads = norm_counts, conditions = conditions,
-                              mc.samples = mc.samples, test = test, effect = TRUE,
-                              include.sample.summary = FALSE, denom = denom, verbose = TRUE)
+    if(verbose){
+        statInfo <- ALDEx2::aldex(reads = norm_counts, conditions = conditions,
+            mc.samples = mc.samples, test = test, effect = TRUE,
+            include.sample.summary = FALSE, denom = denom, verbose = verbose)
+    } else {
+        statInfo <- suppressMessages(ALDEx2::aldex(reads = norm_counts,
+            conditions = conditions, mc.samples = mc.samples, test = test,
+            effect = TRUE, include.sample.summary = FALSE, denom = denom,
+            verbose = verbose))
+    }
     if(test == "t")
         pValMat <- data.frame(statInfo[, c("we.ep", "we.eBH")])
     else pValMat <- data.frame(statInfo[, c("wi.ep", "wi.eBH")])

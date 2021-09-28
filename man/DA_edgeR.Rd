@@ -13,7 +13,8 @@ DA_edgeR(
   coef = 2,
   norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
     "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
-  weights
+  weights,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -39,6 +40,9 @@ is equal to "ratio", "poscounts", or "iterate" the normalization factors are
 automatically transformed into scaling factors.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A list object containing the matrix of p-values \code{pValMat},

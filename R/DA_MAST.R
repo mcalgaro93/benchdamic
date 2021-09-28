@@ -38,32 +38,34 @@
 #' DA_MAST(object = ps_NF, pseudo_count = FALSE, rescale = "median",
 #'     design = ~ group, norm = "none", coefficient = "groupB")
 
-DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median", "default"),
-    design, coefficient = NULL, norm = c("TMM", "TMMwsp", "RLE",
-   "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
-   "iterate", "TSS", "CSSmedian", "CSSdefault")){
+DA_MAST <- function(object, pseudo_count = FALSE,
+    rescale = c("median", "default"), design, coefficient = NULL,
+    norm = c("TMM", "TMMwsp", "RLE",
+        "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
+        "iterate", "TSS", "CSSmedian", "CSSdefault"),
+    verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
     # Slot extraction of phyloseq object
     counts <- as(phyloseq::otu_table(object), "matrix")
-    metadata <- phyloseq::sample_data(object)
+    metadata <- data.frame(phyloseq::sample_data(object))
     # Name building
     name <- "MAST"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count...")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-            abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+            " abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     # Check if the column with the normalization factors is present
     if(!any(colnames(metadata) == NF.col))
-        stop(paste0("Can't find the ", NF.col," column in your object. Make
-            sure to add the normalization factors column in your object first."
-        ))
+        stop("Can't find the ", NF.col," column in your object. Make sure to",
+            " add the normalization factors column in your object first.")
     name <- paste(name, ".", norm, sep = "")
     NFs = unlist(metadata[, NF.col])
     # Check if the NFs are scaling factors. If so, make them norm. factors
@@ -73,23 +75,31 @@ DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median", "default
     NFs <- NFs/exp(mean(log(NFs)))
     norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
     colnames(norm_counts) <- colnames(counts)
-    message(paste0("Differential abundance on ", norm, " normalized data"))
-    if(length(rescale) > 1 | !is.element(rescale,c("default","median")))
-        stop("Please choose between 'default' or 'median' for the rescale
-            parameter. 'median' is suggested for metagenomics data.")
-    else if(rescale == "median"){
-        message(paste0("per ",rescale,"-lib.size rescaled data"))
+    if(verbose)
+        message("Differential abundance on ", norm, " normalized data")
+    if(length(rescale) > 1 | !is.element(rescale,c("default","median"))){
+        stop("Please choose between 'default' or 'median' for the rescale",
+            " parameter. 'median' is suggested for metagenomics data.")
+    } else if(rescale == "median"){
+        if(verbose)
+            message("per ",rescale, "-lib.size rescaled data")
         tpm <- norm_counts * median(colSums(norm_counts)) / colSums(norm_counts)
     } else {
-        message(paste0(rescale," (per million) rescaled data"))
-        tpm <- norm_counts * 10^6 / colSums(norm_counts)}
+        if(verbose)
+            message(rescale," (per million) rescaled data")
+        tpm <- norm_counts * 10^6 / colSums(norm_counts)
+    }
     name <- paste(name, ".", rescale, sep = "")
     tpm <- log2(tpm + 1)
-    sca <- MAST::FromMatrix(exprsArray = tpm, cData = metadata)
+    if(verbose){
+        sca <- MAST::FromMatrix(tpm, cData = metadata)
+    } else {
+        sca <- suppressMessages(MAST::FromMatrix(tpm, cData = metadata))
+    }
     # here, we keep all OTUs so that we can fairly compare MAST and the other
     # methods. So, no adaptive thresholding or filtering by gene expression.
     SummarizedExperiment::assays(sca) <- list(tpm =
-                                                  SummarizedExperiment::assay(sca))
+        SummarizedExperiment::assay(sca))
     ngeneson <- apply(norm_counts, 2, function(x) mean(x>0))
     metadata[, "cngeneson"] <- ngeneson - mean(ngeneson)
     SummarizedExperiment::colData(sca)[, "cngeneson"] <- metadata[, "cngeneson"]
@@ -99,26 +109,38 @@ DA_MAST <- function(object, pseudo_count = FALSE, rescale = c("median", "default
         else design <- as.formula(paste0("~", design))}
     if(is(design, "formula"))
         design <- as.formula(paste0(paste0(design, collapse = " "),
-                                    " + cngeneson"))
+            " + cngeneson"))
     ## differential expression
-    fit <- MAST::zlm(formula = design, sca = sca, method = "bayesglm", ebayes =
-                         TRUE)
+    if(verbose){
+        fit <- MAST::zlm(formula = design, sca = sca, method = "bayesglm",
+            ebayes = TRUE)
+    } else {
+        fit <- suppressMessages(
+            MAST::zlm(formula = design, sca = sca, method = "bayesglm",
+                ebayes = TRUE))
+    }
     if(!is.element(coefficient, colnames(coef(fit, "C"))))
-        stop("Please supply the coefficient of interest as a single word formed
-            by the variable name and the non reference level. (e.g.:
-            'ConditionDisease' if the reference level for the variable
-            'Condition' is 'control')")
-    summaryDt = data.frame(MAST::summary(fit, doLRT = coefficient)[[
-        "datatable"]])
+        stop("Please supply the coefficient of interest as a single word",
+            " formed by the variable name and the non reference level. (e.g.:",
+            " 'ConditionDisease' if the reference level for the variable",
+            " 'Condition' is 'control')")
+    if(verbose){
+        summaryDt = data.frame(MAST::summary(fit, doLRT = coefficient)[[
+            "datatable"]])
+    } else {
+        summaryDt = suppressMessages(
+            data.frame(MAST::summary(fit, doLRT = coefficient)[[
+                "datatable"]]))
+    }
     contrast <- component <- NULL
     fcHurdle <- merge(x = summaryDt[summaryDt[,"contrast"] == coefficient &
-                                        summaryDt[,"component"] == 'H', c("primerid", "Pr..Chisq.")], y =
-                          summaryDt[summaryDt[,"contrast"] == coefficient & summaryDt[,
-                                                                                      "component"] == "logFC", c("primerid", "coef", "ci.hi", "ci.lo")],
-                      by = "primerid")
+        summaryDt[,"component"] == 'H', c("primerid", "Pr..Chisq.")], y =
+        summaryDt[summaryDt[,"contrast"] == coefficient & summaryDt[,
+        "component"] == "logFC", c("primerid", "coef", "ci.hi", "ci.lo")],
+        by = "primerid")
     statInfo = data.frame(logFC = fcHurdle[, "coef"], logFC.lo = fcHurdle[,
-                                                                          "ci.lo"], logFC.hi = fcHurdle[, "ci.hi"], rawP = fcHurdle[,
-                                                                                                                                    "Pr..Chisq."], adjP = stats::p.adjust(fcHurdle[, "Pr..Chisq."], 'BH'))
+        "ci.lo"], logFC.hi = fcHurdle[, "ci.hi"], rawP = fcHurdle[,
+        "Pr..Chisq."], adjP = stats::p.adjust(fcHurdle[, "Pr..Chisq."], 'BH'))
     rownames(statInfo) <- fcHurdle[, "primerid"]
     pValMat <- statInfo[, c("rawP", "adjP")]
     statInfo <- statInfo[rownames(counts),]

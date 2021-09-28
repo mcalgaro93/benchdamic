@@ -43,7 +43,7 @@
 DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
     coef = 2, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
         "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
-        "CSSmedian", "CSSdefault")){
+        "CSSmedian", "CSSdefault"), verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -55,21 +55,22 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
     name <- "metagenomeSeq"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count...")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-        abundance analysis.")
+        stop("Please choose one normalization for this istance of differential",
+        " abundance analysis.")
     NF.col <- paste("NF", norm, sep = ".")
     if(norm == "TSS"){
         phyloseq::sample_data(obj)[NF.col] <- NFs <- 1L
     } else {
         # Check if the column with the normalization factors is present
         if(!any(colnames(metadata) == NF.col))
-            stop(paste0("Can't find the ", NF.col," column in your object. Make
-            sure to add the normalization factors column in your object first."
-            ))
+            stop("Can't find the ", NF.col," column in your object.",
+                " Make sure to add the normalization factors column in your",
+                " object first.")
         NFs = unlist(metadata[,NF.col])
         # DESeq2 NFs are supplied -> make them scaling factors!
         if(is.element(norm, c("ratio", "poscounts", "iterate")))
@@ -77,7 +78,8 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
         NFs = NFs/exp(mean(log(NFs)))
     } # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
-    message(paste0("Differential abundance on ", norm," normalized data"))
+    if(verbose)
+        message("Differential abundance on ", norm," normalized data")
     metagenomeSeq::normFactors(object = obj) <- NFs
     if(is.character(design)){
         if(grepl("~", design))
@@ -89,9 +91,9 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
         design <- stats::model.matrix(object = design,
             data = data.frame(metadata))
     }
-    suppressWarnings(fit <- try(metagenomeSeq::fitZig(obj = obj, mod = design,
-        verbose = FALSE, useCSSoffset = FALSE,
-        control = metagenomeSeq::zigControl(maxit = 1000)), silent = TRUE))
+    control = metagenomeSeq::zigControl(maxit = 1000, verbose = verbose)
+    fit <- try(metagenomeSeq::fitZig(obj = obj, mod = design,
+        verbose = FALSE, useCSSoffset = FALSE, control = control))
     if(is(fit, "try-error")){
         res = matrix(NA, ncol = 2, nrow = nrow(counts))
         stop("Something went wrong during fitZig estimation.")
@@ -99,8 +101,9 @@ DA_metagenomeSeq <- function(object, pseudo_count = FALSE, design = NULL,
         statInfo <- metagenomeSeq::MRcoefs(obj = fit, by = coef, number = nrow(
             counts))
         statInfo <- statInfo[phyloseq::taxa_names(object),]
-        message(paste0("Extracting results for ", colnames(statInfo[coef]),
-                       " coefficient"))}
+        if(verbose)
+            message("Extracting results for ", colnames(statInfo[coef]),
+                " coefficient")}
     pValMat <- statInfo[, c("pvalues", "adjPvalues")]
     colnames(pValMat) = c("rawP", "adjP")
     return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))

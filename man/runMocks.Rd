@@ -4,7 +4,7 @@
 \alias{runMocks}
 \title{runMocks}
 \usage{
-runMocks(mocks, method_list, object, weights = NULL)
+runMocks(mocks, method_list, object, weights = NULL, verbose = TRUE)
 }
 \arguments{
 \item{mocks}{a \code{data.frame} containing \code{N} rows and \code{nsamples}
@@ -17,6 +17,9 @@ characters which represent the mock groups pattern. Produced by the
 \item{object}{a phyloseq object.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
 A named list containing the results for each method.

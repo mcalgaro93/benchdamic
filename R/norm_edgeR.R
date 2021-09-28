@@ -12,6 +12,8 @@
 #' @param method normalization method to be used. Choose between \code{TMM},
 #' \code{TMMwsp}, \code{RLE}, \code{upperquartile}, \code{posupperquartile} or
 #' \code{none}.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #' @inheritParams edgeR::calcNormFactors
 #'
 #' @return A new column containing the chosen edgeR-based scaling factors is
@@ -45,9 +47,9 @@
 #' normFacts = normFacts/exp(colMeans(log(normFacts)))
 
 norm_edgeR <- function(object, method = c("TMM", "TMMwsp", "RLE",
-                                          "upperquartile", "posupperquartile", "none"), refColumn = NULL,
-                       logratioTrim = .3, sumTrim = 0.05, doWeighting = TRUE, Acutoff = -1e10,
-                       p = 0.75, ...){
+    "upperquartile", "posupperquartile", "none"), refColumn = NULL,
+    logratioTrim = .3, sumTrim = 0.05, doWeighting = TRUE, Acutoff = -1e10,
+    p = 0.75, verbose = TRUE, ...){
     counts <- as(phyloseq::otu_table(object), "matrix")
     if (!phyloseq::taxa_are_rows(object))
         counts <- t(counts)
@@ -61,11 +63,14 @@ norm_edgeR <- function(object, method = c("TMM", "TMMwsp", "RLE",
         normFacts <- tmpNF/exp(mean(log(tmpNF)))
     } else {
         normFacts <- edgeR::calcNormFactors(counts, method = method, refColumn =
-                                                refColumn, logratioTrim = logratioTrim, sumTrim = sumTrim,
-                                            doWeighting = doWeighting, Acutoff = Acutoff, p = p, ...) }
+            refColumn, logratioTrim = logratioTrim, sumTrim = sumTrim,
+            doWeighting = doWeighting, Acutoff = Acutoff, p = p, ...) }
     # END - ifelse: posupperquartile = upperquartile only of non-zero counts
     if (all(is.na(normFacts)))
         stop("Failed to compute normalization factors!")
-    phyloseq::sample_data(object)[,paste("NF", method, sep = ".")] <- normFacts
+    NF.col <- paste("NF", method, sep = ".")
+    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(verbose)
+        message(NF.col, " column has been added.")
     return(object)
 }# END - function: norm_edgeR

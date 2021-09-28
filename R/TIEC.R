@@ -68,12 +68,18 @@ createMocks <- function(nsamples, N = 1000) {
 #' # Run methods on mock datasets
 #' results <- runMocks(mocks = mocks, method_list = my_limma,
 #'     object = ps_stool_16S)
-runMocks <- function(mocks, method_list, object, weights = NULL){
-    out <- apply(X = mocks, MARGIN = 1, FUN = function(x) {
+runMocks <- function(mocks, method_list, object, weights = NULL,
+    verbose = TRUE){
+    index <- seq_len(nrow(mocks))
+    out <- apply(X = cbind(index, mocks), MARGIN = 1, FUN = function(x) {
         # Group assignment
-        phyloseq::sample_data(object)[, "group"] <- x
+        i <- x[1]
+        x <- x[-1]
+        phyloseq::sample_data(object)[, "group"] <- factor(x)
+        if(verbose)
+            cat("  - Comparison", i, "\n")
         runDA(method_list = method_list, object = object,
-            weights = weights)
+            weights = weights, verbose = verbose)
     })
     return(out)
 }

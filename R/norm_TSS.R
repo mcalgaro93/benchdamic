@@ -8,6 +8,8 @@
 #'
 #' @param object phyloseq object containing the counts to be normalized.
 #' @param method normalization method to be used.
+#' @param verbose an optional logical value. If \code{TRUE}, information about
+#' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
 #' @return A new column containing the TSS scaling factors is added to the
 #' phyloseq \code{sample_data} slot.
@@ -36,11 +38,14 @@
 #' # Renormalize: multiply to 1
 #' normFacts = normFacts/exp(colMeans(log(normFacts)))
 
-norm_TSS <- function(object, method = "TSS")
+norm_TSS <- function(object, method = "TSS", verbose = TRUE)
 {
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
     normFacts <- 1/phyloseq::sample_sums(object)
-    phyloseq::sample_data(object)[,"NF.TSS"] <- normFacts
+    NF.col <- paste("NF", method, sep = ".")
+    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(verbose)
+        message(NF.col, " column has been added.")
     return(object)
 }# END - function: norm_TSS

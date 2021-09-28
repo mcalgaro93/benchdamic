@@ -40,7 +40,7 @@
 DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
     norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
         "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian",
-        "CSSdefault"), weights){
+        "CSSdefault"), weights, verbose = TRUE){
     # Check the orientation
     if (!phyloseq::taxa_are_rows(object))
         object <- t(object)
@@ -51,7 +51,8 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
     name <- "limma"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
-        message("Adding a pseudo count... \n")
+        if(verbose)
+            message("Adding a pseudo count... \n")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
     if(length(norm) > 1)
@@ -63,16 +64,17 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
         # Check if the column with the normalization factors is present
         NF.col <- paste("NF", norm, sep = ".")
         if(!any(colnames(metadata) == NF.col))
-            stop(paste0("Can't find the ", NF.col," column in your object. Make
-                sure to add the normalization factors column in your object
-                first."))
+            stop("Can't find the ", NF.col," column in your object.",
+                " Make sure to add the normalization factors column in your",
+                " object first.")
         NFs = unlist(metadata[,NF.col])
         # DESeq2 NFs are supplied -> make them scaling factors!
         if(is.element(norm, c("ratio", "poscounts", "iterate")))
             NFs <- NFs/colSums(counts)
         NFs = NFs/exp(mean(log(NFs)))} # Make NFs multiply to 1
     name <- paste(name, ".", norm, sep = "")
-    message(paste0("Differential abundance on ", norm," normalized data"))
+    if(verbose)
+        message("Differential abundance on ", norm," normalized data")
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)
@@ -83,22 +85,26 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
     v <- limma::voom(counts = counts, design = design, lib.size = colSums(
         counts) * NFs, plot = FALSE)
     if(missing(weights)){
-        message("Estimating Differential Abundance without weighting")
+        if(verbose)
+            message("Estimating Differential Abundance without weighting")
         fit <- limma::lmFit(object = v, design = design)
     } else {
         if(is.null(weights)){
-            message("Estimating Differential Abundance without weighting")
+            if(verbose)
+                message("Estimating Differential Abundance without weighting")
             fit <- limma::lmFit(object = v, design = design)
         } else {
-            message("Estimating Differential Abundance with weights")
+            if(verbose)
+                message("Estimating Differential Abundance with weights")
             name <- paste(name,".weighted",sep = "")
             fit <- limma::lmFit(object = v, design = design, weights =
                 stats::weights(v) * weights)
         }
     }
     fit <- limma::eBayes(fit)
-    message(paste0("Extracting results for ", colnames(coef(fit[, coef])),
-                   " coefficient"))
+    if(verbose)
+        message("Extracting results for ", colnames(coef(fit[, coef])),
+            " coefficient")
     statInfo <- limma::topTable(fit, coef = coef, n = nrow(counts), sort.by =
                                     "none")
     pValMat <- statInfo[, c("P.Value", "adj.P.Val")]

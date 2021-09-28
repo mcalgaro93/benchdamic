@@ -13,6 +13,7 @@ norm_edgeR(
   doWeighting = TRUE,
   Acutoff = -1e+10,
   p = 0.75,
+  verbose = TRUE,
   ...
 )
 }
@@ -34,6 +35,9 @@ norm_edgeR(
 \item{Acutoff}{minimum cutoff applied to A-values. Count pairs with lower A-values are ignored. Used by \code{method="TMM"} for each pair of samples.}
 
 \item{p}{numeric value between 0 and 1 specifying which quantile of the counts should be used by \code{method="upperquartile"}.}
+
+\item{verbose}{an optional logical value. If \code{TRUE}, information about
+the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 
 \item{...}{other arguments are not currently used.}
 }
