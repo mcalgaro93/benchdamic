@@ -148,7 +148,7 @@ zinbweights <- weights_ZINB(
   design = "~ 1"
 )
 
-## -----------------------------------------------------------------------------
+## ----set_Methods--------------------------------------------------------------
 my_edgeR <- set_edgeR(
     pseudo_count = FALSE,
     group_name = "group", 
@@ -178,7 +178,7 @@ my_limma <- set_limma(
 
 my_methods <- c(my_edgeR, my_DESeq2, my_limma)
 
-## ----DA_TIEC------------------------------------------------------------------
+## ----runMocks-----------------------------------------------------------------
 # Random grouping each time
 Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object = ps_stool_16S, weights = zinbweights, verbose = FALSE)
 
@@ -227,7 +227,7 @@ Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object 
 ## ----createTIEC---------------------------------------------------------------
 TIEC_summary <- createTIEC(Stool_16S_mockDA)
 
-## ----FDRplot------------------------------------------------------------------
+## ----FPRplot------------------------------------------------------------------
 cols <- createColors(variable = levels(TIEC_summary$df_pval$Method))
 plotFPR(df_FPR = TIEC_summary$df_FPR, cols = cols)
 
@@ -261,7 +261,7 @@ data("ps_plaque_16S")
 #  # Collapse counts to the genus level
 #  ps_plaque_16S <- tax_glom(ps_plaque_16S_filtered, taxrank = "GENUS")
 
-## -----------------------------------------------------------------------------
+## ----createSplits-------------------------------------------------------------
 set.seed(123)
 sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- factor(sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
 
@@ -273,33 +273,38 @@ my_splits <- createSplits(
   N = 10
 ) # At least 100 is suggested
 
-## -----------------------------------------------------------------------------
+## ----set_Methods_noweights----------------------------------------------------
 my_edgeR_noWeights <- set_edgeR(group_name = "HMP_BODY_SUBSITE", design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "TMM")
 my_DESeq2_noWeights <- set_DESeq2(contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque", "Subgingival Plaque"), design = ~ HMP_BODY_SUBSITE, norm = "poscounts")
 my_limma_noWeights <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = c("TMM", "CSSmedian"))
 
 my_methods_noWeights <- c(my_edgeR_noWeights, my_DESeq2_noWeights, my_limma_noWeights)
 
-## -----------------------------------------------------------------------------
+## ----info_normalizations------------------------------------------------------
 str(my_normalizations)
 
-## -----------------------------------------------------------------------------
+## ----runSplits----------------------------------------------------------------
 Plaque_16S_splitsDA <- runSplits(split_list = my_splits, method_list = my_methods_noWeights, normalization_list = my_normalizations, object = ps_plaque_16S, verbose = FALSE)
 
-## -----------------------------------------------------------------------------
-concordance <- createConcordance(object = Plaque_16S_splitsDA, slot = "pValMat", colName = "rawP", type = "pvalue")
+## ----createConcordance--------------------------------------------------------
+concordance <- createConcordance(
+    object = Plaque_16S_splitsDA, 
+    slot = "pValMat", 
+    colName = "rawP", 
+    type = "pvalue"
+)
 head(concordance)
 
-## -----------------------------------------------------------------------------
+## ----getNames-----------------------------------------------------------------
 names(Plaque_16S_splitsDA$Subset1$Comparison1)
 
-## -----------------------------------------------------------------------------
+## ----logFC_names--------------------------------------------------------------
 names(Plaque_16S_splitsDA$Subset1$Comparison1$edgeR.TMM$statInfo)
 names(Plaque_16S_splitsDA$Subset1$Comparison1$DESeq2.poscounts$statInfo)
 names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.CSSmedian$statInfo)
 names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.TMM$statInfo)
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ----alternativeConcordance, eval=FALSE---------------------------------------
 #  concordance_alternative <- createConcordance(
 #    object = Plaque_16S_splitsDA,
 #    slot = "statInfo",
@@ -307,16 +312,16 @@ names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.TMM$statInfo)
 #    type = "logfc"
 #  )
 
-## -----------------------------------------------------------------------------
+## ----plotConcordance----------------------------------------------------------
 pC <- plotConcordance(concordance = concordance, threshold = 30)
 cowplot::plot_grid(plotlist = pC, ncol = 2, align = "h", axis = "tb",
         rel_widths = c(1, 3))
 
-## -----------------------------------------------------------------------------
+## ----priorKnowledge-----------------------------------------------------------
 data("microbial_metabolism")
 head(microbial_metabolism)
 
-## -----------------------------------------------------------------------------
+## ----exampleOfIntegration-----------------------------------------------------
 # Extract genera from the phyloseq tax_table slot
 genera <- tax_table(ps_plaque_16S)[, "GENUS"]
 # Genera as rownames of microbial_metabolism data.frame
@@ -331,12 +336,12 @@ priorInfo$Type <- factor(priorInfo$Type, levels = c("Aerobic","Anaerobic","F Ana
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|", 
     priorInfo[, "GENUS"])
 
-## -----------------------------------------------------------------------------
+## ----setNormalizations_enrichment---------------------------------------------
 none_normalization <- setNormalizations(fun = "norm_edgeR", method = "none")
 my_normalizations_enrichment <- c(my_normalizations, none_normalization)
 ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, object = ps_plaque_16S, verbose = FALSE)
 
-## -----------------------------------------------------------------------------
+## ----set_Methods_enrichment---------------------------------------------------
 my_metagenomeSeq <- set_metagenomeSeq(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "CSSmedian")
 my_ALDEx2 <- set_ALDEx2(conditions = "HMP_BODY_SUBSITE", test = "t", norm = "none")
 my_corncob <- set_corncob(formula = ~ HMP_BODY_SUBSITE, phi.formula = ~ HMP_BODY_SUBSITE, formula_null = ~ 1, phi.formula_null = ~ HMP_BODY_SUBSITE, test = "Wald", coefficient = "HMP_BODY_SUBSITESupragingival Plaque", norm = "none")
@@ -352,7 +357,7 @@ my_methods_enrichment <- c(
     my_Seurat
 )
 
-## ---- message=FALSE-----------------------------------------------------------
+## ----runDA_enrichment, message=FALSE------------------------------------------
 # Convert to factor
 ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- factor(
     ps_plaque_16S@sam_data$HMP_BODY_SUBSITE
@@ -364,10 +369,10 @@ ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- relevel(
 )
 Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, object = ps_plaque_16S, weights = zinbweights)
 
-## -----------------------------------------------------------------------------
+## ----info_DA------------------------------------------------------------------
 names(Plaque_16S_DA)
 
-## -----------------------------------------------------------------------------
+## ----createEnrichment---------------------------------------------------------
 enrichment <- createEnrichment(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
@@ -387,16 +392,16 @@ enrichment <- createEnrichment(
     verbose = TRUE
 )
 
-## -----------------------------------------------------------------------------
+## ----plotContingency----------------------------------------------------------
 plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic"), method = "metagenomeSeq.CSSmedian")
 
-## ---- fig.width=7, fig.height=7-----------------------------------------------
+## ----plotEnrichment, fig.width=7, fig.height=7--------------------------------
 plotEnrichment(enrichment = enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"))
 
-## ---- fig.width=6, fig.height=6-----------------------------------------------
+## ----plotMutualFindings, fig.width=6, fig.height=6----------------------------
 plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
 
-## -----------------------------------------------------------------------------
+## ----createPositives----------------------------------------------------------
 positives <- createPositives(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
@@ -419,6 +424,9 @@ positives <- createPositives(
 )
 head(positives)
 
-## -----------------------------------------------------------------------------
+## ----plotPositives------------------------------------------------------------
 plotPositives(positives)
+
+## ----sessionInfo--------------------------------------------------------------
+sessionInfo()
 

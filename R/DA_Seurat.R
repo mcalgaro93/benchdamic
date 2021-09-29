@@ -85,21 +85,21 @@ DA_Seurat <- function(object, pseudo_count = FALSE, test.use = "wilcox",
     sobj <- Seurat::AddMetaData(object = sobj, metadata = data.frame(metadata),
         col.name = colnames(metadata))
     if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3)){
-        stop(paste0("Please supply a character vector with exactly three
-            elements: the name of a factor in the design formula, the name of
-            the numerator level for the fold change, and the name of the
-            denominator level for the fold change."))
+        stop("Please supply a character vector with exactly three elements:",
+            " the name of a factor in the design formula, the name of the",
+            " numerator level for the fold change, and the name of the",
+            " denominator level for the fold change.")
     } else {
         if(!is(unlist(sobj[[contrast[1]]]), "factor")){
-            stop(paste(contrast[1]," variable is not a factor. Please supply a
-                factor."))
+            stop(contrast[1],
+                 " variable is not a factor. Please supply a factor.")
         } else {
             if(!is.element(contrast[2], levels(unlist(sobj[[contrast[1]]]))))
-                stop(paste(contrast[2], "is not a level of the", contrast[1],
-                           "variable. Please supply a present category."))
+                stop(contrast[2], "is not a level of the", contrast[1],
+                           "variable. Please supply a present category.")
             if(!is.element(contrast[3], levels(unlist(sobj[[contrast[1]]]))))
-                stop(paste(contrast[3], "is not a level of the", contrast[1],
-                           "variable. Please supply a present category."))
+                stop(contrast[3], "is not a level of the", contrast[1],
+                           "variable. Please supply a present category.")
         }
     }
     if(verbose)
@@ -168,11 +168,11 @@ set_Seurat <- function(pseudo_count = FALSE, test.use = c("wilcox", "t"),
         stop("'contrast' is required.")
     }
     if (sum(!is.element(norm, c("TSS", "none"))) > 0) {
-        warning(paste("One or more elements into 'norm' are not native to Seurat."))
+        warning("One or more elements into 'norm' are not native to Seurat.")
     }
     if(sum(!is.element(test.use, c("wilcox", "t", "bimod", "roc", "negbinom",
         "poisson", "LR", "DESeq2"))) > 0){
-        stop(paste("One or more of the test.use are wrong."))
+        stop("One or more of the test.use are wrong.")
     }
     if (expand) {
         parameters <- expand.grid(method = method, pseudo_count = pseudo_count,

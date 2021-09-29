@@ -21,6 +21,12 @@ csl: genome-biology.csl
 knitr::opts_chunk$set(warning = FALSE, error = FALSE, message = FALSE)
 ```
 
+# Introduction
+
+This vignette provides an introductory example on how to work with the analysis framework proposed in [@calgaro2020].
+
+The package is named benchdamic, acronym for “BENCHmarking of Differential Abundance detection methods for MICrobial data”. Not only does the package structure allow the users to test a variety of commonly used methods for differential abundance analysis, but it also enables them to set benchmarks including custom methods on their datasets. Performances of each method are evaluated with respect to i) suitability of distributional assumptions, ii) ability to control false discoveries, iii) concordance of the findings, and iv) enrichment of differentially abundant microbial species in specific conditions. Each step of the assessment is flexible when it comes to the choice of differential abundance methods, their parameters, and input data types. Various graphic outputs lead the users to an informed decision when evaluating the most suitable method to use for their data.
+
 # Installation
 
 The recommended way to install the `benchdamic` package is
@@ -29,11 +35,7 @@ The recommended way to install the `benchdamic` package is
 devtools::install_github("mcalgaro93/benchdamic")
 ```
 
-# Introduction
-
-This vignette provides an introductory example on how to work with the analysis framework proposed in [@calgaro2020].
-
-First, let's load some packages for basic functions and data.
+Then, let's load some packages for basic functions and data.
 
 ```{r load_packs}
 library(benchdamic)
@@ -362,7 +364,7 @@ For each row of the `mock_df` data frame we run a bunch of DA methods. In this d
 
 -   `limma-voom` with *CSS* scaling factors;
 
-```{r}
+```{r set_Methods}
 my_edgeR <- set_edgeR(
     pseudo_count = FALSE,
     group_name = "group", 
@@ -393,7 +395,7 @@ my_limma <- set_limma(
 my_methods <- c(my_edgeR, my_DESeq2, my_limma)
 ```
 
-```{r DA_TIEC}
+```{r runMocks}
 # Random grouping each time
 Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods, object = ps_stool_16S, weights = zinbweights, verbose = FALSE)
 ```
@@ -487,7 +489,7 @@ TIEC_summary <- createTIEC(Stool_16S_mockDA)
 
 The false positive rate (FPR or observed *α*), which is the observed proportion of significant tests, should match the nominal value because all the findings are false positive by construction. In this example `edgeR.TMM`, `edgeR.TMM.weighted`, and `limma.TMM.weighted` appear to be quite over all the thresholds, differently `DESeq2.poscounts`, `DESeq2.poscounts.weighted`, `limma.CSSmedian`, and `limma.TMM` methods are close to each threshold.
 
-```{r FDRplot}
+```{r FPRplot}
 cols <- createColors(variable = levels(TIEC_summary$df_pval$Method))
 plotFPR(df_FPR = TIEC_summary$df_FPR, cols = cols)
 ```
@@ -554,7 +556,7 @@ Several functions are involved in the concordance analysis. First of all, the no
 
 Using the `createSplits()` function, the dataset is randomly divided by half. In this particular demonstrative dataset, samples are paired: 1 sample for supragingival plaque and 1 sample for subgingival plaque are considered for each subject. The *paired* parameter is passed to the method and it contains the name of the variable which describes the subject IDs. In this specific case, the two groups of samples are balanced between conditions, reflecting the starting dataset. However, if the starting dataset had been unbalanced, the *balanced* option would have allowed to keep the two splits unbalanced or not.
 
-```{r}
+```{r createSplits}
 set.seed(123)
 sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- factor(sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
 
@@ -575,7 +577,7 @@ For some of the methods implemented in this package it is possible to perform di
 
 Once again, to set the differential abundance methods to use, the `set_*()` methods can be exploited. For a faster demonstration, differential abundance methods without weighting are used:
 
-```{r}
+```{r set_Methods_noweights}
 my_edgeR_noWeights <- set_edgeR(group_name = "HMP_BODY_SUBSITE", design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "TMM")
 my_DESeq2_noWeights <- set_DESeq2(contrast = c("HMP_BODY_SUBSITE","Supragingival Plaque", "Subgingival Plaque"), design = ~ HMP_BODY_SUBSITE, norm = "poscounts")
 my_limma_noWeights <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = c("TMM", "CSSmedian"))
@@ -585,13 +587,13 @@ my_methods_noWeights <- c(my_edgeR_noWeights, my_DESeq2_noWeights, my_limma_noWe
 
 Similarly, to set the normalization methods, the `setNormalizations()` function can be used. In this case it has already been set up for the TIEC analysis.
 
-```{r}
+```{r info_normalizations}
 str(my_normalizations)
 ```
 
 The `runSplits()` function generates the subsets and performs DA analysis:
 
-```{r}
+```{r runSplits}
 Plaque_16S_splitsDA <- runSplits(split_list = my_splits, method_list = my_methods_noWeights, normalization_list = my_normalizations, object = ps_plaque_16S, verbose = FALSE)
 ```
 
@@ -620,8 +622,13 @@ For each pair of methods the concordance is computed by the `createConcordance()
 -   *rank*;
 -   *concordance* which is defined as the cardinality of the intersection of the top *rank* elements of each list, divided by *rank*, i.e., $\frac{L_{1:rank} \bigcap M_{1:rank}}{rank}$, where *L* and *M* represent the lists of p-values of *method1* and *method2* respectively.
 
-```{r}
-concordance <- createConcordance(object = Plaque_16S_splitsDA, slot = "pValMat", colName = "rawP", type = "pvalue")
+```{r createConcordance}
+concordance <- createConcordance(
+    object = Plaque_16S_splitsDA, 
+    slot = "pValMat", 
+    colName = "rawP", 
+    type = "pvalue"
+)
 head(concordance)
 ```
 
@@ -629,13 +636,13 @@ The `createConcordance()` method is very flexible. In the example below the conc
 
 Firstly inspect the method order:
 
-```{r}
+```{r getNames}
 names(Plaque_16S_splitsDA$Subset1$Comparison1)
 ```
 
 Then look at the column names:
 
-```{r}
+```{r logFC_names}
 names(Plaque_16S_splitsDA$Subset1$Comparison1$edgeR.TMM$statInfo)
 names(Plaque_16S_splitsDA$Subset1$Comparison1$DESeq2.poscounts$statInfo)
 names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.CSSmedian$statInfo)
@@ -644,7 +651,7 @@ names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.TMM$statInfo)
 
 All methods, except for `DESeq2`, contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the concordance `data.frame` can be built using:
 
-```{r, eval=FALSE}
+```{r alternativeConcordance, eval=FALSE}
 concordance_alternative <- createConcordance(
   object = Plaque_16S_splitsDA,
   slot = "statInfo",
@@ -663,7 +670,7 @@ Starting from the table of concordances, the `plotConcordance()` function can pr
 
 The area between the curve and the bisector is colored to highlight concordant methods (blue) and non-concordant ones (red). The two graphical results should be drawn together for the best experience.
 
-```{r}
+```{r plotConcordance}
 pC <- plotConcordance(concordance = concordance, threshold = 30)
 cowplot::plot_grid(plotlist = pC, ncol = 2, align = "h", axis = "tb",
         rel_widths = c(1, 3))
@@ -687,14 +694,14 @@ Here, we leveraged the peculiar environment of the gingival site: the supragingi
 
 Firstly, the microbial metabolism information is necessary. These data comes from [@cigarettes] paper github repository (<https://github.com/waldronlab/nychanesmicrobiome>), but they can be loaded using `data("microbial_metabolism")`.
 
-```{r}
+```{r priorKnowledge}
 data("microbial_metabolism")
 head(microbial_metabolism)
 ```
 
 The microbial genus and its type of metabolism are specified in the first and second column respectively. To match each taxon of the phyloseq object to its type of metabolism the next chunk of code can be used.
 
-```{r}
+```{r exampleOfIntegration}
 # Extract genera from the phyloseq tax_table slot
 genera <- tax_table(ps_plaque_16S)[, "GENUS"]
 # Genera as rownames of microbial_metabolism data.frame
@@ -714,7 +721,7 @@ priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|",
 
 Prepare some normalization/scaling factors.
 
-```{r}
+```{r setNormalizations_enrichment}
 none_normalization <- setNormalizations(fun = "norm_edgeR", method = "none")
 my_normalizations_enrichment <- c(my_normalizations, none_normalization)
 ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, object = ps_plaque_16S, verbose = FALSE)
@@ -722,7 +729,7 @@ ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrich
 
 Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` object. For this reason many methods can be assessed without computational trade-offs.
 
-```{r}
+```{r set_Methods_enrichment}
 my_metagenomeSeq <- set_metagenomeSeq(design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "CSSmedian")
 my_ALDEx2 <- set_ALDEx2(conditions = "HMP_BODY_SUBSITE", test = "t", norm = "none")
 my_corncob <- set_corncob(formula = ~ HMP_BODY_SUBSITE, phi.formula = ~ HMP_BODY_SUBSITE, formula_null = ~ 1, phi.formula_null = ~ HMP_BODY_SUBSITE, test = "Wald", coefficient = "HMP_BODY_SUBSITESupragingival Plaque", norm = "none")
@@ -739,7 +746,7 @@ my_methods_enrichment <- c(
 )
 ```
 
-```{r, message=FALSE}
+```{r runDA_enrichment, message=FALSE}
 # Convert to factor
 ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- factor(
     ps_plaque_16S@sam_data$HMP_BODY_SUBSITE
@@ -760,7 +767,7 @@ In the *direction* argument, which is set to `NULL` by default, the column name 
 
 Firstly, the order of methods should be investigated:
 
-```{r}
+```{r info_DA}
 names(Plaque_16S_DA)
 ```
 
@@ -772,7 +779,7 @@ Following the methods' order, the *direction* parameter is supplied together wit
 
 -   *priorKnowledge*, *enrichmentCol*, and *namesCol*, to add enrichment information to DA analysis;
 
-```{r}
+```{r createEnrichment}
 enrichment <- createEnrichment(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
@@ -805,13 +812,13 @@ The produced *enrichment* object consists in a list of elements as long as the n
 
 Considering the most liberal method of our example, *metagenomeSeq.CSSmedian,* we obtain 8 contingency tables. Both UP Abundant and DOWN Abundant taxa are found and the enrichment variable has Aerobic, Anaerobic, F_Anaerobic, and Unknown levels. For each level, we can build 2 contingency tables: one for DOWN Abundant vs non.DOWN Abundant features and one for UP Abundant vs non.UP Abundant features. The enrichment is tested using Fisher exact test. The `plotContingency()` function summarize all these information.
 
-```{r}
+```{r plotContingency}
 plotContingency(enrichment = enrichment, levels_to_plot = c("Aerobic", "Anaerobic"), method = "metagenomeSeq.CSSmedian")
 ```
 
 To summarize enrichment analysis for all the methods simultaneously, the `plotEnrichment()` function can be used. Only Aerobic and Anaerobic levels are plotted:
 
-```{r, fig.width=7, fig.height=7}
+```{r plotEnrichment, fig.width=7, fig.height=7}
 plotEnrichment(enrichment = enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"))
 ```
 
@@ -819,7 +826,7 @@ Since "Subgingival Plaque" is the reference level for each method, the coefficie
 
 To investigate the DA features, the `plotMutualFindings()` function can be used. While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
 
-```{r, fig.width=6, fig.height=6}
+```{r plotMutualFindings, fig.width=6, fig.height=6}
 plotMutualFindings(enrichment, enrichmentCol = "Type", levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
 ```
 
@@ -829,7 +836,7 @@ In this example, only Anaerobic genera are found as DA by more than 1 method sim
 
 To evaluate the overall performances we can study a statistic based on the difference between putative True Positives (TP) and the putative False Positives (FP). To build the matrix to plot, the `createPositives()` can be used. In details, the correctness of the DA features is evaluated comparing the direction of the top ranked features to the expected direction supplied by the user in the *TP* and *FP* lists. The procedure is performed for several thresholds of *top* parameter in order to observe a trend, if present.
 
-```{r}
+```{r createPositives}
 positives <- createPositives(
     object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
     namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
@@ -855,10 +862,16 @@ head(positives)
 
 Finally, the `plotPositives()` function can be used to summarize the methods' performances. Higher values usually represents better performances. In our example, all methods show similar values of the statistics from the top 5, to the top 20 ranked features.
 
-```{r}
+```{r plotPositives}
 plotPositives(positives)
 ```
 
 *MAST.none.median* and *ALDEx2.none.iqlr.t* methods are obviously very conservative and are located on the lower part of the plot. Very liberal methods, such as *metagenomeSeq.CSSmedian* and *edgeR.TMM* show instead the highest values. This means that their findings are in line with the *a priori* knowledge supplied by the user, however we are considering a toy example with only 88 features.
+
+# Session Info
+
+```{r sessionInfo}
+sessionInfo()
+```
 
 # References

@@ -36,8 +36,7 @@ checkNormalization <- function(fun, method, ...){
     if(is.element(el = method, set = normalization_list[[fun]])){
         return(list(fun = fun, method = method, ...))
     } else {
-        stop(paste0(method," normalization doesn't belong to ", fun,
-            " function."))
+        stop(method, " normalization doesn't belong to ", fun, " function.")
     }
 }
 

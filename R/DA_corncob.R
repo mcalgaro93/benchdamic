@@ -166,10 +166,10 @@ set_corncob <- function(pseudo_count = FALSE, formula = NULL, phi.formula = NULL
         stop("Please specify 'phi.formula' and 'phi.formula_null'.")
     }
     if (sum(!is.element(norm, c("TSS", "none"))) > 0) {
-        warning(paste("One or more elements into 'norm' are not native to corncob."))
+        warning("One or more elements into 'norm' are not native to corncob.")
     }
     if(sum(!is.element(test, c("Wald","LRT"))) > 0){
-        stop(paste("Please choose the test between 'Wald' and 'LRT'."))
+        stop("Please choose the test between 'Wald' and 'LRT'.")
     }
     if (expand) {
         parameters <- expand.grid(method = method, pseudo_count = pseudo_count,

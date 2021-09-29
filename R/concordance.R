@@ -53,15 +53,13 @@ createSplits <- function(object, varName = NULL, paired = NULL, balanced = TRUE,
     else {
         variable <- metadata[, varName]
         if (!is.factor(variable)) {
-            warning(paste(
-                "The variable", varName, "is not a factor.",
-                "Coercing to factor."
-            ))
+            warning("The variable", varName, "is not a factor.",
+                "Coercing to factor.")
             variable <- as.factor(variable)
         }
         var_levels <- levels(variable)
         if (length(var_levels) != 2) {
-              stop(paste("The variable", varName, "has not 2 levels."))
+              stop("The variable", varName, "has not 2 levels.")
           } else {
             grp1_name <- var_levels[1]
             grp2_name <- var_levels[2]

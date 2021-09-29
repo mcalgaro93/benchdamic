@@ -184,10 +184,10 @@ set_MAST <- function(pseudo_count = FALSE, rescale = c("median", "default"),
         stop("'design' and 'coefficient' are required.")
     }
     if (sum(!is.element(norm, c("TSS", "none"))) > 0) {
-        warning(paste("One or more elements into 'norm' are not native to MAST"))
+        warning("One or more elements into 'norm' are not native to MAST")
     }
     if(sum(!is.element(rescale, c("median","default"))) > 0){
-        stop(paste("Please choose rescale between 'median' and/or 'default'."))
+        stop("Please choose rescale between 'median' and/or 'default'.")
     }
     if (expand) {
         parameters <- expand.grid(method = method, pseudo_count = pseudo_count,

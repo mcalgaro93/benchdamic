@@ -148,8 +148,8 @@ set_metagenomeSeq <- function(pseudo_count = FALSE, design = NULL, coef = 2,
         stop("'design' should be a character or a formula.")
     } else design <- as.formula(design)
     if (sum(!is.element(norm, c("CSSmedian", "CSSdefault"))) > 0) {
-        warning(paste("One or more elements into 'norm' are not native to
-                       metagenomeSeq."))
+        warning("One or more elements into 'norm' are not native to",
+            " metagenomeSeq.")
     }
     if (expand) {
         parameters <- expand.grid(method = method, pseudo_count = pseudo_count,
@@ -163,7 +163,7 @@ set_metagenomeSeq <- function(pseudo_count = FALSE, design = NULL, coef = 2,
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("design" = deparse(design),
-                                         "coef" = coef), after = 2)
+            "coef" = coef), after = 2)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)

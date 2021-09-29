@@ -60,15 +60,13 @@ getStatistics <- function(method, slot = "pValMat", colName = "rawP",
     # Info extraction
     method_name <- method[["name"]]
     if (!is.element(slot, names(method))) {
-        stop(paste0("'", slot, "' slot not found for ", method_name))
+        stop("'", slot, "' slot not found for ", method_name)
     } else {
         info <- method[[slot]]
     }
     if (!is.element(colName, colnames(info))) {
-        stop(paste0(
-            "'", colName, "' column not found in '", slot,
-            "' slot for ", method_name
-        ))
+        stop("'", colName, "' column not found in '", slot, "' slot for ",
+            method_name)
     } else {
         info_col <- info[, colName]
     }
@@ -97,7 +95,7 @@ getStatistics <- function(method, slot = "pValMat", colName = "rawP",
         # Extract statInfo
         statInfo <- method[["statInfo"]]
         if (!is.element(direction, colnames(statInfo))) {
-            stop(paste0(direction, " column not found for ", method_name))
+            stop(direction, " column not found for ", method_name)
         } else {
             out <- data.frame(out, statInfo[, direction])
             colnames(out) <- c(colName, direction)

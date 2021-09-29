@@ -142,14 +142,14 @@ set_ALDEx2 <- function(pseudo_count = FALSE, conditions = NULL,
         stop("'conditions' is required.")
     }
     if (sum(!is.element(norm, c("TSS", "none"))) > 0) {
-        warning(paste("One or more elements into 'norm' are not native to ALDEx2."))
+        warning("One or more elements into 'norm' are not native to ALDEx2.")
     }
     if(sum(!is.element(test, c("t","wilcox"))) > 0){
-        stop(paste("Please choose between p-values produced by Welch t-test 't'
-        or by the Wilcoxon test 'wilcox'."))
+        stop("Please choose between p-values produced by Welch t-test 't'",
+            "or by the Wilcoxon test 'wilcox'.")
     }
     if(sum(!is.element(denom, c("iqlr","zero"))) > 0){
-        stop(paste("Please choose denom between 'iqlr' and 'zero'."))
+        stop("Please choose denom between 'iqlr' and 'zero'.")
     }
     if (expand) {
         parameters <- expand.grid(method = method, pseudo_count = pseudo_count,

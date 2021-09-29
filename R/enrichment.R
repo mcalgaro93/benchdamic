@@ -57,11 +57,11 @@
 addKnowledge <- function(method, priorKnowledge, enrichmentCol, namesCol = NULL)
 {
     if(!is.element(enrichmentCol, colnames(priorKnowledge))){
-        stop(paste0(enrichmentCol, " column is not present."))
+        stop(enrichmentCol, " column is not present.")
     }
     if(!is.null(namesCol)){
         if(!is.element(namesCol, colnames(priorKnowledge))){
-            stop(paste0(namesCol, " column is not present."))
+            stop(namesCol, " column is not present.")
         }
     }
     if(!is.data.frame(priorKnowledge)){

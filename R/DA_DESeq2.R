@@ -187,10 +187,10 @@ set_DESeq2 <- function(pseudo_count = FALSE, design = NULL,
         stop("'design' should be a character or a formula.")
     } else design <- as.formula(design)
     if (!is.character(contrast) & length(contrast) != 3){
-        stop(paste0("Please supply a character vector with exactly three
-            elements: the name of a factor in the design formula, the name of
-            the numerator level for the fold change, and the name of the
-            denominator level for the fold change."))
+        stop("Please supply a character vector with exactly three elements:",
+            " the name of a factor in the design formula, the name of the",
+            " numerator level for the fold change, and the name of the",
+            " denominator level for the fold change.")
     }
     if (sum(!is.element(norm, c(
         "ratio", "poscounts", "iterate", "none", "TSS"

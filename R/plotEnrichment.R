@@ -241,7 +241,7 @@ plotContingency <- function(enrichment, method, levels_to_plot) {
     # Extract enrichment tables
     enrichment_table <- enrichment[[method]][["tables"]]
     if (length(enrichment_table) == 0) {
-        stop(paste0("No DA features for ", method))
+        stop("No DA features for ", method)
     }
     df_to_plot <- reshape2::melt(plyr::ldply(enrichment_table,
         .fun = function(tab) {
