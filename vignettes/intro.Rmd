@@ -481,7 +481,7 @@ Since the visualization rely on `ggplot2` package, firstly we run the `createTIE
 
 4.  `df_KS` is a 5 columns and *methods x comparisons* rows `data.frame`. For each set of method and comparison, the Kolmogorov-Smirnov test statistics and pvalues are reported in *KS* and *KS_pval* columns respectively.
 
-```{r createTIEC}
+```{r createTIEC, warning=FALSE}
 TIEC_summary <- createTIEC(Stool_16S_mockDA)
 ```
 
@@ -748,12 +748,10 @@ my_methods_enrichment <- c(
 
 ```{r runDA_enrichment, message=FALSE}
 # Convert to factor
-ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- factor(
-    ps_plaque_16S@sam_data$HMP_BODY_SUBSITE
-)
+sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- factor(sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
 # Reference level = "Subgingival Plaque"
-ps_plaque_16S@sam_data$HMP_BODY_SUBSITE <- relevel(
-    x = ps_plaque_16S@sam_data$HMP_BODY_SUBSITE, 
+sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- relevel(
+    x = sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE, 
     ref = "Subgingival Plaque"
 )
 Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, object = ps_plaque_16S, weights = zinbweights)

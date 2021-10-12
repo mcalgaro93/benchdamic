@@ -642,6 +642,18 @@ createColors <- function(variable) {
 #' ordered factors.
 #'
 #' @seealso \code{\link{plotMutualFindings}}
+#'
+#' @examples
+#' # From a dataset with some factor columns
+#' mpg <- data.frame(ggplot2::mpg)
+#' # Order the levels of the desired factors based on the cardinality of each
+#' # level.
+#' ordered_mpg <- iterative_ordering(df = mpg,
+#'    var_names = c("manufacturer", "model"),
+#'    decreasing = c(TRUE, TRUE))
+#' # Now the levels of the factors are ordered in a decreasing way
+#' levels(ordered_mpg$manufacturer)
+#' levels(ordered_mpg$model)
 
 iterative_ordering <- function(df, var_names, i = 1, decreasing = TRUE) {
     if (length(decreasing) == 1) {

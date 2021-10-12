@@ -1,0 +1,20 @@
+Changes in Version 0.99.2 (2021-10-11)
+=====================================
+
+* Changed dependency from R 4.0.0 to 4.1.0
+* Added example for iterative_ordering() function
+* Removed the usage of @ to access object's slot in the vignette
+* Removed a suppressMessages() and a suppressWarnings() from createTIEC()
+* Added verbosity to createTIEC() function
+* Added NEWS file
+
+Changes in Version 0.99.1 (2021-10-04)
+=====================================
+
+* Removed unnecessary files
+
+Changes in Version 0.99.0 (2021-09-29)
+=====================================
+
+* Bumped version for submission to Bioconductor
+* Added README.md file

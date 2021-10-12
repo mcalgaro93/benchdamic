@@ -150,9 +150,9 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 createTIEC <- function(object) {
     # Create a list of data frames with two columns: pval and method name
     # One data frame for each comparison
+    message("1. Extracting statistics")
     df_list_pval <- lapply(X = object, FUN = function(Comparison) {
-        suppressMessages(
-            reshape2::melt(
+        reshape2::melt(
                 plyr::ldply(
                     extractStatistics(object = Comparison,
                         slot = "pValMat", colName = "rawP", type = "pvalue",
@@ -160,11 +160,11 @@ createTIEC <- function(object) {
                     ), .id = "Method"
                 ), value.name = "pval"
             )
-        )
     })
     # Melt down to a single data frame with the Comparison column added
     df_pval <- plyr::ldply(df_list_pval, .id = "Comparison")
     ### FPR ###
+    message("2. Counting p-values lower than some thresholds")
     # Count the p-values which are lower than a selected threshold
     df_pval_FPR <- plyr::ddply(.data = df_pval, .variables = ~ Comparison +
         Method, .fun = function(x) {
@@ -181,10 +181,11 @@ createTIEC <- function(object) {
         colMeans(x[, c("FPR_obs001", "FPR_obs005", "FPR_obs01")])
     })
     ### QQ and KS ###
+    message("3. Computing KS statistics")
     # Create data frame for empirical and theoretical p-values
     # Kolmogorov-Smirnov test
-    df_QQ_KS <- suppressWarnings(plyr::ddply(.data = df_pval, .variables = ~
-    Comparison + Method, .fun = function(x) {
+    df_QQ_KS <- plyr::ddply(.data = df_pval, .variables = ~ Comparison + Method,
+        .fun = function(x) {
         # Ordered list of p-values
         x <- x[order(x[, "pval"]), ]
         # Index of not NA p-values
@@ -193,17 +194,13 @@ createTIEC <- function(object) {
         x$pval_theoretical[k_pval] <- (seq_len(sum(k_pval))) / (sum(k_pval))
         x$pval_theoretical_rounded[k_pval] <- round((seq_len(sum(k_pval))) /
             (sum(k_pval)), digits = 2)
-        x$KS <- stats::ks.test(
+        x[c("KS","KS_pval")] <- stats::ks.test(
             x = x$pval_theoretical[k_pval],
-            y = x$pval[k_pval]
-        )$statistic
-        x$KS_pval <- stats::ks.test(
-            x = x$pval_theoretical[k_pval],
-            y = x$pval[k_pval]
-        )$p.value
+            y = x$pval[k_pval])[c("statistic","p.value")]
         return(x)
-    }))
+    })
     ### QQ ###
+    message("4. Ordering quantiles")
     # For each theoretical p-value, the mean of observed one is computed
     df_QQ <- plyr::ddply(.data = df_QQ_KS, .variables = ~ Method +
         pval_theoretical_rounded, .fun = function(x) {
