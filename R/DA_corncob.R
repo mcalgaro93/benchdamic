@@ -2,7 +2,7 @@
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom corncob differentialTest
-#' @importFrom stats coef
+#' @importFrom stats4 coef
 #' @export
 #' @description
 #' Fast run for corncob differential abundance detection method.
@@ -107,7 +107,7 @@ DA_corncob <- function(object, pseudo_count = FALSE, formula, phi.formula,
             " 'ConditionDisease' if the reference level for the variable",
             " 'Condition' is 'control')")
     statInfo <- plyr::ldply(.data = fit[["all_models"]], .fun = function(model){
-        stats::coef(model)[paste0("mu.",coefficient),]})
+        stats4::coef(model)[paste0("mu.",coefficient),]})
     if(length(fit[["restrictions_DA"]])>0)
         if(verbose)
             message("Differential abundance across",

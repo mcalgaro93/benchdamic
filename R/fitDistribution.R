@@ -292,7 +292,7 @@ fitDM <- function(counts, verbose = TRUE) {
     dmFit <- MGLM::MGLMreg(data ~ 1L, dist = "DM", display = verbose)
     # fitted_values <- dmFit@fitted * ls
     # Coefficent extraction
-    alpha_i <- exp(coef(dmFit))
+    alpha_i <- exp(stats4::coef(dmFit))
     alpha_0 <- rowSums(alpha_i)
     Y <- log1p(colMeans(ls %*% alpha_i / alpha_0))
     # The univariate version of a DM is a Beta-Binomial

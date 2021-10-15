@@ -1,3 +1,8 @@
+Changes in Version 0.99.4 (2021-10-15)
+=====================================
+
+* Changed stats::coef to stats4::coef
+
 Changes in Version 0.99.3 (2021-10-15)
 =====================================
 
