@@ -153,9 +153,11 @@ $$
 
 The mean value for the $i^{th}$ taxon and $j^{th}$ sample of the count matrix is given by $libSize_j\cdot \frac{\alpha_{ij}}{\sum_i a_{ij}}$.
 
-The package we rely on to estimate this distribution on real count data is MGML [@kim2018] but we can easily call the benchdamic function `fitDM`.
+The package we rely on to estimate this distribution on real count data is MGLM [@kim2018] but we can easily call the benchdamic function `fitDM`.
 
 ## Comparing Estimated and Observed counts
+
+The goodness of fit for several distributions is assessed comparing estimated and observed values. On one side we can compare, for each taxon, the observed mean abundance with the estimated one, obtaining the Mean Difference (MD). On the other side we can compare the proportion of samples which have zero counts for a specific taxon with the estimated probability to observe a zero count, obtaining the Zero Probability Difference (ZPD).
 
 To easily compare estimated and observed mean values the natural logarithm transformation, with the continuity correction ($log(counts+1)$), is well suited, indeed it reduces count range making the differences more stable.
 
@@ -163,7 +165,7 @@ Except for `fitHURDLE`, which performs a CPM transformation on the counts (or th
 
 ```{r}
 example_HURDLE <- fitHURDLE(
-  counts = as(otu_table(ps_stool_16S), "matrix"),
+  counts = ps_stool_16S,
   scale = "median"
 )
 head(example_HURDLE)
@@ -172,17 +174,16 @@ head(example_HURDLE)
 The values above are the `fitHURDLE` estimated values (*NA* value in the second row due to the sparsity of that taxon). The internally used function to prepare observed counts is `prepareObserved()`, specifying the `scale` parameter if the HURDLE model is considered.
 
 ```{r}
-observed_hurdle <- prepareObserved(counts = as(
-  otu_table(ps_stool_16S),
-  "matrix"
-), scale = "median")
+observed_hurdle <- prepareObserved(
+  counts = ps_stool_16S, 
+  scale = "median")
 head(observed_hurdle)
 ```
 
 Which are different from the non-scaled observed values:
 
 ```{r}
-head(prepareObserved(counts = as(otu_table(ps_stool_16S), "matrix")))
+head(prepareObserved(counts = ps_stool_16S))
 ```
 
 The function to compute mean differences (MD) and zero probability difference (ZPD) between estimated and observed values, is `meanDifferences()` (also used internally).
@@ -198,32 +199,24 @@ A wrapper function to simultaneously perform the estimates and the mean differen
 
 ```{r fitting}
 GOF_stool_16S <- fitModels(
-  counts = as(otu_table(ps_stool_16S), "matrix"),
+  counts = ps_stool_16S,
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
   scale_ZIG = c("median", "default"),
   scale_HURDLE = c("median", "default"),
-  verbose = TRUE
+  verbose = FALSE
 )
 ```
 
-Exploiting the internal structure of the `fitModels`'s output we can obtain the RMSE values for MD values:
+Exploiting the internal structure of the `fitModels`'s output we can obtain the Root Mean Squared Error (RMSE) values for MD values (the lower, the better):
 
 ```{r RMSE_MD}
-RMSE_MD_16S <- plyr::ldply(GOF_stool_16S,
-  .fun = function(df) cbind("RMSE" = RMSE(df[, "MD"])),
-  .id = "Model"
-)
-RMSE_MD_16S
+plotRMSE(GOF_stool_16S, difference = "MD", plotIt = FALSE)
 ```
 
 and for ZPD values:
 
 ```{r RMSE_ZPD}
-RMSE_ZPD_16S <- plyr::ldply(GOF_stool_16S,
-  .fun = function(df) cbind("RMSE" = RMSE(df[, "ZPD"])),
-  .id = "Model"
-)
-RMSE_ZPD_16S
+plotRMSE(GOF_stool_16S, difference = "ZPD", plotIt = FALSE)
 ```
 
 ## Visualization
@@ -282,7 +275,7 @@ plot_grid(plotRMSE(GOF_stool_16S, difference = "MD"),
 
 # Type I Error Control
 
-We next try to evaluate type I error rate control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 10 times (at least 1000 suggested). In this setting, the p values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed `α`), which is the observed proportion of significant tests, should match the nominal value (e.g., `α=0.05`).
+We next try to evaluate Type I Error rate Control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 10 times (at least 1000 suggested). In this setting, the p-values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed `α`), which is the observed proportion of significant tests, should match the nominal value (e.g., `α=0.05`).
 
 ## TIEC structure
 
@@ -302,7 +295,7 @@ These steps can be performed both directly, using the `norm_*()` and `DA_*()` me
 
 ## Create mock comparisons
 
-Using `createMocks` function we can randomly group the samples, `N = 10` times. A higher `N` is suggested (at least 1000) but in that case a longer running time is required.
+Using `createMocks()` function we can randomly group the samples, `N = 10` times. A higher `N` is suggested (at least 1000) but in that case a longer running time is required.
 
 ```{r createMocks}
 set.seed(123)

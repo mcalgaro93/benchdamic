@@ -1,6 +1,7 @@
 #' @title prepareObserved
 #'
 #' @importFrom stats median
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Continuity corrected logarithms of the average counts and fraction of zeroes
@@ -29,6 +30,11 @@
 #' # For the comparison with HURDLE model
 #' observed2 <- prepareObserved(counts, scale = "median")
 prepareObserved <- function(counts, scale = NULL) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if (!is.null(scale)) {
         if (scale == "median") {
             counts <- counts * stats::median(colSums(counts)) / colSums(counts)

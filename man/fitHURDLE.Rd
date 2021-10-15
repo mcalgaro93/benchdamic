@@ -7,8 +7,8 @@
 fitHURDLE(counts, scale = "default", verbose = TRUE)
 }
 \arguments{
-\item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
-samples by column.}
+\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
+ASVs, genes) by row and samples by column.}
 
 \item{scale}{Character vector, either \code{median} or \code{default} to
 choose between the median of the library size or one million to scale raw

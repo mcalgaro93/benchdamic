@@ -13,8 +13,8 @@ fitModels(
 )
 }
 \arguments{
-\item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
-samples by column.}
+\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
+ASVs, genes) by row and samples by column.}
 
 \item{models}{character vector which assumes the values \code{NB},
 \code{ZINB}, \code{DM}, \code{ZIG}, and \code{HURDLE}.}

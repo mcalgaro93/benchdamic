@@ -7,8 +7,8 @@
 prepareObserved(counts, scale = NULL)
 }
 \arguments{
-\item{counts}{a matrix of counts with features (OTUs, ASVs, genes) by row and
-samples by column.}
+\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
+ASVs, genes) by row and samples by column.}
 
 \item{scale}{If specified it refers to the character vector used in
 \code{\link{fitHURDLE}} function. Either \code{median} or \code{default} to

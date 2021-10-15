@@ -2,6 +2,7 @@
 #'
 #' @importFrom edgeR calcNormFactors estimateDisp DGEList glmFit getCounts
 #' @importFrom edgeR getDispersion
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Fit a Negative Binomial (NB) distribution for each taxon of the count data.
@@ -9,8 +10,8 @@
 #' function, using \code{TMM} normalized counts, tag-wise dispersion estimation,
 #' and not assuming the presence of any group in the samples (design matrix
 #' equal to a column of ones.)
-#' @param counts a matrix of counts with features (OTUs, ASVs, genes) by row and
-#' samples by column.
+#' @param counts a phyloseq object or a matrix of counts with features (OTUs,
+#' ASVs, genes) by row and samples by column.
 #' @param verbose an optional logical value. If \code{TRUE} information on the
 #' steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
@@ -25,6 +26,11 @@
 #' NB <- fitNB(counts)
 #' head(NB)
 fitNB <- function(counts, verbose = TRUE) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if(verbose)
         message("Model: Negative Binomial")
     # Default normalization
@@ -52,6 +58,7 @@ fitNB <- function(counts, verbose = TRUE) {
 #'
 #' @importFrom zinbwave zinbFit getMu getPi getPhi
 #' @importFrom BiocParallel SerialParam
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Fit a Zero-Inflated Negative Binomial (ZINB) distribution for each taxon of
@@ -74,6 +81,11 @@ fitNB <- function(counts, verbose = TRUE) {
 #' ZINB <- fitZINB(counts)
 #' head(ZINB)
 fitZINB <- function(counts, verbose = TRUE) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if(verbose)
         message("Model: Zero-Inflated Negative Binomial")
     fit <- zinbwave::zinbFit(
@@ -93,6 +105,7 @@ fitZINB <- function(counts, verbose = TRUE) {
 #' @importFrom stats model.matrix as.formula median
 #' @importFrom MAST FromMatrix zlm invlogit
 #' @importFrom SummarizedExperiment assay colData
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Fit a truncated gaussian hurdle model for each taxon of the count data. The
@@ -117,6 +130,11 @@ fitZINB <- function(counts, verbose = TRUE) {
 #' HURDLE <- fitHURDLE(counts, scale = "median")
 #' head(HURDLE)
 fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if(verbose)
         message("Model: Truncated Gaussian Hurdle")
     # tpm scaling
@@ -167,6 +185,7 @@ fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
 #'     fitZig zigControl
 #' @importFrom utils capture.output
 #' @importFrom stats median
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Fit a Zero-Inflated Gaussian (ZIG) distribution for each taxon of the count
@@ -191,6 +210,11 @@ fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
 #' ZIG <- fitZIG(counts, scale = "median")
 #' head(ZIG)
 fitZIG <- function(counts, scale = "default", verbose = TRUE) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if(verbose)
         message("Model: Zero-Inflated Gaussian")
     MGS <- metagenomeSeq::newMRexperiment(counts = counts)
@@ -228,6 +252,7 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
 #' @importFrom MGLM MGLMreg
 #' @importFrom stats as.formula
 #' @importFrom stats4 coef
+#' @importFrom phyloseq otu_table taxa_are_rows
 #' @import methods
 #'
 #' @export
@@ -251,6 +276,11 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
 #' DM <- fitDM(counts)
 #' head(DM)
 fitDM <- function(counts, verbose = TRUE) {
+    if(is(counts, "phyloseq")){
+        if(phyloseq::taxa_are_rows(counts)){
+            counts <- as(phyloseq::otu_table(counts), "matrix")
+        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+    }
     if(verbose)
         message("Model: Dirichlet Multinomial")
     # library sizes

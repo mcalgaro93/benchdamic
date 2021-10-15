@@ -1,3 +1,10 @@
+Changes in Version 0.99.3 (2021-10-15)
+=====================================
+
+* Added the plotIt = FALSE option for plotRMSE function
+* Added some more explanations into the "Goodness of Fit" chapter
+* fitNB, fitZINB, fitHURDLE, fitZIG, and fitDM functions now work with both phyloseq object or count matrices
+
 Changes in Version 0.99.2 (2021-10-11)
 =====================================
 

@@ -4,7 +4,7 @@
 \alias{plotRMSE}
 \title{plotRMSE}
 \usage{
-plotRMSE(data, difference = NULL)
+plotRMSE(data, difference = NULL, plotIt = TRUE)
 }
 \arguments{
 \item{data}{a list, output of the \code{\link{fitModels}} function or a
@@ -16,6 +16,9 @@ estimated values.}
 \item{difference}{character vector, either \code{MD} or \code{ZPD} to plot
 the differences between estimated and observed mean counts or the differences
 between estimated zero probability and observed zero proportion.}
+
+\item{plotIt}{logical. Should plotting be done? (default
+\code{plotIt = TRUE})}
 }
 \value{
 a \code{ggplot} object.
