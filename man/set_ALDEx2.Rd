@@ -26,10 +26,8 @@ a \code{model.matrix}.}
 estimating the underlying distributions. Since we are estimating central
 tendencies, 128 is usually sufficient.}
 
-\item{test}{A character string. Indicates which tests to perform. "t" runs
-Welch's t and Wilcoxon tests. "kw" runs Kruskal-Wallace and glm tests.
-"glm" runs a generalized linear model using a \code{model.matrix}.
-"corr" runs a correlation test using \code{cor.test}.}
+\item{test}{A character string. Indicates which t test should be in the output.
+"t" for Welch's t test and "wilcox" for Wilcoxon test.}
 
 \item{denom}{A character string. Indicates which features to retain as the
 denominator for the Geometric Mean calculation. Using "iqlr" accounts for
