@@ -1,9 +1,14 @@
-Changes in Version 1.0.1 (2021-03-21)
+Changes in Version 1.1.1 (2021-03-21)
 =====================================
 
 * Corrected a bug in DA_ALDEx2 function
 * Updated DA_ALDEx2 function manual
 * Added more authors in the citation
+
+Changes in Version 1.1.0 (2021-10-26)
+=====================================
+
+* Bump x.y.z version to odd y following creation of RELEASE_3_14 branch
 
 Changes in Version 1.0.0 (2021-10-26)
 =====================================
