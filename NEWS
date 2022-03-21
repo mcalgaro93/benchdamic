@@ -1,3 +1,15 @@
+Changes in Version 1.0.1 (2021-03-21)
+=====================================
+
+* Corrected a bug in DA_ALDEx2 function
+* Updated DA_ALDEx2 function manual
+* Added more authors in the citation
+
+Changes in Version 1.0.0 (2021-10-26)
+=====================================
+
+* Published in Bioconductor release 3.14
+
 Changes in Version 0.99.4 (2021-10-15)
 =====================================
 

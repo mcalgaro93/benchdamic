@@ -5,7 +5,7 @@
 #' @export
 #' @description
 #' Fast run for the ALDEx2's differential abundance detection method.
-#' t test option only, i.e., Welch's t and Wilcoxon tests.
+#' Support for Welch's t test and Wilcoxon test.
 #'
 #' @inheritParams DA_DESeq2
 #' @param mc.samples An integer. The number of Monte Carlo samples to use when
@@ -18,8 +18,8 @@
 #' Using "zero" is a more extreme case where there are many non-zero features in
 #' one condition but many zeros in another. In this case the geometric mean of
 #' each group is calculated using the set of per-group non-zero features.
-#' @param test A character string. Indicates which t test should be in the output.
-#' "t" for Welch's t test and "wilcox" for Wilcoxon test.
+#' @param test A character string. Indicates which tests to perform. "t" runs
+#' Welch's t test while "wilcox" runs Wilcoxon test.
 #' @inheritParams ALDEx2::aldex
 #'
 #' @return A list object containing the matrix of p-values `pValMat`, the matrix
@@ -90,7 +90,7 @@ DA_ALDEx2 <- function(object, pseudo_count = FALSE, conditions = NULL,
         conditions = unlist(metadata[, conditions])
     name <- paste(name, ".", denom, sep = "")
     if(!is.element(test, c("t","wilcox")) | length(test) != 1)
-        stop("Please choose between p-values produced by Welch t-test (t) or",
+        stop("Please choose between p-values produced by Welch's t-test (t) or",
              " by the Wilcoxon test (wilcox).")
     name <- paste(name, ".", test, sep = "")
     if(verbose){
