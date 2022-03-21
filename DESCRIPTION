@@ -2,8 +2,21 @@ Package: benchdamic
 Type: Package
 Title: Benchmark of differential abundance methods on microbiome data
 Version: 0.99.4
-Authors@R: person("Matteo", "Calgaro", email = "mcalgaro93@gmail.com",
-                  role = c("aut", "cre"))
+Authors@R: 
+    c(person(given = "Matteo", 
+             family = "Calgaro", 
+             email = "mcalgaro93@gmail.com",
+             role = c("aut", "cre")),
+      person(given = "Chiara", 
+             family = "Romualdi", 
+             role = c("aut")),
+      person(given = "Davide", 
+             family = "Risso", 
+             email = "mcalgaro93@gmail.com",
+             role = c("aut")),
+      person(given = "Nicola", 
+             family = "Vitulo", 
+             role = c("aut")))       
 Description: Starting from a microbiome dataset (16S or WMS with absolute count
     values) it is possible to perform several analysis to assess the 
     performances of many differential abundance detection methods. A basic and 
