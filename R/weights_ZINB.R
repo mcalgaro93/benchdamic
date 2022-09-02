@@ -11,7 +11,7 @@
 #' parametrized by three parameters: the mean value and the dispersion of the
 #' negative binomial distribution, and the probability of the zero component.
 #'
-#' @param object phyloseq object containing the counts and the sample data.
+#' @inheritParams get_counts_metadata
 #' @param design character name of the metadata columns, formula, or design
 #' matrix with rows corresponding to samples and columns to coefficients to be
 #' estimated (the user needs to explicitly include the intercept in the design).
@@ -33,14 +33,11 @@
 #' # Calculate the ZINB weights
 #' zinbweights <- weights_ZINB(object = ps, K = 0, design = "~ 1")
 
-weights_ZINB <- function(object, design, K = 0, commondispersion = TRUE,
-    zeroinflation = TRUE, verbose = FALSE, ...){
-    # Check the orientation
-    if (!phyloseq::taxa_are_rows(object))
-        object <- t(object)
-    # Slot extraction of phyloseq object
-    counts <- as(phyloseq::otu_table(object), "matrix")
-    metadata <- phyloseq::sample_data(object)
+weights_ZINB <- function(object, assay_name = "counts", design, K = 0, 
+    commondispersion = TRUE, zeroinflation = TRUE, verbose = FALSE, ...){
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    metadata <- counts_and_metadata[[2]]
     if(is.character(design)){
         if(grepl("~", design))
             design <- as.formula(design)

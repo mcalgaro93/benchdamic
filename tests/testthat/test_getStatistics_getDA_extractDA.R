@@ -122,13 +122,13 @@ test_that("Extract DA features from a list of methods: using top", code = {
     data("ps_plaque_16S")
     # set normalization
     my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-        method = c("TMM", "median"))
+        method = c("TMM", "CSS"))
     ps <- runNormalizations(my_norm, ps_plaque_16S)
     # set method
     my_method <- suppressWarnings(set_limma(design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2, norm = c("TMM", "CSSmedian")))
+        coef = 2, norm = c("TMM", "CSS")))
     # Run
-    da <- runDA(my_method, object = ps)
+    da <- expect_warning(runDA(my_method, object = ps))
     # Top 10 features (ordered by 'direction') are DA
     t1 = extractDA(object = da, slot = "pValMat", colName = "adjP",
         type = c("pvalue","pvalue"), direction = "logFC", threshold_pvalue = 1,
@@ -144,13 +144,13 @@ test_that("Extract DA features from a list of methods: using threshold_pvalue
     data("ps_plaque_16S")
     # set normalization
     my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-        method = c("TMM", "median"))
+        method = c("TMM", "CSS"))
     ps <- runNormalizations(my_norm, ps_plaque_16S)
     # set method
     my_method <- suppressWarnings(set_limma(design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2, norm = c("TMM", "CSSmedian")))
+        coef = 2, norm = c("TMM", "CSS")))
     # Run
-    da <- runDA(my_method, object = ps)
+    da <- expect_warning(runDA(my_method, object = ps))
     # All features with p-value < 0.2 and |logFC| > 0.3 are DA
     t1 = extractDA(object = da, slot = "pValMat", colName = "adjP",
         type = "pvalue", direction = "logFC", threshold_pvalue = 0.2,
@@ -166,13 +166,13 @@ test_that("Extract DA features from a list of methods: using threshold_pvalue",
     data("ps_plaque_16S")
     # set normalization
     my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-                                 method = c("TMM", "median"))
+                                 method = c("TMM", "CSS"))
     ps <- runNormalizations(my_norm, ps_plaque_16S)
     # set method
     my_method <- suppressWarnings(set_limma(design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2, norm = c("TMM", "CSSmedian")))
+        coef = 2, norm = c("TMM", "CSS")))
     # Run
-    da <- runDA(my_method, object = ps)
+    da <- expect_warning(runDA(my_method, object = ps))
     # Feature with p-value < 0.1 are DA (no info about direction)
     t1 = extractDA(object = da, slot = "pValMat", colName = "adjP",
         type = "pvalue", direction = NULL, threshold_pvalue = 0.1,

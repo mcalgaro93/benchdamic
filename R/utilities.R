@@ -147,12 +147,12 @@ getStatistics <- function(method, slot = "pValMat", colName = "rawP",
 #' data("ps_plaque_16S")
 #' # Add scaling factors
 #' my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-#'     method = c("TMM", "median"))
+#'     method = c("TMM", "CSS"))
 #' ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
 #'     object = ps_plaque_16S)
 #' # Perform DA analysis
 #' my_methods <- set_limma(design = ~ 1 + HMP_BODY_SUBSITE, coef = 2,
-#'     norm = c("TMM", "CSSmedian"))
+#'     norm = c("TMM", "CSS"))
 #' Plaque_16S_DA <- runDA(method_list = my_methods, object = ps_plaque_16S)
 #' ### Extract statistics for concordance analysis:
 #' # Only p-values
@@ -190,7 +190,7 @@ getStatistics <- function(method, slot = "pValMat", colName = "rawP",
 #'         c("logfc", "pvalue"), direction = "logFC"
 #' )
 extractStatistics <- function(object, slot = "pValMat", colName = "rawP",
-                              type = "pvalue", direction = NULL, verbose = FALSE) {
+    type = "pvalue", direction = NULL, verbose = FALSE) {
     n_methods <- length(object)
     # Check the dimension of slot, colName, and type.
     if (length(slot) == 1) {
@@ -306,8 +306,8 @@ extractStatistics <- function(object, slot = "pValMat", colName = "rawP",
 #'     direction = "logFC", threshold_pvalue = 1, threshold_logfc = 1, top = 10
 #' )
 getDA <- function(method, slot = "pValMat", colName = "rawP", type = "pvalue",
-                  direction = NULL, threshold_pvalue = 1, threshold_logfc = 0, top = NULL,
-                  verbose = FALSE) {
+    direction = NULL, threshold_pvalue = 1, threshold_logfc = 0, top = NULL,
+    verbose = FALSE) {
     out <- data.frame(getStatistics(
         method = method, slot = slot, colName =
             colName, type = type, direction = direction, verbose = verbose
@@ -411,12 +411,12 @@ getDA <- function(method, slot = "pValMat", colName = "rawP", type = "pvalue",
 #' data("ps_plaque_16S")
 #' # Add scaling factors
 #' my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-#'     method = c("TMM", "median"))
+#'     method = c("TMM", "CSS"))
 #' ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
 #'     object = ps_plaque_16S)
 #' # Perform DA analysis
 #' my_methods <- set_limma(design = ~ 1 + HMP_BODY_SUBSITE, coef = 2,
-#'     norm = c("TMM", "CSSmedian"))
+#'     norm = c("TMM", "CSS"))
 #' Plaque_16S_DA <- runDA(method_list = my_methods, object = ps_plaque_16S)
 #' # Top 10 features (ordered by 'direction') are DA
 #' DA_1 <- extractDA(
@@ -430,9 +430,9 @@ getDA <- function(method, slot = "pValMat", colName = "rawP", type = "pvalue",
 #'     type = "pvalue", direction = "logFC", threshold_pvalue = 0.05,
 #'     threshold_logfc = 1, top = NULL
 #' )
-extractDA <- function(object, slot = "pValMat", colName = "adjP", type =
-                          "pvalue", direction = NULL, threshold_pvalue = 1, threshold_logfc = 0,
-                      top = NULL, verbose = FALSE) {
+extractDA <- function(object, slot = "pValMat", colName = "adjP", 
+    type = "pvalue", direction = NULL, threshold_pvalue = 1, 
+    threshold_logfc = 0, top = NULL, verbose = FALSE) {
     if (is.null(direction)) {
         if (is.null(top)) {
             out <- mapply(getDA,
@@ -684,3 +684,85 @@ iterative_ordering <- function(df, var_names, i = 1, decreasing = TRUE) {
         return(df)
     }
 }
+
+#' @title get_counts_metadata
+#'
+#' @export
+#' @importFrom phyloseq otu_table sample_data
+#' @importFrom SummarizedExperiment assay colData
+#' @importFrom TreeSummarizedExperiment TreeSummarizedExperiment
+#' @description Check whether the input object is a phyloseq or a 
+#' TreeSummarizedExperiment, then extract the requested data slots.
+#'
+#' @param object a phyloseq or TreeSummarizedExperiment object.
+#' @param assay_name the name of the assay to extract from the 
+#' TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+#' used if the input object is a phyloseq.
+#' @param min_counts Parameter to filter taxa. Set this number to keep features 
+#' with more than \code{min_counts} counts in more than \code{min_samples} 
+#' samples (default \code{min_counts = 0}).
+#' @param min_samples Parameter to filter taxa. Set this number to keep 
+#' features with a \code{min_counts} counts in more than \code{min_samples} 
+#' samples (default \code{min_samples = 0}).
+#'
+#' @return a \code{list} of results:
+#' \itemize{
+#'     \item{\code{counts}}{the \code{otu_table} slot or \code{assayName} assay 
+#'     of the phyloseq or TreeSummarizedExperiment object;}
+#'     \item{\code{metadata}}{the \code{sample_data} or \code{colData} slot of
+#'     the phyloseq or TreeSummarizedExperiment object;}
+#'     \item{\code{is_phyloseq}}{a boolean equal to \code{TRUE} if the input is 
+#'     a phyloseq object.}}
+#'
+#' @examples
+#' set.seed(1)
+#' # Create a very simple phyloseq object
+#' counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
+#' metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
+#'                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
+#' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
+#'                          phyloseq::sample_data(metadata))
+#' get_counts_metadata(ps)
+#' 
+#' # Or with a TreeSummarizedExperiment
+#' tse <- TreeSummarizedExperiment::TreeSummarizedExperiment(
+#'     assays = list("counts" = counts), colData = metadata)
+#' get_counts_metadata(tse)
+
+get_counts_metadata <- function(object, assay_name = "counts", min_counts = 0,
+    min_samples = 0){
+    is_phyloseq <- FALSE
+    # In case of phyloseq
+    if(is(object, "phyloseq")){
+        is_phyloseq <- TRUE
+        counts <- as(phyloseq::otu_table(object), "matrix")
+        metadata <- data.frame(phyloseq::sample_data(object))
+        if (!phyloseq::taxa_are_rows(object)){
+            counts <- t(counts)
+        }
+        if(assay_name != "counts"){
+            warning("The 'assay_name' = ", assay_name, " but the 'object' is", 
+                " a phyloseq. Please supply a TreeSummarizedExperiment", 
+                " object to use that assay.")
+        }
+    # In case of TreeSummarizedExperiment
+    } else if (is(object, "TreeSummarizedExperiment")){
+        if(!is.element(assay_name, SummarizedExperiment::assayNames(object))){
+            stop(assay_name, " is not an assay of the",
+                " TreeSummarizedExperiment object.")
+        } else {
+            counts <- SummarizedExperiment::assay(object, assay_name)
+            metadata <- data.frame(SummarizedExperiment::colData(object))
+        }
+    } else stop("Please, supply a phyloseq or TreeSummarizedExperiment object.")
+    if(min_counts != 0 | min_samples != 0){
+        warning("Keeping taxa with more than ", min_counts, 
+            " counts in more than ", min_samples, " samples.")
+    }
+    taxa_to_keep <- apply(counts, 1, function(x) 
+        sum(x > min_counts) > min_samples)
+    counts <- counts[taxa_to_keep, ]
+    return(list("counts" = counts, "metadata" = metadata, 
+        "is_phyloseq" = is_phyloseq))
+}
+

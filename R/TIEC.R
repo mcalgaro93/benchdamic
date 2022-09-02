@@ -42,6 +42,7 @@ createMocks <- function(nsamples, N = 1000) {
 #' columns (if even). Each cell of the data frame contains the "grp1" or "grp2"
 #' characters which represent the mock groups pattern. Produced by the
 #' \code{\link{createMocks}} function.
+#' @inheritParams get_counts_metadata
 #' @inheritParams runDA
 #'
 #' @return A named list containing the results for each method.
@@ -57,27 +58,31 @@ createMocks <- function(nsamples, N = 1000) {
 #'
 #' # Add some normalization/scaling factors to the phyloseq object
 #' my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-#'     method = c("TMM", "median"))
+#'     method = c("TMM", "CSS"))
 #' ps_stool_16S <- runNormalizations(normalization_list = my_norm,
 #'     object = ps_stool_16S)
 #'
 #' # Initialize some limma based methods
-#' my_limma <- set_limma(design = ~ group, coef = 2,
-#'     norm = c("TMM", "CSSmedian"))
+#' my_limma <- set_limma(design = ~ group, coef = 2, norm = c("TMM", "CSS"))
 #'
 #' # Run methods on mock datasets
 #' results <- runMocks(mocks = mocks, method_list = my_limma,
 #'     object = ps_stool_16S)
-runMocks <- function(mocks, method_list, object, weights = NULL,
+runMocks <- function(mocks, method_list, object, weights = NULL, 
     verbose = TRUE){
+    is_phyloseq <- ifelse(is(object, "phyloseq"), TRUE, FALSE)
     index <- seq_len(nrow(mocks))
     out <- apply(X = cbind(index, mocks), MARGIN = 1, FUN = function(x) {
         # Group assignment
         i <- x[1]
         x <- x[-1]
-        phyloseq::sample_data(object)[, "group"] <- factor(x)
+        if(is_phyloseq){
+            phyloseq::sample_data(object)[, "group"] <- factor(x)
+        } else {
+            SummarizedExperiment::colData(object)[, "group"] <- factor(x)
+        }
         if(verbose)
-            cat("  - Comparison", i, "\n")
+            message("  - Comparison", i, "\n")
         runDA(method_list = method_list, object = object,
             weights = weights, verbose = verbose)
     })
@@ -93,7 +98,7 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #' @description
 #' Extract the list of p-values from the outputs of the differential abundance
 #' detection methods to compute several statistics to study the ability to
-#' control the type I error.
+#' control the type I error and the p-values distribution.
 #'
 #' @param object Output of the differential abundance tests on mock comparisons.
 #' Must follow a specific structure with comparison, method, matrix of
@@ -101,16 +106,17 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #'
 #' @return A \code{list} of \code{data.frame}s:
 #' \itemize{
-#'     \item{\code{df_pval}}{3 columns per number_of_features x methods x
-#'     comparisons rows data.frame. The three columns are called Comparison,
-#'     pval, and method;}
-#'     \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
-#'     For each set of method and comparison, the proportion of false
-#'     discoveries, considering 3 threshold (0.01, 0.05, 0.1) are reported;}
-#'     \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to
+#'     \item{\code{df_pval}}{ 5 columns per number_of_features x methods x
+#'     comparisons rows data.frame. The four columns are called Comparison,
+#'     Method, variable (containing the feature names), pval, and padj;}
+#'     \item{\code{df_FPR}}{ 5 columns per methods x comparisons rows 
+#'     data.frame. For each set of method and comparison, the proportion of 
+#'     false discoveries, considering 3 threshold (0.01, 0.05, 0.1) are 
+#'     reported;}
+#'     \item{\code{df_QQ}}{ contains the coordinates to draw the QQ-plot to
 #'     compare the mean observed p-value distribution across comparisons, with
 #'     the theoretical uniform distribution;}
-#'     \item{\code{df_KS}}{5 columns and methods x comparisons rows data.frame.
+#'     \item{\code{df_KS}}{ 5 columns and methods x comparisons rows data.frame.
 #'     For each set of method and comparison, the Kolmogorov-Smirnov test
 #'     statistics and p-values are reported in KS and KS_pval columns
 #'     respectively.}}
@@ -128,13 +134,13 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #'
 #' # Add some normalization/scaling factors to the phyloseq object
 #' my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-#'     method = c("TMM", "median"))
+#'     method = c("TMM", "CSS"))
 #' ps_stool_16S <- runNormalizations(normalization_list = my_norm,
 #'     object = ps_stool_16S)
 #'
 #' # Initialize some limma based methods
 #' my_limma <- set_limma(design = ~ group, coef = 2,
-#'     norm = c("TMM", "CSSmedian"))
+#'     norm = c("TMM", "CSS"))
 #'
 #' # Run methods on mock datasets
 #' results <- runMocks(mocks = mocks, method_list = my_limma,
@@ -147,19 +153,29 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
+#' plotLogP(df_QQ = TIEC_summary$df_QQ)
 createTIEC <- function(object) {
     # Create a list of data frames with two columns: pval and method name
     # One data frame for each comparison
     message("1. Extracting statistics")
     df_list_pval <- lapply(X = object, FUN = function(Comparison) {
-        reshape2::melt(
-                plyr::ldply(
-                    extractStatistics(object = Comparison,
-                        slot = "pValMat", colName = "rawP", type = "pvalue",
-                        direction = NULL, verbose = FALSE
-                    ), .id = "Method"
-                ), value.name = "pval"
-            )
+        pval_df <- reshape2::melt(
+            plyr::ldply(
+                extractStatistics(object = Comparison,
+                    slot = "pValMat", colName = "rawP", type = "pvalue",
+                    direction = NULL, verbose = FALSE
+                ), .id = "Method"
+            ), value.name = "pval"
+        )
+        padj_df <- reshape2::melt(
+            plyr::ldply(
+                extractStatistics(object = Comparison,
+                    slot = "pValMat", colName = "adjP", type = "pvalue",
+                    direction = NULL, verbose = FALSE
+                ), .id = "Method"
+            ), value.name = "padj"
+        )
+        return(data.frame(pval_df, "padj" = padj_df[ ,"padj"]))
     })
     # Melt down to a single data frame with the Comparison column added
     df_pval <- plyr::ldply(df_list_pval, .id = "Comparison")

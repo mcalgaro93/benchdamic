@@ -2,16 +2,18 @@
 #'
 #' @importFrom edgeR calcNormFactors estimateDisp DGEList glmFit getCounts
 #' @importFrom edgeR getDispersion
-#' @importFrom phyloseq otu_table taxa_are_rows
+#' @importFrom phyloseq phyloseq otu_table taxa_are_rows
 #' @export
 #' @description
 #' Fit a Negative Binomial (NB) distribution for each taxon of the count data.
 #' The NB estimation procedure is performed by edgeR \code{\link{glmFit}}
 #' function, using \code{TMM} normalized counts, tag-wise dispersion estimation,
 #' and not assuming the presence of any group in the samples (design matrix
-#' equal to a column of ones.)
-#' @param counts a phyloseq object or a matrix of counts with features (OTUs,
-#' ASVs, genes) by row and samples by column.
+#' equal to a column of ones).
+#' 
+#' @param object a phyloseq object, a TreeSummarizedExperiment object, or a 
+#' matrix of counts.
+#' @inheritParams get_counts_metadata
 #' @param verbose an optional logical value. If \code{TRUE} information on the
 #' steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
@@ -25,11 +27,16 @@
 #' # Fit model on the matrix of counts
 #' NB <- fitNB(counts)
 #' head(NB)
-fitNB <- function(counts, verbose = TRUE) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+fitNB <- function(object, assay_name = "counts", verbose = TRUE) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object, 
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+            " or a matrix of counts.")
     }
     if(verbose)
         message("Model: Negative Binomial")
@@ -80,11 +87,16 @@ fitNB <- function(counts, verbose = TRUE) {
 #' # Fit model on the counts matrix
 #' ZINB <- fitZINB(counts)
 #' head(ZINB)
-fitZINB <- function(counts, verbose = TRUE) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+fitZINB <- function(object, assay_name = "counts", verbose = TRUE) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object, 
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+             " or a matrix of counts.")
     }
     if(verbose)
         message("Model: Zero-Inflated Negative Binomial")
@@ -129,11 +141,17 @@ fitZINB <- function(counts, verbose = TRUE) {
 #' # Fit model on the counts matrix
 #' HURDLE <- fitHURDLE(counts, scale = "median")
 #' head(HURDLE)
-fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+fitHURDLE <- function(object, assay_name = "counts", scale = "default", 
+    verbose = TRUE) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object, 
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+             " or a matrix of counts.")
     }
     if(verbose)
         message("Model: Truncated Gaussian Hurdle")
@@ -149,7 +167,9 @@ fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
     tpm <- log2(tpm + 1)
     # Single Cell object
     if(verbose){
-        sca <- MAST::FromMatrix(tpm)
+        message("The counts provided have been rescaled and log2 transformed.")
+        message("Making a SingleCellExperiment:")
+        sca <- MAST::FromMatrix(exprsArray = tpm)
     } else {
         sca <- suppressMessages(MAST::FromMatrix(tpm))
     }
@@ -194,9 +214,6 @@ fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
 #' the samples (design matrix equal to a column of ones.)
 #'
 #' @inheritParams fitNB
-#' @param scale Character vector, either \code{median} or \code{default} to
-#' choose between the median of the library size or one thousand to scale
-#' normalization factors.
 #'
 #' @return A data frame containing the continuity corrected logarithms of the
 #' average fitted values for each row of the matrix of counts in the \code{Y}
@@ -207,13 +224,18 @@ fitHURDLE <- function(counts, scale = "default", verbose = TRUE) {
 #' counts = matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 #'
 #' # Fit model on the counts matrix
-#' ZIG <- fitZIG(counts, scale = "median")
+#' ZIG <- fitZIG(counts)
 #' head(ZIG)
-fitZIG <- function(counts, scale = "default", verbose = TRUE) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+fitZIG <- function(object, assay_name = "counts", verbose = TRUE) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object,
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+             " or a matrix of counts.")
     }
     if(verbose)
         message("Model: Zero-Inflated Gaussian")
@@ -227,17 +249,11 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
     MGS <- metagenomeSeq::cumNorm(MGS, MGSp)
     normFactor <- metagenomeSeq::normFactors(MGS)
     # scaling
-    if (scale == "median") {
-        normFactor <- log2(normFactor / stats::median(normFactor) + 1)
-    } else if (scale == "default") {
-        normFactor <- log2(normFactor / 1000 + 1)
-    } else {
-        stop("'scale' must be 'median' or 'default'")
-    }
+    normFactor <- log2(normFactor / stats::median(normFactor) + 1)
     # Design matrix
     desMat <- cbind(1, normFactor = normFactor)
     # Estimation
-    control = metagenomeSeq::zigControl(maxit = 1000, verbose = verbose)
+    control <- metagenomeSeq::zigControl(maxit = 1000, verbose = verbose)
     zig <- metagenomeSeq::fitZig(MGS, desMat, control = control,
         useCSSoffset = FALSE)
     # Coefficient extraction (metagenomeSeq::MRcoefs() changes the order, use @)
@@ -250,7 +266,7 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
 #' @title fitDM
 #'
 #' @importFrom MGLM MGLMreg
-#' @importFrom stats as.formula
+#' @importFrom stats as.formula model.matrix
 #' @importFrom stats4 coef
 #' @importFrom phyloseq otu_table taxa_are_rows
 #' @import methods
@@ -275,11 +291,16 @@ fitZIG <- function(counts, scale = "default", verbose = TRUE) {
 #' # Fit model on the counts matrix
 #' DM <- fitDM(counts)
 #' head(DM)
-fitDM <- function(counts, verbose = TRUE) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+fitDM <- function(object, assay_name = "counts", verbose = TRUE) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object,
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+             " or a matrix of counts.")
     }
     if(verbose)
         message("Model: Dirichlet Multinomial")
@@ -287,9 +308,15 @@ fitDM <- function(counts, verbose = TRUE) {
     ls <- colSums(counts)
     data <- t(counts)
     # Design only intercept
-    desFormula <- stats::as.formula("data ~ 1")
+    X <- stats::model.matrix(data ~ 1)
     # Model fit
-    dmFit <- MGLM::MGLMreg(data ~ 1L, dist = "DM", display = verbose)
+    if(verbose){
+        dmFit <- MGLM::MGLMreg.fit(Y = data, X = X, dist = "DM", 
+            display = verbose)
+    } else {
+        dmFit <- suppressWarnings(MGLM::MGLMreg.fit(Y = data, X = X, 
+            dist = "DM", display = verbose))
+    }
     # fitted_values <- dmFit@fitted * ls
     # Coefficent extraction
     alpha_i <- exp(stats4::coef(dmFit))

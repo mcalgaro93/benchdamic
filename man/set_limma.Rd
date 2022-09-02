@@ -5,6 +5,7 @@
 \title{set_limma}
 \usage{
 set_limma(
+  assay_name = "counts",
   pseudo_count = FALSE,
   design = NULL,
   coef = 2,
@@ -14,6 +15,10 @@ set_limma(
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
@@ -24,10 +29,15 @@ estimated.}
 \item{coef}{integer or character index vector indicating which coefficients
 of the linear model are to be tested equal to zero.}
 
-\item{norm}{name of the normalization method used to compute the
-scaling factors to use in the differential abundance analysis. If \code{norm}
-is equal to "ratio", "poscounts", or "iterate" the normalization factors are
-automatically transformed into scaling factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose between the native edgeR normalization methods, 
+such as \code{TMM}, \code{TMMwsp}, \code{RLE}, \code{upperquartile}, 
+\code{posupperquartile}, or \code{none}. Alternatively (only for advanced 
+users), if \code{norm} is equal to "ratio", "poscounts", or "iterate" from 
+\code{\link{norm_DESeq2}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+\code{\link{norm_TSS}}, the scaling factors are automatically transformed 
+into normalization factors. If custom factors are supplied, make sure they 
+are compatible with edgeR normalization factors.}
 
 \item{weights_logical}{logical vector, if TRUE a matrix of observational
 weights will be used for differential abundance analysis (default
@@ -48,10 +58,10 @@ Set the parameters for limma differential abundance detection method.
 base_limma <- set_limma(design = ~ group, coef = 2)
 # Set a specific set of normalization for limma (even of other packages!)
 setNorm_limma <- set_limma(design = ~ group, coef = 2,
-    norm = c("TMM", "poscounts"))
+    norm = c("TMM", "upperquartile"))
 # Set many possible combinations of parameters for limma
 all_limma <- set_limma(pseudo_count = c(TRUE, FALSE), design = ~ group,
-    coef = 2, weights_logical = c(TRUE,FALSE))
+    coef = 2, weights_logical = c(TRUE, FALSE))
 }
 \seealso{
 \code{\link{DA_limma}}

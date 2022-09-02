@@ -5,6 +5,7 @@
 \title{set_corncob}
 \usage{
 set_corncob(
+  assay_name = "counts",
   pseudo_count = FALSE,
   formula = NULL,
   phi.formula = NULL,
@@ -13,11 +14,14 @@ set_corncob(
   test = c("Wald", "LRT"),
   boot = FALSE,
   coefficient = NULL,
-  norm = "TSS",
   expand = TRUE
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
@@ -42,12 +46,6 @@ use parametric bootstrap algorithm. (See \code{\link[corncob]{pbWald}} and
 variable name and the non reference level. (e.g.: 'ConditionDisease' if the
 reference level for the variable 'Condition' is 'control').}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
-
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE})}
 }
@@ -62,10 +60,6 @@ Set the parameters for corncob differential abundance detection method.
 # Set some basic combinations of parameters for corncob
 base_corncob <- set_corncob(formula = ~ group, phi.formula = ~ group,
     formula_null = ~ 1, phi.formula_null = ~ group, coefficient = "groupB")
-# Set a specific set of normalization for corncob (even of other packages!)
-setNorm_corncob <- set_corncob(formula = ~ group, phi.formula = ~ group,
-    formula_null = ~ 1, phi.formula_null = ~ group, coefficient = "groupB",
-    norm = c("TMM", "TSS", "poscounts"))
 # Set many possible combinations of parameters for corncob
 all_corncob <- set_corncob(pseudo_count = c(TRUE, FALSE), formula = ~ group,
     phi.formula = ~ group, formula_null = ~ 1, phi.formula_null = ~ group,

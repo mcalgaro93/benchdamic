@@ -7,11 +7,11 @@
 #' A function to plot mean difference (MD) and zero probability difference (ZPD)
 #' values between estimated and observed values.
 #'
-#' @param data a list, output of the \code{\link{fitModels}} function or a
-#' `data.frame` object with \code{Model}, \code{Y}, \code{Y0}, \code{MD}, and
-#' \code{ZPD} columns containing the model name, the observed values for the
-#' mean and the zero proportion and the differences between observed and
-#' estimated values.
+#' @param data a list, output of the \code{\link{fitModels}} function. Each
+#' element of the list is a `data.frame` object with \code{Model}, \code{Y}, 
+#' \code{Y0}, \code{MD}, and \code{ZPD} columns containing the model name, the 
+#' observed values for the mean and the zero proportion and the differences 
+#' between observed and estimated values.
 #' @param difference character vector, either \code{MD} or \code{ZPD} to plot
 #' the differences between estimated and observed mean counts or the differences
 #' between estimated zero probability and observed zero proportion.
@@ -31,11 +31,10 @@
 #'
 #' # Estimate the counts assuming several distributions
 #' GOF <- fitModels(
-#'     counts = counts, models = c(
+#'     object = counts, models = c(
 #'         "NB", "ZINB",
 #'         "DM", "ZIG", "HURDLE"
-#'     ), scale_ZIG = c("median", "default"), scale_HURDLE =
-#'         c("median", "default")
+#'     ), scale_HURDLE = c("median", "default")
 #' )
 #'
 #' # Plot the results
@@ -43,47 +42,49 @@
 #' plotMD(data = GOF, difference = "ZPD", split = TRUE)
 plotMD <- function(data, difference = NULL, split = TRUE) {
     Y <- MD <- Model <- Y0 <- ZPD <- NULL
-    if (is(data, "list")) {
-        data <- plyr::ldply(data, .id = "Model")
+    if (!is.element(difference, c("MD", "ZPD"))) {
+        stop("difference: the parameter must be 'MD' or 'ZPD'.")
     }
-    if (difference == "MD" | difference == "ZPD") {
+    if (is(data, "list")) {
         RMSE <- plotRMSE(data, difference = difference, plotIt = FALSE)
-        gobj <- ggplot(data = data, aes_string(
-            x = ifelse(difference == "MD", "Y", "Y0"),
-            y = difference, color = "Model")) +
-            ggtitle(label = ifelse(difference == "MD",
-                "Mean Differences plot", "Zero Probability Differences plot"),
-                subtitle = ifelse(difference == "MD",
-                    paste0(
-                        "Observed = log(mean(counts*)+1)", "\n",
-                        "Estimated = log(mean(fitted*)+1)"
-                    ),
-                    paste0(
-                        "Observed = mean(counts=0)", "\n",
-                        "Estimated = mean(P(Y=0))"
-                    )))
-        if (split) {
-            gobj <- gobj + geom_text(data = RMSE, color = "black",
-                aes(x = mean(data[, ifelse(difference == "MD", "Y", "Y0")]),
-                    y = max(data[, difference], na.rm = TRUE ),
-                    label = paste0("RMSE:", round(RMSE,
-                    ifelse(difference == "MD", 2, 4)))))
-        }
+        data <- plyr::ldply(data, .id = "Model")
     } else {
-        stop("Difference must be 'MD' or 'ZPD'")
+        stop("'data' must be a list produced by the fitModels() method.")
+    }
+    gobj <- ggplot(data = data, aes_string(
+        x = ifelse(difference == "MD", "Y", "Y0"),
+        y = difference, color = "Model")) +
+        ggtitle(label = ifelse(difference == "MD",
+            "Mean Differences plot", "Zero Probability Differences plot"),
+            subtitle = ifelse(difference == "MD",
+                paste0(
+                    "Observed = log(mean(counts*)+1)", "\n",
+                    "Estimated = log(mean(fitted*)+1)"
+                ),
+                paste0(
+                    "Observed = mean(counts=0)", "\n",
+                    "Estimated = mean(P(Y=0))"
+                )))
+    if (split) {
+        gobj <- gobj + geom_text(data = RMSE, color = "black",
+            aes(x = mean(data[, ifelse(difference == "MD", "Y", "Y0")]),
+                y = max(data[, difference], na.rm = TRUE ),
+                label = paste0("RMSE:", round(RMSE,
+                ifelse(difference == "MD", 2, 4)))))
     }
     gobj <- gobj +
         geom_hline(aes(yintercept = 0), lty = 2, color = "black") +
         theme(legend.position = "bottom") + xlab("Observed") +
         ylab("Estimated-Observed")
-    if (length(unique(data[, "Model"])) > 1) {
+    if (length(unique(data[, "Model"])) >= 1) {
         if (split) {
             gobj <- gobj + facet_grid(~ Model, labeller = labeller(
                 .cols = label_both)) +
                 geom_point(pch = 21) +
-                geom_smooth(color = "black")
+                geom_smooth(method = "loess", formula = "y ~ x", 
+                    color = "black")
         } else {
-            gobj <- gobj + geom_smooth()
+            gobj <- gobj + geom_smooth(method = "loess", formula = "y ~ x")
         }
     }
     return(gobj)
@@ -114,11 +115,10 @@ plotMD <- function(data, difference = NULL, split = TRUE) {
 #'
 #' # Estimate the counts assuming several distributions
 #' GOF <- fitModels(
-#'     counts = counts, models = c(
+#'     object = counts, models = c(
 #'         "NB", "ZINB",
 #'         "DM", "ZIG", "HURDLE"
-#'     ), scale_ZIG = c("median", "default"), scale_HURDLE =
-#'         c("median", "default")
+#'     ), scale_HURDLE = c("median", "default")
 #' )
 #'
 #' # Plot the RMSE results
@@ -126,15 +126,16 @@ plotMD <- function(data, difference = NULL, split = TRUE) {
 #' plotRMSE(data = GOF, difference = "ZPD")
 plotRMSE <- function(data, difference = NULL, plotIt = TRUE) {
     Model <- NULL
+    if (!is.element(difference, c("MD", "ZPD"))) {
+        stop("difference: the parameter must be 'MD' or 'ZPD'.")
+    }
     if (is(data, "list")) {
         data <- plyr::ldply(data, .id = "Model")
+    } else {
+        stop("'data' must be a list produced by the fitModels() method.")
     }
-    if(difference == "MD" | difference == "ZPD"){
-        RMSE <- plyr::ddply(.data = data, .variables = ~Model,
-            .fun = function(m)
-                cbind("RMSE" = RMSE(m[, difference])))
-    } else stop("Difference must be 'MD' or 'ZPD'")
-
+    RMSE <- plyr::ddply(.data = data, .variables = ~ Model,
+        .fun = function(m) cbind("RMSE" = RMSE(m[, difference])))
     gobj <- ggplot2::ggplot(data = RMSE, aes(x = Model, y = RMSE,
         fill = Model)) +
         geom_col() +
@@ -145,7 +146,6 @@ plotRMSE <- function(data, difference = NULL, plotIt = TRUE) {
         theme(legend.position = "bottom", axis.text.x = element_text(
             angle = 90, hjust = 1, vjust = 0.5)) +
         scale_x_discrete(limits = RMSE[order(RMSE[, "RMSE"]), "Model"])
-
     if(plotIt){
         return(gobj)
     } else return(RMSE)

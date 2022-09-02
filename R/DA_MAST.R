@@ -3,6 +3,7 @@
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom MAST zlm summary FromMatrix
 #' @importFrom SummarizedExperiment colData assay
+#' @importFrom stats4 coef
 #' @export
 #' @description
 #' Fast run for MAST differential abundance detection method.
@@ -29,65 +30,45 @@
 #'                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 #'                          phyloseq::sample_data(metadata))
-#' # No use of scaling factors
-#' ps_NF <- norm_edgeR(object = ps, method = "none")
-#' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.none"]
-#' head(scaleFacts)
+#'                          
 #' # Differential abundance
-#' DA_MAST(object = ps_NF, pseudo_count = FALSE, rescale = "median",
-#'     design = ~ group, norm = "none", coefficient = "groupB")
+#' DA_MAST(object = ps, pseudo_count = FALSE, rescale = "median",
+#'     design = ~ group, coefficient = "groupB")
 
-DA_MAST <- function(object, pseudo_count = FALSE,
-    rescale = c("median", "default"), design, coefficient = NULL,
-    norm = c("TMM", "TMMwsp", "RLE",
-        "upperquartile", "posupperquartile", "none", "ratio", "poscounts",
-        "iterate", "TSS", "CSSmedian", "CSSdefault"),
+DA_MAST <- function(object, assay_name = "counts", pseudo_count = FALSE,
+    rescale = c("median", "default"), design, coefficient = NULL, 
     verbose = TRUE){
-    # Check the orientation
-    if (!phyloseq::taxa_are_rows(object))
-        object <- t(object)
-    # Slot extraction of phyloseq object
-    counts <- as(phyloseq::otu_table(object), "matrix")
-    metadata <- data.frame(phyloseq::sample_data(object))
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    metadata <- counts_and_metadata[[2]]
+    is_phyloseq <- counts_and_metadata[[3]]
     # Name building
     name <- "MAST"
+    method <- "DA_MAST"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
         if(verbose)
             message("Adding a pseudo count...")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
-    if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential",
-            " abundance analysis.")
-    NF.col <- paste("NF", norm, sep = ".")
-    # Check if the column with the normalization factors is present
-    if(!any(colnames(metadata) == NF.col))
-        stop("Can't find the ", NF.col," column in your object. Make sure to",
-            " add the normalization factors column in your object first.")
-    name <- paste(name, ".", norm, sep = "")
-    NFs = unlist(metadata[, NF.col])
-    # Check if the NFs are scaling factors. If so, make them norm. factors
-    if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-                          "posupperquartile", "CSSmedian", "CSSdefault", "TSS")))
-        NFs <- NFs * colSums(counts)
-    NFs <- NFs/exp(mean(log(NFs)))
-    norm_counts <- round(counts %*% diag(1/NFs), digits = 0)
-    colnames(norm_counts) <- colnames(counts)
-    if(verbose)
-        message("Differential abundance on ", norm, " normalized data")
+    # Check the assay
+    if (!is_phyloseq){
+        if(verbose)
+            message("Using the ", assay_name, " assay.")
+        name <- paste(name, ".", assay_name, sep = "")
+    } 
     if(length(rescale) > 1 | !is.element(rescale,c("default","median"))){
-        stop("Please choose between 'default' or 'median' for the rescale",
-            " parameter. 'median' is suggested for metagenomics data.")
+        stop(method, "\n", 
+            "rescale: please choose between 'default' or 'median' for the", 
+            " rescale parameter. 'median' is suggested for metagenomics data.")
     } else if(rescale == "median"){
         if(verbose)
             message("per ",rescale, "-lib.size rescaled data")
-        tpm <- norm_counts * median(colSums(norm_counts)) / colSums(norm_counts)
+        tpm <- counts * median(colSums(counts)) / colSums(counts)
     } else {
         if(verbose)
             message(rescale," (per million) rescaled data")
-        tpm <- norm_counts * 10^6 / colSums(norm_counts)
+        tpm <- counts * 10^6 / colSums(counts)
     }
     name <- paste(name, ".", rescale, sep = "")
     tpm <- log2(tpm + 1)
@@ -100,7 +81,7 @@ DA_MAST <- function(object, pseudo_count = FALSE,
     # methods. So, no adaptive thresholding or filtering by gene expression.
     SummarizedExperiment::assays(sca) <- list(tpm =
         SummarizedExperiment::assay(sca))
-    ngeneson <- apply(norm_counts, 2, function(x) mean(x>0))
+    ngeneson <- apply(counts, 2, function(x) mean(x>0))
     metadata[, "cngeneson"] <- ngeneson - mean(ngeneson)
     SummarizedExperiment::colData(sca)[, "cngeneson"] <- metadata[, "cngeneson"]
     if(is.character(design)){
@@ -119,16 +100,17 @@ DA_MAST <- function(object, pseudo_count = FALSE,
             MAST::zlm(formula = design, sca = sca, method = "bayesglm",
                 ebayes = TRUE))
     }
-    if(!is.element(coefficient, colnames(coef(fit, "C"))))
-        stop("Please supply the coefficient of interest as a single word",
-            " formed by the variable name and the non reference level. (e.g.:",
-            " 'ConditionDisease' if the reference level for the variable",
-            " 'Condition' is 'control')")
+    if(!is.element(coefficient, colnames(stats4::coef(fit, "C"))))
+        stop(method, "\n", 
+            "coefficient: please supply the coefficient of interest as a",
+            " single word formed by the variable name and the non reference", 
+            " level. (e.g.: 'ConditionDisease' if the reference level for the",
+            " variable 'Condition' is 'control')")
     if(verbose){
-        summaryDt = data.frame(MAST::summary(fit, doLRT = coefficient)[[
+        summaryDt <- data.frame(MAST::summary(fit, doLRT = coefficient)[[
             "datatable"]])
     } else {
-        summaryDt = suppressMessages(
+        summaryDt <- suppressMessages(
             data.frame(MAST::summary(fit, doLRT = coefficient)[[
                 "datatable"]]))
     }
@@ -138,7 +120,7 @@ DA_MAST <- function(object, pseudo_count = FALSE,
         summaryDt[summaryDt[,"contrast"] == coefficient & summaryDt[,
         "component"] == "logFC", c("primerid", "coef", "ci.hi", "ci.lo")],
         by = "primerid")
-    statInfo = data.frame(logFC = fcHurdle[, "coef"], logFC.lo = fcHurdle[,
+    statInfo <- data.frame(logFC = fcHurdle[, "coef"], logFC.lo = fcHurdle[,
         "ci.lo"], logFC.hi = fcHurdle[, "ci.hi"], rawP = fcHurdle[,
         "Pr..Chisq."], adjP = stats::p.adjust(fcHurdle[, "Pr..Chisq."], 'BH'))
     rownames(statInfo) <- fcHurdle[, "primerid"]
@@ -166,43 +148,42 @@ DA_MAST <- function(object, pseudo_count = FALSE,
 #' @examples
 #' # Set some basic combinations of parameters for MAST
 #' base_MAST <- set_MAST(design = ~ group, coefficient = "groupB")
-#' # Set a specific set of normalization for MAST (even of other packages!)
-#' setNorm_MAST <- set_MAST(design = ~ group, coefficient = "groupB",
-#'     norm = c("TSS", "poscounts", "TMM"))
 #' # Set many possible combinations of parameters for MAST
 #' all_MAST <- set_MAST(pseudo_count = c(TRUE, FALSE), rescale = c("median",
-#'     "default"), design = ~ group, coefficient = "groupB", norm = c("TSS",
-#'     "poscounts"))
+#'     "default"), design = ~ group, coefficient = "groupB")
 
-set_MAST <- function(pseudo_count = FALSE, rescale = c("median", "default"),
-    design = NULL, coefficient = NULL, norm = "TSS", expand = TRUE) {
+set_MAST <- function(assay_name = "counts", pseudo_count = FALSE, 
+    rescale = c("median", "default"), design = NULL, coefficient = NULL, 
+    expand = TRUE) {
     method <- "DA_MAST"
+    if (is.null(assay_name)) {
+        stop(method, "\n", "'assay_name' is required (default = 'counts').")
+    }
     if (!is.logical(pseudo_count)) {
-        stop("'pseudo_count' must be logical.")
+        stop(method, "\n", "'pseudo_count' must be logical.")
     }
     if (is.null(design) | is.null(coefficient)) {
-        stop("'design' and 'coefficient' are required.")
-    }
-    if (sum(!is.element(norm, c("TSS", "none"))) > 0) {
-        warning("One or more elements into 'norm' are not native to MAST")
+        stop(method, "\n", "'design' and 'coefficient' are required.")
     }
     if(sum(!is.element(rescale, c("median","default"))) > 0){
-        stop("Please choose rescale between 'median' and/or 'default'.")
+        stop(method, "\n", 
+            "rescale: please choose rescale between 'median' and/or",
+            " 'default'.")
     }
     if (expand) {
-        parameters <- expand.grid(method = method, pseudo_count = pseudo_count,
-                                  rescale = rescale, norm = norm,
-                                  stringsAsFactors = FALSE)
+        parameters <- expand.grid(method = method, assay_name = assay_name,
+            pseudo_count = pseudo_count, rescale = rescale, 
+            stringsAsFactors = FALSE)
     } else {
         message("Some parameters may be duplicated to fill the matrix.")
-        parameters <- data.frame(method = method, pseudo_count = pseudo_count,
-                                 rescale = rescale, norm = norm)
+        parameters <- data.frame(method = method, assay_name = assay_name,
+            pseudo_count = pseudo_count, rescale = rescale)
     }
     # data.frame to list
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("design" = design,
-                                         "coefficient" = coefficient), after = 2)
+            "coefficient" = coefficient), after = 3)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)

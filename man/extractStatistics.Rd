@@ -55,12 +55,12 @@ differential abundance detection methods.
 data("ps_plaque_16S")
 # Add scaling factors
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
     object = ps_plaque_16S)
 # Perform DA analysis
 my_methods <- set_limma(design = ~ 1 + HMP_BODY_SUBSITE, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+    norm = c("TMM", "CSS"))
 Plaque_16S_DA <- runDA(method_list = my_methods, object = ps_plaque_16S)
 ### Extract statistics for concordance analysis:
 # Only p-values

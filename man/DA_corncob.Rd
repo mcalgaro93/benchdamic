@@ -6,6 +6,7 @@
 \usage{
 DA_corncob(
   object,
+  assay_name = "counts",
   pseudo_count = FALSE,
   formula,
   phi.formula,
@@ -14,13 +15,15 @@ DA_corncob(
   test,
   boot = FALSE,
   coefficient = NULL,
-  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
   verbose = TRUE
 )
 }
 \arguments{
-\item{object}{phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
@@ -46,12 +49,6 @@ use parametric bootstrap algorithm. (See \code{\link[corncob]{pbWald}} and
 variable name and the non reference level. (e.g.: 'ConditionDisease' if the
 reference level for the variable 'Condition' is 'control').}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
-
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
@@ -71,15 +68,11 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
-# No use of scaling factors
-ps_NF <- norm_edgeR(object = ps, method = "none")
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.none"]
-head(scaleFacts)
+                         
 # Differential abundance
-DA_corncob(object = ps_NF, formula = ~ group, phi.formula = ~ group,
+DA_corncob(object = ps, formula = ~ group, phi.formula = ~ group,
     formula_null = ~ 1, phi.formula_null = ~ group, coefficient = "groupB",
-    norm = "none", test = "Wald")
+    test = "Wald")
 }
 \seealso{
 \code{\link[corncob]{bbdml}} and

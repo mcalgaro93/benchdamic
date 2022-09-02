@@ -6,6 +6,7 @@
 \usage{
 weights_ZINB(
   object,
+  assay_name = "counts",
   design,
   K = 0,
   commondispersion = TRUE,
@@ -15,7 +16,11 @@ weights_ZINB(
 )
 }
 \arguments{
-\item{object}{phyloseq object containing the counts and the sample data.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{design}{character name of the metadata columns, formula, or design
 matrix with rows corresponding to samples and columns to coefficients to be

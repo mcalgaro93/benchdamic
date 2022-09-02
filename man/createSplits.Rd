@@ -4,18 +4,29 @@
 \alias{createSplits}
 \title{createSplits}
 \usage{
-createSplits(object, varName = NULL, paired = NULL, balanced = TRUE, N = 1000)
+createSplits(
+  object,
+  assay_name = "counts",
+  varName = NULL,
+  paired = NULL,
+  balanced = TRUE,
+  N = 1000
+)
 }
 \arguments{
-\item{object}{a \code{phyloseq} object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
 
-\item{varName}{name of a factor variable with 2 levels.}
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
+\item{varName}{name of a factor variable of interest.}
 
 \item{paired}{name of the unique subject identifier variable. If specified,
 paired samples will remain in the same split. (default = NULL).}
 
 \item{balanced}{If \code{TRUE} a balanced design will be created for the
-splits. (Ignored if paired is supplied).}
+splits (default \code{balanced = TRUE}).}
 
 \item{N}{number of splits to generate.}
 }
@@ -25,20 +36,17 @@ A list of 2 \code{data.frame} objects: \code{Subset1} and
 samples columns. Each cell contains a unique sample identifier.
 }
 \description{
-Given the phyloseq object from which the random splits should be created,
-this function produces a list of 2 \code{data.frame} objects: \code{Subset1}
-and \code{Subset2} with as many rows as the number of splits and as many
-columns as the half of the number of samples.
+Given a phyloseq or TreeSummarizedExperiment object from which the random 
+splits should be created, this function produces a list of 2 
+\code{data.frame} objects: \code{Subset1} and \code{Subset2} with as many 
+rows as the number of splits and as many columns as the half of the number 
+of samples.
 }
 \examples{
 data(ps_plaque_16S)
 set.seed(123)
 
 # Balanced design for repeated measures
-splits_df <- createSplits(
-    object = ps_plaque_16S, varName =
-        "HMP_BODY_SUBSITE", paired = "RSID", balanced = TRUE, N = 100
-)
 
 # Balanced design for independent samples
 splits_df <- createSplits(

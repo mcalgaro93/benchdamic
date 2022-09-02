@@ -6,46 +6,68 @@
 \usage{
 DA_ALDEx2(
   object,
+  assay_name = "counts",
   pseudo_count = FALSE,
-  conditions = NULL,
+  design = NULL,
   mc.samples = 128,
-  test = c("t", "wilcox"),
-  denom = "iqlr",
-  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+  test = c("t", "wilcox", "kw", "kw_glm", "glm"),
+  paired.test = FALSE,
+  denom = "all",
+  contrast = NULL,
   verbose = TRUE
 )
 }
 \arguments{
-\item{object}{phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{conditions}{A character vector. A description of the data structure used
-for testing. Typically, a vector of group labels. For \code{aldex.glm}, use
-a \code{model.matrix}.}
+\item{design}{a character with the name of a variable to group samples and 
+compare them or a formula to compute a model.matrix (when 
+\code{test = "glm"}).}
 
-\item{mc.samples}{An integer. The number of Monte Carlo samples to use when
+\item{mc.samples}{an integer. The number of Monte Carlo samples to use when
 estimating the underlying distributions. Since we are estimating central
 tendencies, 128 is usually sufficient.}
 
-\item{test}{A character string. Indicates which tests to perform. "t" runs
-Welch's t test while "wilcox" runs Wilcoxon test.}
+\item{test}{a character string. Indicates which tests to perform. "t" runs
+Welch's t test while "wilcox" runs Wilcoxon test. "kw" runs 
+Kruskal-Wallace test while "kw_glm" runs glm ANOVA-like test. "glm" runs a 
+generalized linear model.}
 
-\item{denom}{A character string. Indicates which features to retain as the
-denominator for the Geometric Mean calculation. Using "iqlr" accounts for
-data with systematic variation and centers the features on the set features
-that have variance that is between the lower and upper quartile of variance.
-Using "zero" is a more extreme case where there are many non-zero features in
-one condition but many zeros in another. In this case the geometric mean of
-each group is calculated using the set of per-group non-zero features.}
+\item{paired.test}{A boolean. Toggles whether to do paired-sample tests.
+Applies to \code{effect = TRUE} and \code{test = "t"}.}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
+\item{denom}{
+          An \code{any} variable (all, iqlr, zero, lvha, median, user) indicating
+          features to use as the denominator for the Geometric Mean calculation
+          The default "all" uses the geometric mean abundance of all features.
+          Using "median" returns the median abundance of all features.
+          Using "iqlr" uses the features that are between the first and third
+          quartile of the variance of the clr values across all samples.
+          Using "zero" uses the non-zero features in each grop
+          as the denominator. This approach is an extreme case where there are
+          many nonzero features in one condition but many zeros in another. Using
+          "lvha" uses features that have low variance (bottom quartile) and high
+          relative abundance (top quartile in every sample). It is also
+          possible to supply a vector of row indices to use as the denominator.
+          Here, the experimentalist is determining a-priori which rows are thought
+          to be invariant. In the case of RNA-seq, this could include ribosomal
+          protein genes and and other house-keeping genes. This should be used
+          with caution because the offsets may be different in the original data
+          and in the data used by the function because features that are 0 in all
+          samples are removed by \code{aldex.clr}.
+      }
+
+\item{contrast}{character vector with exactly three elements: the name of a
+variable used in "design", the name of the level of interest, and the 
+name of the reference level. If "kw" or "kw_glm" as test, contrast vector is
+not used.}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
@@ -57,7 +79,8 @@ final object considering the parameters passed to the function.
 }
 \description{
 Fast run for the ALDEx2's differential abundance detection method.
-Support for Welch's t test and Wilcoxon test.
+Support for Welch's t, Wilcoxon, Kruskal-Wallace, Kruskal-Wallace 
+glm ANOVA-like, and glm tests.
 }
 \examples{
 set.seed(1)
@@ -67,14 +90,22 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
-# No use of scaling factors
-ps_NF <- norm_edgeR(object = ps, method = "none")
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.none"]
-head(scaleFacts)
-# Differential abundance
-DA_ALDEx2(ps_NF, conditions = "group", test = "t", denom = "iqlr",
-    norm = "none")
+# Differential abundance with t test and denom defined by the user
+DA_t <- DA_ALDEx2(ps, design = "group", test = "t", denom = c(1,2,3), 
+    paired.test = FALSE, contrast = c("group", "B", "A"))
+# Differential abundance with wilcox test and denom = "iqlr"
+DA_w <- DA_ALDEx2(ps, design = "group", test = "wilcox", denom = "iqlr", 
+    paired.test = FALSE, contrast = c("group", "B", "A"))
+# Differential abundance with kw test and denom = "zero"
+# mc.samples = 2 to speed up (128 suggested)
+DA_kw <- DA_ALDEx2(ps, design = "group", test = "kw", denom = "zero", 
+    mc.samples = 2)
+# Differential abundance with kw_glm test and denom = "median"
+DA_kw_glm <- DA_ALDEx2(ps, design = "group", test = "kw", denom = "median", 
+    mc.samples = 2)
+# Differential abundance with glm test and denom = "all"
+DA_glm <- DA_ALDEx2(ps, design = ~ group, test = "glm", denom = "all", 
+    mc.samples = 2, contrast = c("group", "B", "A"))
 }
 \seealso{
 \code{\link[ALDEx2]{aldex}} for the Dirichlet-Multinomial model

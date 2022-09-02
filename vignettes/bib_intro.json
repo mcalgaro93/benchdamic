@@ -866,5 +866,210 @@
 				]
 			]
 		}
+	},
+		{
+		"id": "ancom-ii",
+		"type": "article-journal",
+		"container-title": "Frontiers in Microbiology",
+		"DOI": "10.3389/fmicb.2017.02114",
+		"ISSN": "1664-302X",
+		"journalAbbreviation": "Front. Microbiol.",
+		"page": "2114",
+		"source": "DOI.org (Crossref)",
+		"title": "Analysis of Microbiome Data in the Presence of Excess Zeros",
+		"URL": "http://journal.frontiersin.org/article/10.3389/fmicb.2017.02114/full",
+		"volume": "8",
+		"author": [
+			{
+				"family": "Kaul",
+				"given": "Abhishek"
+			},
+			{
+				"family": "Mandal",
+				"given": "Siddhartha"
+			},
+			{
+				"family": "Davidov",
+				"given": "Ori"
+			},
+			{
+				"family": "Peddada",
+				"given": "Shyamal D."
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2022",
+					8,
+					20
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2017",
+					11,
+					7
+				]
+			]
+		}
+	},
+	{
+		"id": "ancom-bc",
+		"type": "article-journal",
+		"abstract": "Abstract\n            \n              Differential abundance (DA) analysis of microbiome data continues to be a challenging problem due to the complexity of the data. In this article we define the notion of “sampling fraction” and demonstrate a major hurdle in performing DA analysis of microbiome data is the bias introduced by differences in the sampling fractions across samples. We introduce a methodology called Analysis of Compositions of Microbiomes with Bias Correction (\n              ANCOM-BC\n              ), which estimates the unknown sampling fractions and corrects the bias induced by their differences among samples. The absolute abundance data are modeled using a linear regression framework. This formulation makes a fundamental advancement in the field because, unlike the existing methods, it (a) provides statistically valid test with appropriate p-values, (b) provides confidence intervals for differential abundance of each taxon, (c) controls the False Discovery Rate (FDR), (d) maintains adequate power, and (e) is computationally simple to implement.",
+		"container-title": "Nature Communications",
+		"DOI": "10.1038/s41467-020-17041-7",
+		"ISSN": "2041-1723",
+		"issue": "1",
+		"journalAbbreviation": "Nat Commun",
+		"language": "en",
+		"page": "3514",
+		"source": "DOI.org (Crossref)",
+		"title": "Analysis of compositions of microbiomes with bias correction",
+		"URL": "http://www.nature.com/articles/s41467-020-17041-7",
+		"volume": "11",
+		"author": [
+			{
+				"family": "Lin",
+				"given": "Huang"
+			},
+			{
+				"family": "Peddada",
+				"given": "Shyamal Das"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2022",
+					8,
+					20
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2020",
+					12
+				]
+			]
+		}
+	},
+	{
+		"id": "dearseq",
+		"type": "article-journal",
+		"abstract": "Abstract\n            RNA-seq studies are growing in size and popularity. We provide evidence that the most commonly used methods for differential expression analysis (DEA) may yield too many false positive results in some situations. We present dearseq, a new method for DEA that controls the false discovery rate (FDR) without making any assumption about the true distribution of RNA-seq data. We show that dearseq controls the FDR while maintaining strong statistical power compared to the most popular methods. We demonstrate this behavior with mathematical proofs, simulations and a real data set from a study of tuberculosis, where our method produces fewer apparent false positives.",
+		"container-title": "NAR Genomics and Bioinformatics",
+		"DOI": "10.1093/nargab/lqaa093",
+		"ISSN": "2631-9268",
+		"issue": "4",
+		"language": "en",
+		"page": "lqaa093",
+		"source": "DOI.org (Crossref)",
+		"title": "dearseq: a variance component score test for RNA-seq differential analysis that effectively controls the false discovery rate",
+		"title-short": "dearseq",
+		"URL": "https://academic.oup.com/nargab/article/doi/10.1093/nargab/lqaa093/5992116",
+		"volume": "2",
+		"author": [
+			{
+				"family": "Gauthier",
+				"given": "Marine"
+			},
+			{
+				"family": "Agniel",
+				"given": "Denis"
+			},
+			{
+				"family": "Thiébaut",
+				"given": "Rodolphe"
+			},
+			{
+				"family": "Hejblum",
+				"given": "Boris P"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2022",
+					8,
+					25
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2020",
+					11,
+					19
+				]
+			]
+		}
+	},
+	{
+		"id": "noiseq",
+		"type": "article-journal",
+		"container-title": "Nucleic Acids Research",
+		"DOI": "10.1093/nar/gkv711",
+		"ISSN": "0305-1048, 1362-4962",
+		"journalAbbreviation": "Nucleic Acids Res",
+		"language": "en",
+		"page": "gkv711",
+		"source": "DOI.org (Crossref)",
+		"title": "Data quality aware analysis of differential expression in RNA-seq with NOISeq R/Bioc package",
+		"URL": "https://academic.oup.com/nar/article-lookup/doi/10.1093/nar/gkv711",
+		"author": [
+			{
+				"family": "Tarazona",
+				"given": "Sonia"
+			},
+			{
+				"family": "Furió-Tarí",
+				"given": "Pedro"
+			},
+			{
+				"family": "Turrà",
+				"given": "David"
+			},
+			{
+				"family": "Pietro",
+				"given": "Antonio Di"
+			},
+			{
+				"family": "Nueda",
+				"given": "María José"
+			},
+			{
+				"family": "Ferrer",
+				"given": "Alberto"
+			},
+			{
+				"family": "Conesa",
+				"given": "Ana"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2022",
+					8,
+					25
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2015",
+					7,
+					16
+				]
+			]
+		}
 	}
 ]

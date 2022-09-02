@@ -4,10 +4,14 @@
 \alias{norm_TSS}
 \title{norm_TSS}
 \usage{
-norm_TSS(object, method = "TSS", verbose = TRUE)
+norm_TSS(object, assay_name = "counts", method = "TSS", verbose = TRUE)
 }
 \arguments{
-\item{object}{phyloseq object containing the counts to be normalized.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{method}{normalization method to be used.}
 
@@ -15,12 +19,14 @@ norm_TSS(object, method = "TSS", verbose = TRUE)
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
-A new column containing the TSS scaling factors is added to the
-phyloseq \code{sample_data} slot.
+A new column containing the TSS scaling factors is added to the 
+\code{sample_data} slot of the phyloseq object or the \code{colData} slot of 
+the TreeSummarizedExperiment object.
 }
 \description{
-Calculate the raw library sizes from a phyloseq object. If used to divide
-counts, known as Total Sum Scaling normalization (TSS).
+Calculate the Total Sum Scaling (TSS) factors for a phyloseq or a 
+TreeSummarizedExperiment object, i.e. the library sizes. If the counts are 
+divided by the scaling factors, a relative abundance is obtained.
 }
 \examples{
 set.seed(1)
@@ -36,12 +42,6 @@ ps_NF <- norm_TSS(object = ps)
 # The phyloseq object now contains the scaling factors:
 scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TSS"]
 head(scaleFacts)
-
-# VERY IMPORTANT: to convert scaling factors to normalization factors
-# multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
-# Renormalize: multiply to 1
-normFacts = normFacts/exp(colMeans(log(normFacts)))
 }
 \seealso{
 \code{\link{setNormalizations}} and \code{\link{runNormalizations}}

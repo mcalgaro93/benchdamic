@@ -1,14 +1,15 @@
 #' @title norm_edgeR
 #'
 #' @importFrom edgeR calcNormFactors
-#' @importFrom phyloseq sample_sums taxa_are_rows otu_table
+#' @importFrom phyloseq otu_table sample_data
 #' @importFrom stats quantile
+#' @importFrom SummarizedExperiment colData
 #' @export
 #' @description
-#' Calculate scaling factors from a phyloseq object to scale the raw library
-#' sizes. Inherited from edgeR \code{\link{calcNormFactors}} function.
+#' Calculate normalization factors from a phyloseq or TreeSummarizedExperiment
+#' object. Inherited from edgeR \code{\link{calcNormFactors}} function.
 #'
-#' @param object a phyloseq object containing the counts to be normalized.
+#' @inheritParams get_counts_metadata
 #' @param method normalization method to be used. Choose between \code{TMM},
 #' \code{TMMwsp}, \code{RLE}, \code{upperquartile}, \code{posupperquartile} or
 #' \code{none}.
@@ -16,9 +17,9 @@
 #' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #' @inheritParams edgeR::calcNormFactors
 #'
-#' @return A new column containing the chosen edgeR-based scaling factors is
-#' added to the phyloseq \code{sample_data} slot. The effective library sizes
-#' to use in downstream analysis must be multiplied by the normalization factors.
+#' @return A new column containing the chosen edgeR-based normalization factors 
+#' is added to the \code{sample_data} slot of the phyloseq object or the 
+#' \code{colData} slot of the TreeSummarizedExperiment object.
 #' @seealso \code{\link[edgeR]{calcNormFactors}} for details.
 #'
 #' @seealso \code{\link{setNormalizations}} and \code{\link{runNormalizations}}
@@ -33,26 +34,30 @@
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 #'                          phyloseq::sample_data(metadata))
 #'
-#' # Calculate the scaling factors
+#' # Calculate the normalization factors
 #' ps_NF <- norm_edgeR(object = ps, method = "TMM")
 #'
-#' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
-#' head(scaleFacts)
-#'
-#' # VERY IMPORTANT: to convert scaling factors to normalization factors
-#' # multiply them by the library sizes and renormalize.
-#' normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
+#' # The phyloseq object now contains the normalization factors:
+#' normFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
+#' head(normFacts)
+#' 
+#' # VERY IMPORTANT: edgeR uses normalization factors to normalize library sizes
+#' # not counts. They are used internally by a regression model. To make edgeR 
+#' # normalization factors available for other methods, such as DESeq2 or other 
+#' # DA methods based on scaling or size factors, we need to transform them into
+#' # size factors. This is possible by multiplying the factors for the library 
+#' # sizes and renormalizing. 
+#' normLibSize = normFacts * colSums(phyloseq::otu_table(ps_stool_16S))
 #' # Renormalize: multiply to 1
-#' normFacts = normFacts/exp(colMeans(log(normFacts)))
+#' sizeFacts = normLibSize/exp(colMeans(log(normLibSize)))
 
-norm_edgeR <- function(object, method = c("TMM", "TMMwsp", "RLE",
-    "upperquartile", "posupperquartile", "none"), refColumn = NULL,
-    logratioTrim = .3, sumTrim = 0.05, doWeighting = TRUE, Acutoff = -1e10,
-    p = 0.75, verbose = TRUE, ...){
-    counts <- as(phyloseq::otu_table(object), "matrix")
-    if (!phyloseq::taxa_are_rows(object))
-        counts <- t(counts)
+norm_edgeR <- function(object, assay_name = "counts", method = c("TMM", 
+    "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none"), 
+    refColumn = NULL, logratioTrim = .3, sumTrim = 0.05, doWeighting = TRUE, 
+    Acutoff = -1e10, p = 0.75, verbose = TRUE, ...){
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    is_phyloseq <- counts_and_metadata[[3]]
     if (is.na(method))
         stop("Please, supply a valid method between 'TMM', 'TMMwsp', 'RLE',
             'upperquartile', 'posupperquartile' or 'none'")
@@ -69,7 +74,11 @@ norm_edgeR <- function(object, method = c("TMM", "TMMwsp", "RLE",
     if (all(is.na(normFacts)))
         stop("Failed to compute normalization factors!")
     NF.col <- paste("NF", method, sep = ".")
-    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(is_phyloseq){
+        phyloseq::sample_data(object)[, NF.col] <- normFacts
+    } else {
+        SummarizedExperiment::colData(object)[, NF.col] <- normFacts
+    }
     if(verbose)
         message(NF.col, " column has been added.")
     return(object)

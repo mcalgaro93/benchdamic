@@ -4,11 +4,15 @@
 \alias{fitNB}
 \title{fitNB}
 \usage{
-fitNB(counts, verbose = TRUE)
+fitNB(object, assay_name = "counts", verbose = TRUE)
 }
 \arguments{
-\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
-ASVs, genes) by row and samples by column.}
+\item{object}{a phyloseq object, a TreeSummarizedExperiment object, or a 
+matrix of counts.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{verbose}{an optional logical value. If \code{TRUE} information on the
 steps of the algorithm is printed. Default \code{verbose = TRUE}.}
@@ -23,7 +27,7 @@ Fit a Negative Binomial (NB) distribution for each taxon of the count data.
 The NB estimation procedure is performed by edgeR \code{\link{glmFit}}
 function, using \code{TMM} normalized counts, tag-wise dispersion estimation,
 and not assuming the presence of any group in the samples (design matrix
-equal to a column of ones.)
+equal to a column of ones).
 }
 \examples{
 # Generate some random counts

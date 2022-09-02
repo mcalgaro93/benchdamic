@@ -7,11 +7,11 @@
 plotMD(data, difference = NULL, split = TRUE)
 }
 \arguments{
-\item{data}{a list, output of the \code{\link{fitModels}} function or a
-`data.frame` object with \code{Model}, \code{Y}, \code{Y0}, \code{MD}, and
-\code{ZPD} columns containing the model name, the observed values for the
-mean and the zero proportion and the differences between observed and
-estimated values.}
+\item{data}{a list, output of the \code{\link{fitModels}} function. Each
+element of the list is a `data.frame` object with \code{Model}, \code{Y}, 
+\code{Y0}, \code{MD}, and \code{ZPD} columns containing the model name, the 
+observed values for the mean and the zero proportion and the differences 
+between observed and estimated values.}
 
 \item{difference}{character vector, either \code{MD} or \code{ZPD} to plot
 the differences between estimated and observed mean counts or the differences
@@ -34,11 +34,10 @@ counts = matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 
 # Estimate the counts assuming several distributions
 GOF <- fitModels(
-    counts = counts, models = c(
+    object = counts, models = c(
         "NB", "ZINB",
         "DM", "ZIG", "HURDLE"
-    ), scale_ZIG = c("median", "default"), scale_HURDLE =
-        c("median", "default")
+    ), scale_HURDLE = c("median", "default")
 )
 
 # Plot the results

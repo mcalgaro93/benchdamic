@@ -5,28 +5,44 @@
 \title{set_metagenomeSeq}
 \usage{
 set_metagenomeSeq(
+  assay_name = "counts",
   pseudo_count = FALSE,
   design = NULL,
   coef = 2,
-  norm = c("CSSmedian", "CSSdefault"),
+  norm = "CSS",
+  model = "fitFeatureModel",
   expand = TRUE
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{design}{The model for the count distribution. Can be the variable name,
-or a character similar to "~ 1 + group", or a formula, or a `model.matrix`
-object.}
+\item{design}{the model for the count distribution. Can be the variable name,
+or a character similar to "~ 1 + group", or a formula.}
 
-\item{coef}{integer or character index vector indicating which coefficients
-of the linear model are to be tested equal to zero.}
+\item{coef}{coefficient of interest to grab log fold-changes.}
 
-\item{norm}{name of the normalization method used to compute the
-scaling factors to use in the differential abundance analysis. If \code{norm}
-is equal to "ratio", "poscounts", or "iterate" the normalization factors are
-automatically transformed into scaling factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose the native metagenomeSeq normalization method 
+\code{CSS}. Alternatively (only for advanced users), if \code{norm} is equal 
+to "TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", or "none" 
+from \code{\link{norm_edgeR}}, "ratio", "poscounts", or "iterate" from 
+\code{\link{norm_DESeq2}}, or "TSS" from \code{\link{norm_TSS}}, the 
+factors are automatically transformed into scaling factors. If custom 
+factors are supplied, make sure they are compatible with metagenomeSeq 
+normalization factors.}
+
+\item{model}{character equal to "fitFeatureModel" for differential abundance 
+analysis using a zero-inflated log-normal model, "fitZig" for a complex 
+mathematical optimization routine to estimate probabilities that a zero for 
+a particular feature in a sample is a technical zero or not. The latter model
+relies heavily on the limma package (default 
+\code{model = "fitFeatureModel"}).}
 
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE})}
@@ -39,15 +55,14 @@ A named list containing the set of parameters for
 Set the parameters for metagenomeSeq differential abundance detection method.
 }
 \examples{
-# Set some basic combinations of parameters for metagenomeSeq
+# Set a basic combination of parameters for metagenomeSeq
 base_mgs <- set_metagenomeSeq(design = ~ group, coef = 2)
-# Set a specific set of normalization for metagenomeSeq (even of other
-# packages!)
-setNorm_mgs <- set_metagenomeSeq(design = ~ group, coef = 2,
-    norm = c("CSSmedian", "TMM"))
+# Set a specific model for metagenomeSeq
+setModel_mgs <- set_metagenomeSeq(design = ~ group, coef = 2, 
+    model = "fitZig")
 # Set many possible combinations of parameters for metagenomeSeq
 all_mgs <- set_metagenomeSeq(pseudo_count = c(TRUE, FALSE), design = ~ group,
-    coef = 2, norm = c("CSSmedian", "CSSdefault", "TMM", "TSS"))
+    coef = 2, model = c("fitFeatureModel", "fitZig"), norm = "CSS")
 }
 \seealso{
 \code{\link{DA_metagenomeSeq}}

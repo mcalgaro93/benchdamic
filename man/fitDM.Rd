@@ -4,11 +4,15 @@
 \alias{fitDM}
 \title{fitDM}
 \usage{
-fitDM(counts, verbose = TRUE)
+fitDM(object, assay_name = "counts", verbose = TRUE)
 }
 \arguments{
-\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
-ASVs, genes) by row and samples by column.}
+\item{object}{a phyloseq object, a TreeSummarizedExperiment object, or a 
+matrix of counts.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{verbose}{an optional logical value. If \code{TRUE} information on the
 steps of the algorithm is printed. Default \code{verbose = TRUE}.}

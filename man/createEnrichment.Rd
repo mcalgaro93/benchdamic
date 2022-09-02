@@ -109,13 +109,18 @@ priorInfo[, "newNames"] <- paste0(rownames(priorInfo), priorInfo[, "GENUS"])
 
 # Add some normalization/scaling factors to the phyloseq object
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
     object = ps_plaque_16S)
 
 # Initialize some limma based methods
-my_limma <- set_limma(design = ~ 1 + HMP_BODY_SUBSITE, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+my_limma <- set_limma(design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque",
+    norm = c("TMM", "CSS"))
+    
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
 
 # Perform DA analysis
 Plaque_16S_DA <- runDA(method_list = my_limma, object = ps_plaque_16S)

@@ -1,18 +1,21 @@
 #' @title norm_TSS
 #'
-#' @importFrom phyloseq taxa_are_rows sample_sums
+#' @importFrom phyloseq otu_table sample_data
+#' @importFrom SummarizedExperiment colData
 #' @export
 #' @description
-#' Calculate the raw library sizes from a phyloseq object. If used to divide
-#' counts, known as Total Sum Scaling normalization (TSS).
+#' Calculate the Total Sum Scaling (TSS) factors for a phyloseq or a 
+#' TreeSummarizedExperiment object, i.e. the library sizes. If the counts are 
+#' divided by the scaling factors, a relative abundance is obtained.
 #'
-#' @param object phyloseq object containing the counts to be normalized.
+#' @inheritParams get_counts_metadata
 #' @param method normalization method to be used.
 #' @param verbose an optional logical value. If \code{TRUE}, information about
 #' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
-#' @return A new column containing the TSS scaling factors is added to the
-#' phyloseq \code{sample_data} slot.
+#' @return A new column containing the TSS scaling factors is added to the 
+#' \code{sample_data} slot of the phyloseq object or the \code{colData} slot of 
+#' the TreeSummarizedExperiment object.
 #'
 #' @seealso \code{\link{setNormalizations}} and \code{\link{runNormalizations}}
 #' to fastly set and run normalizations.
@@ -31,20 +34,19 @@
 #' # The phyloseq object now contains the scaling factors:
 #' scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TSS"]
 #' head(scaleFacts)
-#'
-#' # VERY IMPORTANT: to convert scaling factors to normalization factors
-#' # multiply them by the library sizes and renormalize.
-#' normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
-#' # Renormalize: multiply to 1
-#' normFacts = normFacts/exp(colMeans(log(normFacts)))
 
-norm_TSS <- function(object, method = "TSS", verbose = TRUE)
-{
-    if (!phyloseq::taxa_are_rows(object))
-        object <- t(object)
-    normFacts <- 1/phyloseq::sample_sums(object)
+norm_TSS <- function(object, assay_name = "counts", method = "TSS", 
+    verbose = TRUE) {
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    is_phyloseq <- counts_and_metadata[[3]]
+    normFacts <- colSums(counts)
     NF.col <- paste("NF", method, sep = ".")
-    phyloseq::sample_data(object)[,NF.col] <- normFacts
+    if(is_phyloseq){
+        phyloseq::sample_data(object)[,NF.col] <- normFacts
+    } else {
+        SummarizedExperiment::colData(object)[, NF.col] <- normFacts
+    }
     if(verbose)
         message(NF.col, " column has been added.")
     return(object)

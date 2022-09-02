@@ -4,7 +4,16 @@
 \alias{runSplits}
 \title{runSplits}
 \usage{
-runSplits(split_list, method_list, normalization_list, object, verbose = TRUE)
+runSplits(
+  split_list,
+  method_list,
+  normalization_list,
+  object,
+  assay_name = "counts",
+  min_counts = 0,
+  min_samples = 0,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{split_list}{A list of 2 \code{data.frame} objects: \code{Subset1} and
@@ -16,6 +25,18 @@ runSplits(split_list, method_list, normalization_list, object, verbose = TRUE)
 names and their parameters produced by \code{\link{setNormalizations}}.}
 
 \item{object}{a phyloseq object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
+\item{min_counts}{Parameter to filter taxa. Set this number to keep features 
+with more than \code{min_counts} counts in more than \code{min_samples} 
+samples (default \code{min_counts = 0}).}
+
+\item{min_samples}{Parameter to filter taxa. Set this number to keep 
+features with a \code{min_counts} counts in more than \code{min_samples} 
+samples (default \code{min_samples = 0}).}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
@@ -29,19 +50,24 @@ Run the differential abundance detection methods on split datasets.
 \examples{
 data(ps_plaque_16S)
 
-# Balanced design for independent samples
+# Balanced design
 my_splits <- createSplits(
-    object = ps_plaque_16S, varName =
-    "HMP_BODY_SUBSITE", balanced = TRUE, N = 10 # N = 100 suggested
+    object = ps_plaque_16S, varName = "HMP_BODY_SUBSITE", balanced = TRUE,
+    paired = "RSID", N = 10 # N = 100 suggested
 )
 
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
+
 # Initialize some limma based methods
-my_limma <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+my_limma <- set_limma(design = ~ RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque",
+    norm = c("TMM", "CSS"))
 
 # Set the normalization methods according to the DA methods
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 
 # Run methods on split datasets
 results <- runSplits(split_list = my_splits, method_list = my_limma,

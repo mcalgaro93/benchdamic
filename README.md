@@ -8,9 +8,19 @@ Not only does the package structure allow the users to test a variety of commonl
 
 ## Installation
 
-If you want to install the development version of `benchdamic` from GitHub, you can do so with the following.
+If you want to install the development version of `benchdamic` from GitHub, you can use:
 
 ```{r}
 library(devtools)
 install_github("mcalgaro93/benchdamic")
 ```
+
+To install the released version of `benchdamic` from Bioconductor, you can use:
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("benchdamic")
+```
+
+Please note that due to the large number of methods used by benchdamic, not all of their dependencies may already be present in some environments (e.g. RcppGSL R-package). Please refer to documentation of missing dependencies on how to install them. If problems persist, a possible solution is using the [Bioconductor docker image](https://www.bioconductor.org/help/docker/).

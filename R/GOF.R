@@ -29,11 +29,16 @@
 #' observed1 <- prepareObserved(counts)
 #' # For the comparison with HURDLE model
 #' observed2 <- prepareObserved(counts, scale = "median")
-prepareObserved <- function(counts, scale = NULL) {
-    if(is(counts, "phyloseq")){
-        if(phyloseq::taxa_are_rows(counts)){
-            counts <- as(phyloseq::otu_table(counts), "matrix")
-        } else counts <-  as(phyloseq::otu_table(t(counts)), "matrix")
+prepareObserved <- function(object, assay_name = "counts", scale = NULL) {
+    if(is(object, "phyloseq") | is(object, "TreeSummarizedExperiment")){
+        counts_and_metadata <- get_counts_metadata(object,
+            assay_name = assay_name)
+        counts <- counts_and_metadata[[1]]
+    } else if (is.matrix(object)) {
+        NULL
+    } else {
+        stop("Please supply a phyloseq object, a TreeSummarizedExperiment,", 
+             " or a matrix of counts.")
     }
     if (!is.null(scale)) {
         if (scale == "median") {
@@ -134,9 +139,6 @@ RMSE <- function(differences) {
 #' @inheritParams fitNB
 #' @param models character vector which assumes the values \code{NB},
 #' \code{ZINB}, \code{DM}, \code{ZIG}, and \code{HURDLE}.
-#' @param scale_ZIG character vector, either \code{median} or \code{default} to
-#' choose between the median of the library size or one thousand to scale
-#' normalization factors for the zero-inflated gaussian model.
 #' @param scale_HURDLE character vector, either \code{median} or \code{default}
 #' to choose between the median of the library size or one million to scale raw
 #' counts for the truncated gaussian hurdle model.
@@ -157,57 +159,57 @@ RMSE <- function(differences) {
 #' counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 #' # Estimate the counts assuming several distributions
 #' GOF <- fitModels(
-#'     counts = counts, models = c(
+#'     object = counts, models = c(
 #'         "NB", "ZINB",
 #'         "DM", "ZIG", "HURDLE"
-#'     ), scale_ZIG = c("median", "default"), scale_HURDLE =
-#'         c("median", "default")
+#'     ), scale_HURDLE = c("median", "default")
 #' )
 #'
 #' head(GOF)
-fitModels <- function(counts, models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
-    scale_ZIG = c("default", "median"), scale_HURDLE = c("default", "median"),
+fitModels <- function(object, assay_name = "counts", models = c("NB", "ZINB", 
+    "DM", "ZIG", "HURDLE"), scale_HURDLE = c("default", "median"), 
     verbose = TRUE) {
     fittedModels <- list()
-    observed <- prepareObserved(counts)
+    observed <- prepareObserved(object, assay_name = assay_name)
     if ("NB" %in% models) {
-        fitted <- fitNB(counts, verbose = verbose)
+        fitted <- fitNB(object = object, assay_name = assay_name, 
+            verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["NB"]] <- data.frame(observed, MD)
     }
     if ("ZINB" %in% models) {
-        fitted <- fitZINB(counts, verbose = verbose)
+        fitted <- fitZINB(object = object, assay_name = assay_name, 
+            verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["ZINB"]] <- data.frame(observed, MD)
     }
     if ("DM" %in% models) {
-        fitted <- fitDM(counts, verbose = verbose)
+        fitted <- fitDM(object = object, assay_name = assay_name, 
+            verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
         fittedModels[["DM"]] <- data.frame(observed, MD)
     }
     if ("ZIG" %in% models) {
-        fitted <- fitZIG(counts, scale_ZIG[1], verbose = verbose)
+        fitted <- fitZIG(object = object, assay_name = assay_name, 
+            verbose = verbose)
         MD <- meanDifferences(estimated = fitted, observed = observed)
-        name <- paste0("ZIG_", scale_ZIG[1])
-        fittedModels[[name]] <- data.frame(observed, MD)
-        if (length(scale_ZIG) == 2) {
-            fitted <- fitZIG(counts, scale_ZIG[2], verbose = verbose)
-            MD <- meanDifferences(estimated = fitted, observed = observed)
-            name <- paste0("ZIG_", scale_ZIG[2])
-            fittedModels[[name]] <- data.frame(observed, MD)
-        }
+        fittedModels[["ZIG"]] <- data.frame(observed, MD)
     }
     if ("HURDLE" %in% models) {
-        fitted <- fitHURDLE(counts, scale_HURDLE[1], verbose = verbose)
-        observed <- prepareObserved(counts, scale = scale_HURDLE[1])
+        fitted <- fitHURDLE(object = object, assay_name = assay_name, 
+            scale = scale_HURDLE[1], verbose = verbose)
+        observed <- prepareObserved(object = object, assay_name = assay_name, 
+            scale = scale_HURDLE[1])
         MD <- meanDifferences(estimated = fitted, observed = observed)
         name <- paste0("HURDLE_", scale_HURDLE[1])
         fittedModels[[name]] <- data.frame(observed, MD)
         if (length(scale_HURDLE) == 2) {
-            fitted <- fitHURDLE(counts, scale_HURDLE[2], verbose = verbose)
-            observed <- prepareObserved(counts, scale = scale_HURDLE[2])
+            fitted <- fitHURDLE(object = object, assay_name = assay_name, 
+                scale = scale_HURDLE[2], verbose = verbose)
+            observed <- prepareObserved(object = object, 
+                assay_name = assay_name, scale = scale_HURDLE[2])
             MD <- meanDifferences(estimated = fitted, observed = observed)
-            name <- paste0("HURDLE_", scale_HURDLE[2], verbose = verbose)
+            name <- paste0("HURDLE_", scale_HURDLE[2])
             fittedModels[[name]] <- data.frame(observed, MD)
         }
     }

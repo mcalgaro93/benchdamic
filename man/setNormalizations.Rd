@@ -5,8 +5,8 @@
 \title{setNormalizations}
 \usage{
 setNormalizations(
-  fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS", "norm_edgeR"),
-  method = c("TMM", "poscounts", "median", "none")
+  fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"),
+  method = c("TMM", "poscounts", "CSS")
 )
 }
 \arguments{

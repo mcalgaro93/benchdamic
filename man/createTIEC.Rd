@@ -14,16 +14,17 @@ p-values, and method's name (See vignette for detailed information).}
 \value{
 A \code{list} of \code{data.frame}s:
 \itemize{
-    \item{\code{df_pval}}{3 columns per number_of_features x methods x
-    comparisons rows data.frame. The three columns are called Comparison,
-    pval, and method;}
-    \item{\code{df_FPR}}{5 columns per methods x comparisons rows data.frame.
-    For each set of method and comparison, the proportion of false
-    discoveries, considering 3 threshold (0.01, 0.05, 0.1) are reported;}
-    \item{\code{df_QQ}}{contains the coordinates to draw the QQ-plot to
+    \item{\code{df_pval}}{ 5 columns per number_of_features x methods x
+    comparisons rows data.frame. The four columns are called Comparison,
+    Method, variable (containing the feature names), pval, and padj;}
+    \item{\code{df_FPR}}{ 5 columns per methods x comparisons rows 
+    data.frame. For each set of method and comparison, the proportion of 
+    false discoveries, considering 3 threshold (0.01, 0.05, 0.1) are 
+    reported;}
+    \item{\code{df_QQ}}{ contains the coordinates to draw the QQ-plot to
     compare the mean observed p-value distribution across comparisons, with
     the theoretical uniform distribution;}
-    \item{\code{df_KS}}{5 columns and methods x comparisons rows data.frame.
+    \item{\code{df_KS}}{ 5 columns and methods x comparisons rows data.frame.
     For each set of method and comparison, the Kolmogorov-Smirnov test
     statistics and p-values are reported in KS and KS_pval columns
     respectively.}}
@@ -31,7 +32,7 @@ A \code{list} of \code{data.frame}s:
 \description{
 Extract the list of p-values from the outputs of the differential abundance
 detection methods to compute several statistics to study the ability to
-control the type I error.
+control the type I error and the p-values distribution.
 }
 \examples{
 # Load some data
@@ -44,13 +45,13 @@ head(mocks)
 
 # Add some normalization/scaling factors to the phyloseq object
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 ps_stool_16S <- runNormalizations(normalization_list = my_norm,
     object = ps_stool_16S)
 
 # Initialize some limma based methods
 my_limma <- set_limma(design = ~ group, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+    norm = c("TMM", "CSS"))
 
 # Run methods on mock datasets
 results <- runMocks(mocks = mocks, method_list = my_limma,
@@ -63,6 +64,7 @@ TIEC_summary <- createTIEC(results)
 plotFPR(df_FPR = TIEC_summary$df_FPR)
 plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
+plotLogP(df_QQ = TIEC_summary$df_QQ)
 }
 \seealso{
 \code{\link{createMocks}}
