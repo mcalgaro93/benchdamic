@@ -1,3 +1,28 @@
+Changes in Version 1.2.1 (2021-09-03)
+=====================================
+
+* Porting the changes of devel version to release
+
+Changes in Version 1.3.2 (2021-09-03)
+=====================================
+
+* Changes after the first revision from the "Bioinformatics" journal
+* Improved vignette with more descriptions, new methods, and more chapters
+* Improved warning and error messages
+* Support for TreeSummarizedExperiment object
+* New function get_count_metadata() to access counts and metadata of a phyloseq or TreeSummarizedExperiment object.
+* Added the "fitFeatureModel" implementation in DA_metagenomeSeq()
+* "CSS" normalization factors are now returned as they are, not divided by a scaling factor
+* Replaced "CSS_median" and "CSS_default" normalizations with "CSS"
+* Added the "kw" and "glm" implementation in DA_ALDEx2()
+* Added the "paired.test" option in DA_ALDEx2() for "t" and "wilcox" tests
+* Added support for "CLR", "RC", and "none" normalization methods in DA_Seurat()
+* Added support for "scale.factor" in DA_Seurat()
+* Added more controls and verbosity regarding normalizations and DA methods
+* Added the plotLogP() function for plottin the negative log p-values distribution
+* Added DA_NOISeq(), DA_dearseq(), DA_ANCOM(), and DA_basic() to the pool of methods
+* added detectseparation (<= 0.2.0) to the "Imports", new version 0.3 not compatible with corncob 0.2
+
 Changes in Version 1.3.1 (2021-05-16)
 =====================================
 
