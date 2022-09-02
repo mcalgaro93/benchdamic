@@ -6,6 +6,7 @@
 \usage{
 norm_edgeR(
   object,
+  assay_name = "counts",
   method = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none"),
   refColumn = NULL,
   logratioTrim = 0.3,
@@ -18,7 +19,11 @@ norm_edgeR(
 )
 }
 \arguments{
-\item{object}{a phyloseq object containing the counts to be normalized.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{method}{normalization method to be used. Choose between \code{TMM},
 \code{TMMwsp}, \code{RLE}, \code{upperquartile}, \code{posupperquartile} or
@@ -42,13 +47,13 @@ the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 \item{...}{other arguments are not currently used.}
 }
 \value{
-A new column containing the chosen edgeR-based scaling factors is
-added to the phyloseq \code{sample_data} slot. The effective library sizes
-to use in downstream analysis must be multiplied by the normalization factors.
+A new column containing the chosen edgeR-based normalization factors 
+is added to the \code{sample_data} slot of the phyloseq object or the 
+\code{colData} slot of the TreeSummarizedExperiment object.
 }
 \description{
-Calculate scaling factors from a phyloseq object to scale the raw library
-sizes. Inherited from edgeR \code{\link{calcNormFactors}} function.
+Calculate normalization factors from a phyloseq or TreeSummarizedExperiment
+object. Inherited from edgeR \code{\link{calcNormFactors}} function.
 }
 \examples{
 set.seed(1)
@@ -59,18 +64,22 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
 
-# Calculate the scaling factors
+# Calculate the normalization factors
 ps_NF <- norm_edgeR(object = ps, method = "TMM")
 
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
-head(scaleFacts)
+# The phyloseq object now contains the normalization factors:
+normFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
+head(normFacts)
 
-# VERY IMPORTANT: to convert scaling factors to normalization factors
-# multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
+# VERY IMPORTANT: edgeR uses normalization factors to normalize library sizes
+# not counts. They are used internally by a regression model. To make edgeR 
+# normalization factors available for other methods, such as DESeq2 or other 
+# DA methods based on scaling or size factors, we need to transform them into
+# size factors. This is possible by multiplying the factors for the library 
+# sizes and renormalizing. 
+normLibSize = normFacts * colSums(phyloseq::otu_table(ps_stool_16S))
 # Renormalize: multiply to 1
-normFacts = normFacts/exp(colMeans(log(normFacts)))
+sizeFacts = normLibSize/exp(colMeans(log(normLibSize)))
 }
 \seealso{
 \code{\link[edgeR]{calcNormFactors}} for details.

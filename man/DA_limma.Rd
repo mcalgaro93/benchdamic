@@ -6,17 +6,21 @@
 \usage{
 DA_limma(
   object,
+  assay_name = "counts",
   pseudo_count = FALSE,
   design = NULL,
   coef = 2,
-  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none"),
   weights,
   verbose = TRUE
 )
 }
 \arguments{
-\item{object}{phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
@@ -28,10 +32,15 @@ estimated.}
 \item{coef}{integer or character index vector indicating which coefficients
 of the linear model are to be tested equal to zero.}
 
-\item{norm}{name of the normalization method used to compute the
-scaling factors to use in the differential abundance analysis. If \code{norm}
-is equal to "ratio", "poscounts", or "iterate" the normalization factors are
-automatically transformed into scaling factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose between the native edgeR normalization methods, 
+such as \code{TMM}, \code{TMMwsp}, \code{RLE}, \code{upperquartile}, 
+\code{posupperquartile}, or \code{none}. Alternatively (only for advanced 
+users), if \code{norm} is equal to "ratio", "poscounts", or "iterate" from 
+\code{\link{norm_DESeq2}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+\code{\link{norm_TSS}}, the scaling factors are automatically transformed 
+into normalization factors. If custom factors are supplied, make sure they 
+are compatible with edgeR normalization factors.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
 
@@ -54,11 +63,11 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
-# Calculate the TMM scaling factors
+# Calculate the TMM normalization factors
 ps_NF <- norm_edgeR(object = ps, method = "TMM")
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
-head(scaleFacts)
+# The phyloseq object now contains the normalization factors:
+normFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
+head(normFacts)
 # Differential abundance
 DA_limma(object = ps_NF, pseudo_count = FALSE, design = ~ group, coef = 2,
     norm = "TMM")

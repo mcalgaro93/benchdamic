@@ -4,7 +4,7 @@
 \alias{plotQQ}
 \title{plotQQ}
 \usage{
-plotQQ(df_QQ, cols = NULL, zoom = c(0, 0.1))
+plotQQ(df_QQ, cols = NULL, zoom = c(0, 0.1), split = FALSE)
 }
 \arguments{
 \item{df_QQ}{Coordinates to draw the QQ-plot to compare the mean observed
@@ -15,6 +15,11 @@ distribution.}
 
 \item{zoom}{2-dimesional vector containing the starting and the
 final coordinates (default: \code{c(0, 0.1)})}
+
+\item{split}{boolean value. If \code{TRUE}, the qq-plots are 
+reported separately for each method (default \code{split = FALSE}). Setting 
+it to \code{TRUE} is hardly suggested when the number of methods is high or 
+when their colors are similar.}
 }
 \value{
 A ggplot object.
@@ -33,13 +38,13 @@ head(mocks)
 
 # Add some normalization/scaling factors to the phyloseq object
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 ps_stool_16S <- runNormalizations(normalization_list = my_norm,
     object = ps_stool_16S)
 
 # Initialize some limma based methods
 my_limma <- set_limma(design = ~ group, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+    norm = c("TMM", "CSS"))
 
 # Run methods on mock datasets
 results <- runMocks(mocks = mocks, method_list = my_limma,
@@ -52,4 +57,5 @@ TIEC_summary <- createTIEC(results)
 plotFPR(df_FPR = TIEC_summary$df_FPR)
 plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
+plotLogP(df_QQ = TIEC_summary$df_QQ)
 }

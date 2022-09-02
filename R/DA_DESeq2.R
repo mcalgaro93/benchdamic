@@ -1,13 +1,12 @@
 #' @title DA_DESeq2
 #'
-#' @importFrom phyloseq taxa_are_rows otu_table sample_data phyloseq_to_deseq2
-#' @importFrom DESeq2 sizeFactors DESeq dispersions results
+#' @importFrom DESeq2 sizeFactors DESeq dispersions results 
+#' DESeqDataSetFromMatrix
 #' @importFrom SummarizedExperiment assays
 #' @export
 #' @description
 #' Fast run for DESeq2 differential abundance detection method.
 #'
-#' @inheritParams phyloseq::phyloseq_to_deseq2
 #' @inheritParams DA_edgeR
 #' @param contrast character vector with exactly three elements: the name of a
 #' factor in the design formula, the name of the numerator level for the fold
@@ -15,11 +14,15 @@
 #' @param alpha the significance cutoff used for optimizing the independent
 #' filtering (by default 0.05). If the adjusted p-value cutoff (FDR) will be a
 #' value other than 0.05, alpha should be set to that value.
-#' @param norm name of the normalization method used to compute the
-#' normalization factors to use in the differential abundance analysis. If
-#' \code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-#' "posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-#' automatically transformed into normalization factors.
+#' @param norm name of the normalization method to use in the differential 
+#' abundance analysis. Choose between the native DESeq2 normalization methods, 
+#' such as \code{ratio}, \code{poscounts}, or \code{iterate}. Alternatively 
+#' (only for advanced users), if \code{norm} is equal to "TMM", "TMMwsp", 
+#' "RLE", "upperquartile", "posupperquartile", or "none" from 
+#' \code{\link{norm_edgeR}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+#' \code{\link{norm_TSS}}, the normalization factors are automatically 
+#' transformed into size factors. If custom factors are supplied, make sure 
+#' they are compatible with DESeq2 size factors.
 #'
 #' @return A list object containing the matrix of p-values `pValMat`,
 #' the dispersion estimates `dispEsts`, the matrix of summary statistics for
@@ -38,60 +41,95 @@
 #'                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 #'                          phyloseq::sample_data(metadata))
-#' # Calculate the poscounts normalization factors
+#' # Calculate the poscounts size factors
 #' ps_NF <- norm_DESeq2(object = ps, method = "poscounts")
-#' # The phyloseq object now contains the normalization factors:
-#' scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.poscounts"]
-#' head(scaleFacts)
+#' # The phyloseq object now contains the size factors:
+#' sizeFacts <- phyloseq::sample_data(ps_NF)[, "NF.poscounts"]
+#' head(sizeFacts)
 #' # Differential abundance
 #' DA_DESeq2(object = ps_NF, pseudo_count = FALSE, design = ~ group, contrast =
-#'               c("group", "B", "A"), norm = "poscounts")
+#'     c("group", "B", "A"), norm = "poscounts")
 
-DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
-    NULL, alpha = 0.05, norm = c("TMM", "TMMwsp", "RLE", "upperquartile",
-    "posupperquartile", "none", "ratio", "poscounts", "iterate", "TSS",
-    "CSSmedian", "CSSdefault"), weights, verbose = TRUE){
-    # Check the orientation
-    if (!phyloseq::taxa_are_rows(object))
-        object <- t(object)
-    # Slot extraction of phyloseq object
-    counts <- as(phyloseq::otu_table(object), "matrix")
-    metadata <- phyloseq::sample_data(object)
+DA_DESeq2 <- function(object, assay_name = "counts", pseudo_count = FALSE, 
+    design = NULL, contrast = NULL, alpha = 0.05, norm = c("ratio", 
+    "poscounts", "iterate"), weights, verbose = TRUE){
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    libSizes <- colSums(counts)
+    metadata <- counts_and_metadata[[2]]
+    is_phyloseq <- counts_and_metadata[[3]]
     # Name building
     name <- "DESeq2"
+    method <- "DA_DESeq2"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
         message("Adding a pseudo count... \n")
         counts <- counts + 1
-        phyloseq::otu_table(object) <- counts
-        name <- paste(name,".pseudo",sep = "")
+        name <- paste(name, ".pseudo", sep = "")
     }
+    # Check the assay
+    if (!is_phyloseq){
+        if(verbose)
+            message("Using the ", assay_name, " assay.")
+        name <- paste(name, ".", assay_name, sep = "")
+    } 
     if (is.character(design)){
         design <- as.formula(design)
     }
     if(verbose){
-        dds <- phyloseq::phyloseq_to_deseq2(object, design = design)
+        dds <- DESeq2::DESeqDataSetFromMatrix(countData = counts, 
+            colData = metadata, design = design)
     } else {
-        suppressMessages(dds <-
-            phyloseq::phyloseq_to_deseq2(object, design = design))
+        dds <- suppressMessages(DESeq2::DESeqDataSetFromMatrix(
+            countData = counts, colData = metadata, design = design))
     }
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential",
-        " abundance analysis.")
+        stop(method, "\n", 
+             "norm: please choose one normalization for this istance of", 
+            " differential abundance analysis.")
     # Check if the column with the normalization factors is present
     NF.col <- paste("NF", norm, sep = ".")
-    if(!any(colnames(metadata) == NF.col))
-        stop("Can't find the ", NF.col," column in your object.",
+    if (!any(colnames(metadata) == NF.col)) {
+        stop(method, "\n", 
+             "norm: can't find the ", NF.col," column in your object.",
              " Make sure to add the normalization factors column in your",
              " object first.")
-    NFs = unlist(metadata[,NF.col])
-    # edgeR, TSS, and CSS NFs supplied -> make them normalization factors!
-    if(is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile",
-        "posupperquartile", "CSSmedian", "CSSdefault", "TSS"))){
-        NFs <- NFs*colSums(counts)}
-    # Make NFs multiply to 1
-    suppressMessages(expr = {
-        DESeq2::sizeFactors(dds) = NFs/exp(mean(log(NFs)))})
+    }
+    NFs <- unlist(metadata[, NF.col])
+    # Check for implemented normalizations
+    this_norms <- c("ratio", "iterate", "poscounts")
+    other_norms <- c("TMM", "TMMwsp", "RLE", "upperquartile", 
+        "posupperquartile", "none", "TSS", "CSS")
+    if(!is.element(norm, this_norms)) {
+        if(verbose){
+            warning(method, "\n", 
+                norm, " normalization is not a native DESeq2",
+                " normalization. Make sure you know what you are doing,", 
+                " otherwise choose between 'ratio', 'poscounts', or 'iterate'.")
+        } 
+        if(is.element(norm, other_norms)){
+            if(verbose)
+                message("Automatically converting NF.", norm, " factors to", 
+                " size factors.")
+            if(norm == "TSS"){
+                NFs <- 1
+                if(verbose)
+                    message("'TSS' normalization: automatically setting NFs",
+                        " to ones.")
+            }
+            if(!is.element(norm, c("CSS", "TSS"))){ 
+                # CSS scaling factors are ready for DESeq2
+                NFs <- (NFs*libSizes)/exp(mean(log(NFs*libSizes)))
+            } 
+        } else {
+            if(verbose){
+                warning(method, "\n", 
+                    "Make sure that the provided NF.", norm, " factors", 
+                    " are compatible with DESeq2 size factors.")
+            } 
+        }
+    }
+    suppressMessages(expr = {DESeq2::sizeFactors(dds) <- NFs})
     name <- paste(name, ".", norm, sep = "")
     if(verbose)
         message("Differential abundance on ", norm, " normalized data")
@@ -124,8 +162,9 @@ DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
             dispEsts <- DESeq2::dispersions(ddsRes)})
     }
     if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3))
-        stop("Please supply a character vector with exactly three elements:",
-            " the name of a factor in the design formula, the name",
+        stop(method, "\n", 
+            "contrast: please supply a character vector with exactly three",
+            " elements: the name of a factor in the design formula, the name",
             " of the numerator level for the fold change, and the name of the",
             " denominator level for the fold change.")
     else {
@@ -167,50 +206,55 @@ DA_DESeq2 <- function(object, pseudo_count = FALSE, design = NULL, contrast =
 #' @examples
 #' # Set some basic combinations of parameters for DESeq2
 #' base_DESeq2 <- set_DESeq2(design = ~ group, contrast = c("group", "B", "A"))
-#' # Set a specific set of normalization for DESeq2 (even of other packages!)
+#' # Set a specific set of normalization for DESeq2
 #' setNorm_DESeq2 <- set_DESeq2(design = ~ group, contrast =
-#'     c("group", "B", "A"), norm = c("TMM", "poscounts"))
-#' # Set many possible combinations of parameters for edgeR
+#'     c("group", "B", "A"), norm = c("ratio", "poscounts"))
+#' # Set many possible combinations of parameters for DESeq2
 #' all_DESeq2 <- set_DESeq2(pseudo_count = c(TRUE, FALSE), design = ~ group,
 #'     contrast = c("group", "B", "A"), weights_logical = c(TRUE,FALSE))
-set_DESeq2 <- function(pseudo_count = FALSE, design = NULL,
-    contrast = NULL, alpha = 0.05, norm = c("ratio", "poscounts", "iterate"),
-    weights_logical = FALSE, expand = TRUE) {
+set_DESeq2 <- function(assay_name = "counts", pseudo_count = FALSE, 
+    design = NULL, contrast = NULL, alpha = 0.05, norm = c("ratio", 
+    "poscounts", "iterate"), weights_logical = FALSE, expand = TRUE) {
     method <- "DA_DESeq2"
+    if (is.null(assay_name)) {
+        stop(method, "\n", "'assay_name' is required (default = 'counts').")
+    }
     if (!is.logical(pseudo_count) | !is.logical(weights_logical)) {
-        stop("'pseudo_count' and 'weights_logical' must be logical.")
+        stop(method, "\n", 
+            "'pseudo_count' and 'weights_logical' must be logical.")
     }
     if (is.null(design) | is.null(contrast)) {
-        stop("'design' and 'contrast' must be specified.")
+        stop(method, "\n", "'design' and 'contrast' must be specified.")
     }
     if (!is.character(design) & !is(design, "formula")){
-        stop("'design' should be a character or a formula.")
+        stop(method, "\n", "'design' should be a character or a formula.")
     } else design <- as.formula(design)
     if (!is.character(contrast) & length(contrast) != 3){
-        stop("Please supply a character vector with exactly three elements:",
-            " the name of a factor in the design formula, the name of the",
-            " numerator level for the fold change, and the name of the",
+        stop(method, "\n", 
+            "contrast: please supply a character vector with exactly three", 
+            " elements: the name of a factor in the design formula, the name",
+            " of the numerator level for the fold change, and the name of the",
             " denominator level for the fold change.")
     }
-    if (sum(!is.element(norm, c(
-        "ratio", "poscounts", "iterate", "none", "TSS"
-    ))) > 0) {
-        warning("One or more elements into 'norm' are not native to DESeq2")
+    if (sum(!is.element(norm, c("ratio", "poscounts", "iterate"))) > 0) {
+        warning(method, "\n", 
+            "One or more elements into 'norm' are not native to DESeq2")
     }
     if (expand) {
-        parameters <- expand.grid(method = method, pseudo_count = pseudo_count,
-            alpha = alpha, norm = norm, weights = weights_logical,
-            stringsAsFactors = FALSE)
+        parameters <- expand.grid(method = method, assay_name = assay_name, 
+            pseudo_count = pseudo_count, alpha = alpha, norm = norm, 
+            weights = weights_logical, stringsAsFactors = FALSE)
     } else {
         message("Some parameters may be duplicated to fill the matrix.")
-        parameters <- data.frame(method = method, pseudo_count = pseudo_count,
-            alpha = alpha, norm = norm, weights = weights_logical)
+        parameters <- data.frame(method = method, assay_name = assay_name, 
+            pseudo_count = pseudo_count, alpha = alpha, norm = norm, 
+            weights = weights_logical)
     }
     # data.frame to list
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("design" = deparse(design),
-                                         "contrast" = contrast), after = 2)
+                                         "contrast" = contrast), after = 3)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)

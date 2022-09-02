@@ -4,26 +4,30 @@
 \alias{norm_CSS}
 \title{norm_CSS}
 \usage{
-norm_CSS(object, method = "default", verbose = TRUE)
+norm_CSS(object, assay_name = "counts", method = "CSS", verbose = TRUE)
 }
 \arguments{
-\item{object}{phyloseq object containing the counts to be normalized.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
 
-\item{method}{normalization scaling parameter (default
-\code{method = "default"}). If \code{"median"}, the median of the
-normalization factors is used as scaling (Paulson et al. 2013).}
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
+\item{method}{normalization method to be used (only CSS).}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
-A new column containing the CSS scaling factors is added to the
-phyloseq \code{sample_data} slot.
+A new column containing the CSS normalization factors is added to 
+the \code{sample_data} slot of the phyloseq object or the \code{colData} 
+slot of the TreeSummarizedExperiment object.
 }
 \description{
-Calculate scaling factors from a phyloseq object to scale the raw library
-sizes. Inherited from metagenomeSeq `calcNormFactors` function which performs
-the Cumulative Sum Scaling normalization.
+Calculate normalization factors from a phyloseq or TreeSummarizedExperiment
+object. Inherited from metagenomeSeq 
+\code{\link[metagenomeSeq]{calcNormFactors}} function which performs the 
+Cumulative Sum Scaling normalization.
 }
 \examples{
 set.seed(1)
@@ -34,17 +38,20 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
 
-# Calculate the scaling factors
-ps_NF <- norm_CSS(object = ps, method = "median")
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.CSSmedian"]
-head(scaleFacts)
+# Calculate the normalization factors
+ps_NF <- norm_CSS(object = ps, method = "CSS")
+# The phyloseq object now contains the normalization factors:
+CSSFacts <- phyloseq::sample_data(ps_NF)[, "NF.CSS"]
+head(CSSFacts)
 
-# VERY IMPORTANT: to convert scaling factors to normalization factors
-# multiply them by the library sizes and renormalize.
-normFacts = scaleFacts * phyloseq::sample_sums(ps_stool_16S)
+# VERY IMPORTANT: metagenomeSeq uses scaling factors to normalize counts 
+# (even though they are called normalization factors). These factors are used
+# internally by a regression model. To make CSS size factors available for 
+# edgeR, we need to transform them into normalization factors. This is 
+# possible by dividing the factors for the library sizes and renormalizing. 
+normCSSFacts = CSSFacts / colSums(phyloseq::otu_table(ps_stool_16S))
 # Renormalize: multiply to 1
-normFacts = normFacts/exp(colMeans(log(normFacts)))
+normFacts = normCSSFacts/exp(colMeans(log(normCSSFacts)))
 }
 \seealso{
 \code{\link[metagenomeSeq]{calcNormFactors}} for details.

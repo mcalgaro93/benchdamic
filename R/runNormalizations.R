@@ -24,11 +24,11 @@
 #'     method = "TMM")
 checkNormalization <- function(fun, method, ...){
     normalization_list <- list(
-        norm_edgeR = c("TMM", "TMMwsp", "RLE", "upperquartile",
+        "norm_edgeR" = c("TMM", "TMMwsp", "RLE", "upperquartile",
             "posupperquartile", "none"),
-        norm_DESeq2 = c("ratio", "poscounts", "iterate"),
-        norm_CSS = c("median", "default"),
-        norm_TSS = "TSS"
+        "norm_DESeq2" = c("ratio", "poscounts", "iterate"),
+        "norm_CSS" = "CSS",
+        "norm_TSS" = "TSS"
     )
     if(length(fun) > 1 | length(method) > 1){
         stop("Plase supply only one normalization.")
@@ -65,8 +65,8 @@ checkNormalization <- function(fun, method, ...){
 #' my_normalizations <- c(my_normalizations,
 #'     myNormMethod1 = list("myNormMethod", "parameter1", "parameter2"))
 
-setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS",
-    "norm_edgeR"), method = c("TMM", "poscounts", "median", "none")){
+setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"), 
+    method = c("TMM", "poscounts", "CSS")){
     if(length(fun) != length(method)){
         stop("Numbers of methods and functions are different.")
     } else {
@@ -82,7 +82,7 @@ setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS",
 #'
 #' @param normalization_list a list object containing the normalization methods
 #' and their parameters.
-#' @param object a phyloseq object.
+#' @inheritParams get_counts_metadata
 #' @param verbose an optional logical value. If \code{TRUE}, information about
 #' the steps of the algorithm is printed. Default \code{verbose = TRUE}.
 #'
@@ -104,20 +104,27 @@ setNormalizations <- function(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS",
 #'
 #' # Add them to the phyloseq object
 #' ps <- runNormalizations(normalization_list = my_normalizations, object = ps)
-runNormalizations <- function(normalization_list, object, verbose = TRUE) {
+runNormalizations <- function(normalization_list, object, assay_name = "counts",
+    verbose = TRUE) {
+    is_phyloseq <- get_counts_metadata(object, assay_name = assay_name)[[3]]
+    if(!is_phyloseq & assay_name != "counts"){
+        warning("You are trying to compute normalization/size factors for the ",
+            assay_name, " assay. Go on if it contains raw counts, change",
+            " the 'assay_name' otherwise.")
+    }
     tryCatch(
         expr = {
             for(x in normalization_list){
                 fun <- as.character(x[["fun"]])
                 if(verbose)
-                    cat("      + Running now:", fun, "\n")
+                    message("      + Running now:", fun, "\n")
                 params <- unlist(lapply(x[-1], paste, collapse = "."))
                 param_names <- paste(names(x[-1]))
                 if(verbose)
-                    cat("        Parameters:", paste(param_names, "=", params,
-                        sep = "", collapse = ", "), "\n")
+                    message("        Parameters:", paste(param_names, "=", 
+                        params, sep = "", collapse = ", "), "\n")
                 args_list <- append(x = x[-1], values = list("object" = object,
-                    "verbose" = verbose), after = 0)
+                    "assay_name" = assay_name, "verbose" = verbose), after = 0)
                 object <- do.call(what = fun, args = args_list)
             }
             return(object)

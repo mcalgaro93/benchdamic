@@ -5,23 +5,23 @@
 \title{fitModels}
 \usage{
 fitModels(
-  counts,
+  object,
+  assay_name = "counts",
   models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
-  scale_ZIG = c("default", "median"),
   scale_HURDLE = c("default", "median"),
   verbose = TRUE
 )
 }
 \arguments{
-\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
-ASVs, genes) by row and samples by column.}
+\item{object}{a phyloseq object, a TreeSummarizedExperiment object, or a 
+matrix of counts.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{models}{character vector which assumes the values \code{NB},
 \code{ZINB}, \code{DM}, \code{ZIG}, and \code{HURDLE}.}
-
-\item{scale_ZIG}{character vector, either \code{median} or \code{default} to
-choose between the median of the library size or one thousand to scale
-normalization factors for the zero-inflated gaussian model.}
 
 \item{scale_HURDLE}{character vector, either \code{median} or \code{default}
 to choose between the median of the library size or one million to scale raw
@@ -46,11 +46,10 @@ data and computes the mean difference (MD) and zero probability difference
 counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
 # Estimate the counts assuming several distributions
 GOF <- fitModels(
-    counts = counts, models = c(
+    object = counts, models = c(
         "NB", "ZINB",
         "DM", "ZIG", "HURDLE"
-    ), scale_ZIG = c("median", "default"), scale_HURDLE =
-        c("median", "default")
+    ), scale_HURDLE = c("median", "default")
 )
 
 head(GOF)

@@ -1,6 +1,5 @@
 #' @title DA_limma
 #'
-#' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom limma voom lmFit eBayes topTable
 #' @importFrom stats model.matrix weights
 #' @export
@@ -28,50 +27,89 @@
 #'                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 #'                          phyloseq::sample_data(metadata))
-#' # Calculate the TMM scaling factors
+#' # Calculate the TMM normalization factors
 #' ps_NF <- norm_edgeR(object = ps, method = "TMM")
-#' # The phyloseq object now contains the scaling factors:
-#' scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
-#' head(scaleFacts)
+#' # The phyloseq object now contains the normalization factors:
+#' normFacts <- phyloseq::sample_data(ps_NF)[, "NF.TMM"]
+#' head(normFacts)
 #' # Differential abundance
 #' DA_limma(object = ps_NF, pseudo_count = FALSE, design = ~ group, coef = 2,
 #'     norm = "TMM")
 
-DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
-    norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
-        "none", "ratio", "poscounts", "iterate", "TSS", "CSSmedian",
-        "CSSdefault"), weights, verbose = TRUE){
-    # Check the orientation
-    if (!phyloseq::taxa_are_rows(object))
-        object <- t(object)
-    # Slot extraction of phyloseq object
-    counts <- as(phyloseq::otu_table(object), "matrix")
-    metadata <- phyloseq::sample_data(object)
+DA_limma <- function(object, assay_name = "counts", pseudo_count = FALSE, 
+    design = NULL, coef = 2, norm = c("TMM", "TMMwsp", "RLE", "upperquartile", 
+    "posupperquartile", "none"), weights, verbose = TRUE){
+    counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
+    counts <- counts_and_metadata[[1]]
+    libSizes <- colSums(counts)
+    metadata <- counts_and_metadata[[2]]
+    is_phyloseq <- counts_and_metadata[[3]]
     # Name building
     name <- "limma"
+    method <- "DA_limma"
     # add 1 if any zero counts
     if (any(counts == 0) & pseudo_count){
         if(verbose)
             message("Adding a pseudo count... \n")
         counts <- counts + 1
         name <- paste(name,".pseudo",sep = "")}
+    # Check the assay
+    if (!is_phyloseq){
+        if(verbose)
+            message("Using the ", assay_name, " assay.")
+        name <- paste(name, ".", assay_name, sep = "")
+    } 
     if(length(norm) > 1)
-        stop("Please choose one normalization for this istance of differential
-        abundance analysis.")
-    if(norm == "TSS")
-        NFs = 1
-    else {
-        # Check if the column with the normalization factors is present
-        NF.col <- paste("NF", norm, sep = ".")
-        if(!any(colnames(metadata) == NF.col))
-            stop("Can't find the ", NF.col," column in your object.",
-                " Make sure to add the normalization factors column in your",
-                " object first.")
-        NFs = unlist(metadata[,NF.col])
-        # DESeq2 NFs are supplied -> make them scaling factors!
-        if(is.element(norm, c("ratio", "poscounts", "iterate")))
-            NFs <- NFs/colSums(counts)
-        NFs = NFs/exp(mean(log(NFs)))} # Make NFs multiply to 1
+        stop(method, "\n", 
+            "norm: please choose one normalization for this istance of",
+            " differential abundance analysis.")
+    # Check if the column with the normalization factors is present
+    NF.col <- paste("NF", norm, sep = ".")
+    if (!any(colnames(metadata) == NF.col)) {
+        stop(method, "\n", 
+             "norm: can't find the ", NF.col," column in your object.",
+             " Make sure to add the normalization factors column in your",
+             " object first.")
+    }
+    NFs <- unlist(metadata[, NF.col])
+    # Check for implemented normalizations
+    this_norms <- c("TMM", "TMMwsp", "RLE", "upperquartile", 
+        "posupperquartile", "none")
+    other_norms <- c("poscounts", "ratio", "iterate", "CSS", "TSS")
+    if(!is.element(norm, this_norms)) {
+        if(verbose){
+            warning(method, "\n", norm, " normalization is not a native edgeR",
+                " normalization. Make sure you know what you are doing,", 
+                " otherwise choose between 'TMM', 'TMMwsp', 'RLE',", 
+                " 'upperquartile', 'posupperquartile', or 'none'.")
+        } 
+        if(is.element(norm, other_norms)){
+            if(verbose)
+                message("Automatically converting NF.", norm, 
+                    " scaling/size factors to normalization factors.")
+            if(norm == "TSS"){
+                NFs <- 1
+                if(verbose)
+                    message("'TSS' normalization: automatically setting NFs", 
+                        " to ones.")
+            } else {
+                NFs <- (NFs/libSizes)/exp(mean(log(NFs/libSizes)))
+            }
+        } else {
+            if(prod(NFs) != 1){
+                stop(method, "\n", 
+                    "norm: the custom normalization factors do not multiply",
+                    " to 1. Make sure that the provided NF.", norm, " factors",
+                    " are compatible with edgeR normalization factors.")
+            } else {
+                if(verbose){
+                    warning(method, "\n", 
+                        "Make sure that the provided NF.", norm, " factors", 
+                        " are compatible with edgeR normalization factors.")
+                } 
+            }
+        }
+    }
     name <- paste(name, ".", norm, sep = "")
     if(verbose)
         message("Differential abundance on ", norm," normalized data")
@@ -82,8 +120,8 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
     if(is(design, "formula"))
         design <- stats::model.matrix(object = design, data = data.frame(
             metadata))
-    v <- limma::voom(counts = counts, design = design, lib.size = colSums(
-        counts) * NFs, plot = FALSE)
+    v <- limma::voom(counts = counts, design = design, 
+        lib.size = libSizes * NFs, plot = FALSE)
     if(missing(weights)){
         if(verbose)
             message("Estimating Differential Abundance without weighting")
@@ -106,7 +144,7 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
         message("Extracting results for ", colnames(coef(fit[, coef])),
             " coefficient")
     statInfo <- limma::topTable(fit, coef = coef, n = nrow(counts), sort.by =
-                                    "none")
+        "none")
     pValMat <- statInfo[, c("P.Value", "adj.P.Val")]
     colnames(pValMat) <- c("rawP", "adjP")
     return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
@@ -135,43 +173,47 @@ DA_limma <- function(object, pseudo_count = FALSE, design = NULL, coef = 2,
 #' base_limma <- set_limma(design = ~ group, coef = 2)
 #' # Set a specific set of normalization for limma (even of other packages!)
 #' setNorm_limma <- set_limma(design = ~ group, coef = 2,
-#'     norm = c("TMM", "poscounts"))
+#'     norm = c("TMM", "upperquartile"))
 #' # Set many possible combinations of parameters for limma
 #' all_limma <- set_limma(pseudo_count = c(TRUE, FALSE), design = ~ group,
-#'     coef = 2, weights_logical = c(TRUE,FALSE))
+#'     coef = 2, weights_logical = c(TRUE, FALSE))
 
-set_limma <- function(pseudo_count = FALSE, design = NULL, coef = 2,
-    norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile",
-        "none"), weights_logical = FALSE, expand = TRUE) {
+set_limma <- function(assay_name = "counts", pseudo_count = FALSE, 
+    design = NULL, coef = 2, norm = c("TMM", "TMMwsp", "RLE", "upperquartile", 
+    "posupperquartile", "none"), weights_logical = FALSE, expand = TRUE) {
     method <- "DA_limma"
+    if (is.null(assay_name)) {
+        stop(method, "\n", "'assay_name' is required (default = 'counts').")
+    }
     if (!is.logical(pseudo_count) | !is.logical(weights_logical)) {
-        stop("'pseudo_count' and 'weights_logical' must be logical.")
+        stop(method, "\n", 
+            "'pseudo_count' and 'weights_logical' must be logical.")
     }
     if (is.null(design) | is.null(coef)) {
-        stop("'design', and 'coef' are required.")
+        stop(method, "\n", "'design', and 'coef' are required.")
     }
     if (!is.character(design) & !is(design, "formula")){
-        stop("'design' should be a character or a formula.")
+        stop(method, "\n", "'design' should be a character or a formula.")
     } else design <- as.formula(design)
-    if (sum(!is.element(norm, c(
-        "TMM", "TMMwsp", "RLE", "upperquartile",
-        "posupperquartile", "none", "TSS"
-    ))) > 0) {
-        warning("One or more elements into 'norm' are not native to edgeR.")
+    if (sum(!is.element(norm, c("TMM", "TMMwsp", "RLE", "upperquartile", 
+        "posupperquartile", "none"))) > 0) {
+        warning(method, "\n", 
+            "One or more elements into 'norm' are not native to edgeR.")
     }
     if (expand) {
-        parameters <- expand.grid(method = method, pseudo_count = pseudo_count,
-            norm = norm, weights = weights_logical, stringsAsFactors = FALSE)
+        parameters <- expand.grid(method = method, assay_name = assay_name,
+            pseudo_count = pseudo_count, norm = norm, weights = weights_logical,
+            stringsAsFactors = FALSE)
     } else {
         message("Some parameters may be duplicated to fill the matrix.")
-        parameters <- data.frame(method = method, pseudo_count = pseudo_count,
-            norm = norm, weights = weights_logical)
+        parameters <- data.frame(method = method, assay_name = assay_name,
+            pseudo_count = pseudo_count, norm = norm, weights = weights_logical)
     }
     # data.frame to list
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
     out <- lapply(X = out, FUN = function(x){
         x <- append(x = x, values = list("design" = deparse(design),
-                                         "coef" = coef), after = 2)
+                                         "coef" = coef), after = 3)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)

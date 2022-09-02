@@ -53,22 +53,30 @@ priorInfo$Type <- factor(priorInfo$Type)
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), priorInfo[, "GENUS"])
 
 # DA Analysis
+
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
+    
 # Add scaling factors
 ps_plaque_16S <- norm_edgeR(object = ps_plaque_16S, method = "TMM")
+
 # DA analysis
 da.limma <- DA_limma(
     object = ps_plaque_16S,
-    design = ~ 1 + HMP_BODY_SUBSITE,
-    coef = 2,
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE,
+    coef = "HMP_BODY_SUBSITESupragingival Plaque",
     norm = "TMM"
 )
 
 DA <- getDA(method = da.limma, slot = "pValMat", colName = "adjP",
     type = "pvalue", direction = "logFC", threshold_pvalue = 0.05,
     threshold_logfc = 1, top = NULL)
+    
 # Add a priori information
 DA_info <- addKnowledge(method = DA, priorKnowledge = priorInfo,
     enrichmentCol = "Type", namesCol = "newNames")
+    
 # Create contingency tables and compute F tests
 DA_info_enriched <- enrichmentTest(method = DA_info, enrichmentCol = "Type",
     alternative = "greater")

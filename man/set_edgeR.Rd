@@ -5,6 +5,7 @@
 \title{set_edgeR}
 \usage{
 set_edgeR(
+  assay_name = "counts",
   pseudo_count = FALSE,
   group_name = NULL,
   design = NULL,
@@ -16,6 +17,10 @@ set_edgeR(
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
@@ -30,10 +35,15 @@ robustified against outliers?}
 \item{coef}{integer or character index vector indicating which coefficients
 of the linear model are to be tested equal to zero.}
 
-\item{norm}{name of the normalization method used to compute the
-scaling factors to use in the differential abundance analysis. If \code{norm}
-is equal to "ratio", "poscounts", or "iterate" the normalization factors are
-automatically transformed into scaling factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose between the native edgeR normalization methods, 
+such as \code{TMM}, \code{TMMwsp}, \code{RLE}, \code{upperquartile}, 
+\code{posupperquartile}, or \code{none}. Alternatively (only for advanced 
+users), if \code{norm} is equal to "ratio", "poscounts", or "iterate" from 
+\code{\link{norm_DESeq2}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+\code{\link{norm_TSS}}, the scaling factors are automatically transformed 
+into normalization factors. If custom factors are supplied, make sure they 
+are compatible with edgeR normalization factors.}
 
 \item{weights_logical}{logical vector, if true a matrix of observation
 weights must be supplied (default \code{weights_logical = FALSE}).}
@@ -52,14 +62,14 @@ Set the parameters for edgeR differential abundance detection method.
 # Set some basic combinations of parameters for edgeR
 base_edgeR <- set_edgeR(group_name = "group", design = ~ group, coef = 2)
 
-# Set a specific set of normalization for edgeR (even of other packages!)
+# Set a specific set of normalization for edgeR
 setNorm_edgeR <- set_edgeR(group_name = "group", design = ~ group, coef = 2,
-    norm = c("TMM", "poscounts"))
+    norm = c("TMM", "RLE"))
 
 # Set many possible combinations of parameters for edgeR
 all_edgeR <- set_edgeR(pseudo_count = c(TRUE, FALSE), group_name = "group",
     design = ~ group, robust = c(TRUE, FALSE), coef = 2,
-    weights_logical = c(TRUE,FALSE))
+    weights_logical = c(TRUE, FALSE))
 }
 \seealso{
 \code{\link{DA_edgeR}}

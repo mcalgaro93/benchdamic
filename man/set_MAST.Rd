@@ -5,15 +5,19 @@
 \title{set_MAST}
 \usage{
 set_MAST(
+  assay_name = "counts",
   pseudo_count = FALSE,
   rescale = c("median", "default"),
   design = NULL,
   coefficient = NULL,
-  norm = "TSS",
   expand = TRUE
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
@@ -28,12 +32,6 @@ object.}
 variable name and the non reference level. (e.g.: 'ConditionDisease' if the
 reference level for the variable 'Condition' is 'control').}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
-
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE})}
 }
@@ -47,13 +45,9 @@ Set the parameters for MAST differential abundance detection method.
 \examples{
 # Set some basic combinations of parameters for MAST
 base_MAST <- set_MAST(design = ~ group, coefficient = "groupB")
-# Set a specific set of normalization for MAST (even of other packages!)
-setNorm_MAST <- set_MAST(design = ~ group, coefficient = "groupB",
-    norm = c("TSS", "poscounts", "TMM"))
 # Set many possible combinations of parameters for MAST
 all_MAST <- set_MAST(pseudo_count = c(TRUE, FALSE), rescale = c("median",
-    "default"), design = ~ group, coefficient = "groupB", norm = c("TSS",
-    "poscounts"))
+    "default"), design = ~ group, coefficient = "groupB")
 }
 \seealso{
 \code{\link{DA_MAST}}

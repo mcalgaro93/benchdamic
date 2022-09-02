@@ -5,43 +5,66 @@
 \title{set_ALDEx2}
 \usage{
 set_ALDEx2(
+  assay_name = "counts",
   pseudo_count = FALSE,
-  conditions = NULL,
+  design = NULL,
   mc.samples = 128,
   test = "t",
-  denom = "iqlr",
-  norm = "TSS",
+  paired.test = FALSE,
+  denom = "all",
+  contrast = NULL,
   expand = TRUE
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{conditions}{A character vector. A description of the data structure used
-for testing. Typically, a vector of group labels. For \code{aldex.glm}, use
-a \code{model.matrix}.}
+\item{design}{a character with the name of a variable to group samples and 
+compare them or a formula to compute a model.matrix (when 
+\code{test = "glm"}).}
 
-\item{mc.samples}{An integer. The number of Monte Carlo samples to use when
+\item{mc.samples}{an integer. The number of Monte Carlo samples to use when
 estimating the underlying distributions. Since we are estimating central
 tendencies, 128 is usually sufficient.}
 
-\item{test}{A character string. Indicates which tests to perform. "t" runs
-Welch's t test while "wilcox" runs Wilcoxon test.}
+\item{test}{a character string. Indicates which tests to perform. "t" runs
+Welch's t test while "wilcox" runs Wilcoxon test. "kw" runs 
+Kruskal-Wallace test while "kw_glm" runs glm ANOVA-like test. "glm" runs a 
+generalized linear model.}
 
-\item{denom}{A character string. Indicates which features to retain as the
-denominator for the Geometric Mean calculation. Using "iqlr" accounts for
-data with systematic variation and centers the features on the set features
-that have variance that is between the lower and upper quartile of variance.
-Using "zero" is a more extreme case where there are many non-zero features in
-one condition but many zeros in another. In this case the geometric mean of
-each group is calculated using the set of per-group non-zero features.}
+\item{paired.test}{A boolean. Toggles whether to do paired-sample tests.
+Applies to \code{effect = TRUE} and \code{test = "t"}.}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
+\item{denom}{
+          An \code{any} variable (all, iqlr, zero, lvha, median, user) indicating
+          features to use as the denominator for the Geometric Mean calculation
+          The default "all" uses the geometric mean abundance of all features.
+          Using "median" returns the median abundance of all features.
+          Using "iqlr" uses the features that are between the first and third
+          quartile of the variance of the clr values across all samples.
+          Using "zero" uses the non-zero features in each grop
+          as the denominator. This approach is an extreme case where there are
+          many nonzero features in one condition but many zeros in another. Using
+          "lvha" uses features that have low variance (bottom quartile) and high
+          relative abundance (top quartile in every sample). It is also
+          possible to supply a vector of row indices to use as the denominator.
+          Here, the experimentalist is determining a-priori which rows are thought
+          to be invariant. In the case of RNA-seq, this could include ribosomal
+          protein genes and and other house-keeping genes. This should be used
+          with caution because the offsets may be different in the original data
+          and in the data used by the function because features that are 0 in all
+          samples are removed by \code{aldex.clr}.
+      }
+
+\item{contrast}{character vector with exactly three elements: the name of a
+variable used in "design", the name of the level of interest, and the 
+name of the reference level. If "kw" or "kw_glm" as test, contrast vector is
+not used.}
 
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE})}
@@ -55,13 +78,15 @@ Set the parameters for ALDEx2 differential abundance detection method.
 }
 \examples{
 # Set some basic combinations of parameters for ALDEx2
-base_ALDEx2 <- set_ALDEx2(conditions = "group")
+base_ALDEx2 <- set_ALDEx2(design = "group", 
+    contrast = c("group", "grp2", "grp1"))
 # Set a specific set of normalization for ALDEx2 (even of other
 # packages!)
-setNorm_ALDEx2 <- set_ALDEx2(conditions = "group", norm = c("TSS", "TMM"))
+setNorm_ALDEx2 <- set_ALDEx2(design = "group", 
+    contrast = c("group", "grp2", "grp1"))
 # Set many possible combinations of parameters for ALDEx2
-all_ALDEx2 <- set_ALDEx2(conditions = "group", denom = c("iqlr", "zero"),
-    test = c("t", "wilcox"))
+all_ALDEx2 <- set_ALDEx2(design = "group", denom = c("iqlr", "zero"),
+    test = c("t", "wilcox"), contrast = c("group", "grp2", "grp1"))
 }
 \seealso{
 \code{\link{DA_ALDEx2}}

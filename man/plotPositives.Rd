@@ -30,8 +30,7 @@ genera <- phyloseq::tax_table(ps_plaque_16S)[, "GENUS"]
 rownames(microbial_metabolism) <- microbial_metabolism$Genus
 # Match OTUs to their metabolism
 priorInfo <- data.frame(genera,
-    "Type" = microbial_metabolism[genera, "Type"]
-)
+    "Type" =  microbial_metabolism[genera, "Type"])
 # Unmatched genera becomes "Unknown"
 unknown_metabolism <- is.na(priorInfo$Type)
 priorInfo[unknown_metabolism, "Type"] <- "Unknown"
@@ -39,41 +38,34 @@ priorInfo$Type <- factor(priorInfo$Type)
 # Add a more informative names column
 priorInfo[, "newNames"] <- paste0(rownames(priorInfo), priorInfo[, "GENUS"])
 
-# DA analysis
-# Add scaling factors
-ps_plaque_16S <- norm_edgeR(object = ps_plaque_16S, method = "TMM")
-ps_plaque_16S <- norm_CSS(object = ps_plaque_16S, method = "median")
+# Add some normalization/scaling factors to the phyloseq object
+my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
+    method = c("TMM", "CSS"))
+ps_plaque_16S <- runNormalizations(normalization_list = my_norm,
+    object = ps_plaque_16S)
+# Initialize some limma based methods
+my_limma <- set_limma(design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque",
+    norm = c("TMM", "CSS"))
 
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
+    
 # Perform DA analysis
-Plaque_16S_DA <- list()
-Plaque_16S_DA <- within(Plaque_16S_DA, {
-    # DA analysis
-    da.limma <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "TMM"
-    )
-    da.limma.css <- DA_limma(
-        object = ps_plaque_16S,
-        design = ~ 1 + HMP_BODY_SUBSITE,
-        coef = 2,
-        norm = "CSSmedian"
-    )
-})
+Plaque_16S_DA <- runDA(method_list = my_limma, object = ps_plaque_16S)
 
 # Count TPs and FPs, from the top 1 to the top 20 features.
 # As direction is supplied, features are ordered by "logFC" absolute values.
-positives <- createPositives(
-    object = Plaque_16S_DA,
-    priorKnowledge = priorInfo, enrichmentCol = "Type",
-    namesCol = "newNames", slot = "pValMat", colName = "rawP",
-    type = "pvalue", direction = "logFC", threshold_pvalue = 1,
-    threshold_logfc = 0, top = 1:20, alternative = "greater",
+positives <- createPositives(object = Plaque_16S_DA,
+    priorKnowledge = priorInfo, enrichmentCol = "Type", 
+    namesCol = "newNames", slot = "pValMat", colName = "rawP", 
+    type = "pvalue", direction = "logFC", threshold_pvalue = 1, 
+    threshold_logfc = 0, top = 1:20, alternative = "greater", 
     verbose = FALSE,
     TP = list(c("DOWN Abundant", "Anaerobic"), c("UP Abundant", "Aerobic")),
-    FP = list(c("DOWN Abundant", "Aerobic"), c("UP Abundant", "Anaerobic"))
-)
+    FP = list(c("DOWN Abundant", "Aerobic"), c("UP Abundant", "Anaerobic")))
+
 # Plot the TP-FP differences for each threshold
 plotPositives(positives = positives)
 }

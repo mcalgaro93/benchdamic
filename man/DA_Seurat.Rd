@@ -6,78 +6,83 @@
 \usage{
 DA_Seurat(
   object,
+  assay_name = "counts",
   pseudo_count = FALSE,
-  test.use = "wilcox",
+  norm = "LogNormalize",
+  scale.factor = 10000,
+  test = "wilcox",
   contrast,
-  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
   verbose = TRUE
 )
 }
 \arguments{
-\item{object}{phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{test.use}{Denotes which test to use. Available options are:
-\itemize{
- \item{"wilcox"} : Identifies differentially expressed genes between two
- groups of cells using a Wilcoxon Rank Sum test (default)
- \item{"bimod"} : Likelihood-ratio test for single cell gene expression,
- (McDavid et al., Bioinformatics, 2013)
- \item{"roc"} : Identifies 'markers' of gene expression using ROC analysis.
- For each gene, evaluates (using AUC) a classifier built on that gene alone,
- to classify between two groups of cells. An AUC value of 1 means that
- expression values for this gene alone can perfectly classify the two
- groupings (i.e. Each of the cells in cells.1 exhibit a higher level than
- each of the cells in cells.2). An AUC value of 0 also means there is perfect
- classification, but in the other direction. A value of 0.5 implies that
- the gene has no predictive power to classify the two groups. Returns a
- 'predictive power' (abs(AUC-0.5) * 2) ranked matrix of putative differentially
- expressed genes.
- \item{"t"} : Identify differentially expressed genes between two groups of
- cells using the Student's t-test.
- \item{"negbinom"} : Identifies differentially expressed genes between two
-  groups of cells using a negative binomial generalized linear model.
-  Use only for UMI-based datasets
- \item{"poisson"} : Identifies differentially expressed genes between two
-  groups of cells using a poisson generalized linear model.
-  Use only for UMI-based datasets
- \item{"LR"} : Uses a logistic regression framework to determine differentially
- expressed genes. Constructs a logistic regression model predicting group
- membership based on each feature individually and compares this to a null
- model with a likelihood ratio test.
- \item{"MAST"} : Identifies differentially expressed genes between two groups
- of cells using a hurdle model tailored to scRNA-seq data. Utilizes the MAST
- package to run the DE testing.
- \item{"DESeq2"} : Identifies differentially expressed genes between two groups
- of cells based on a model using DESeq2 which uses a negative binomial
- distribution (Love et al, Genome Biology, 2014).This test does not support
- pre-filtering of genes based on average difference (or percent detection rate)
- between cell groups. However, genes may be pre-filtered based on their
- minimum detection rate (min.pct) across both cell groups. To use this method,
- please install DESeq2, using the instructions at
- https://bioconductor.org/packages/release/bioc/html/DESeq2.html
-}}
+\item{norm}{Method for normalization. 
+\itemize{\item{\code{LogNormalize}}{ Feature counts for each sample are 
+divided by the total counts of that sample and multiplied by the 
+scale.factor. This is then natural-log transformed using log1p;}
+\item{\code{CLR}}{ Applies a centered log ratio transformation;}
+\item{\code{RC}}{ Relative counts. Feature counts for each sample are 
+divided by the total counts of that sample and multiplied by the 
+scale.factor. No log-transformation is applied. For counts per million 
+(CPM) set scale.factor = 1e6;}
+\item{\code{none}}{ No normalization}}}
+
+\item{scale.factor}{Sets the scale factor for cell-level normalization}
+
+\item{test}{Denotes which test to use. Available options are:
+\itemize{\item{\code{"wilcox"}}{ Identifies differentially abundant 
+features between two groups of samples using a Wilcoxon Rank Sum test 
+(default).}
+\item{\code{"bimod"}}{ Likelihood-ratio test for the feature abundances, 
+(McDavid et al., Bioinformatics, 2013).}
+\item{\code{"roc"}}{ Identifies 'markers' of feature abundance using ROC 
+analysis. For each feature, evaluates (using AUC) a classifier built on that 
+feature alone, to classify between two groups of cells. An AUC value of 1 
+means that abundance values for this feature alone can perfectly classify the
+two groupings (i.e. Each of the samples in group.1 exhibit a higher level 
+than each of the samples in group.2). An AUC value of 0 also means there is 
+perfect classification, but in the other direction. A value of 0.5 implies 
+that the feature has no predictive power to classify the two groups. Returns 
+a 'predictive power' (abs(AUC-0.5) * 2) ranked matrix of putative 
+differentially expressed genes.}
+\item{\code{"t"}}{ Identify differentially abundant features between two 
+groups of samples using the Student's t-test.}
+\item{\code{"negbinom"}}{ Identifies differentially abundant features 
+between two groups of samples using a negative binomial generalized linear 
+model.}
+\item{\code{"poisson"}}{ Identifies differentially abundant features between 
+two groups of samples using a poisson generalized linear model.}
+\item{\code{"LR"}}{ Uses a logistic regression framework to determine 
+differentially abundant features. Constructs a logistic regression model 
+predicting group membership based on each feature individually and compares 
+this to a null model with a likelihood ratio test.}
+\item{\code{"MAST"}}{ Identifies differentially expressed genes between two 
+groups of cells using a hurdle model tailored to scRNA-seq data. Utilizes 
+the MAST package to run the DE testing.}
+\item{\code{"DESeq2"}}{ Identifies differentially abundant features between 
+two groups of samples based on a model using DESeq2 which uses a negative 
+binomial distribution (Love et al, Genome Biology, 2014).}}}
 
 \item{contrast}{character vector with exactly three elements: the name of a
 factor in the design formula, the name of the numerator level for the fold
 change, and the name of the denominator level for the fold change.}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
-
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
-A list object containing the matrix of p-values `pValMat`, the matrix
-of summary statistics for each tag `statInfo`, and a suggested `name` of the
-final object considering the parameters passed to the function.
+A list object containing the matrix of p-values `pValMat`, the 
+matrix of summary statistics for each tag `statInfo`, and a suggested `name` 
+of the final object considering the parameters passed to the function.
 }
 \description{
 Fast run for Seurat differential abundance detection method.
@@ -90,13 +95,13 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
-# No use of scaling factors
-ps_NF <- norm_edgeR(object = ps, method = "none")
-# The phyloseq object now contains the scaling factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.none"]
-head(scaleFacts)
+                         
 # Differential abundance
-DA_Seurat(object = ps_NF, contrast = c("group","B","A"), norm = "none")
+DA_Seurat(object = ps, contrast = c("group","B","A"))
+
+# Perform a simple Wilcoxon test using Seurat on raw data
+DA_Seurat(object = ps, contrast = c("group","B","A"), norm = "none", 
+    test = "wilcox")
 }
 \seealso{
 \code{\link[Seurat]{CreateSeuratObject}} to create the Seurat

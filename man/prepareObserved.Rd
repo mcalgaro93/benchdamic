@@ -4,11 +4,15 @@
 \alias{prepareObserved}
 \title{prepareObserved}
 \usage{
-prepareObserved(counts, scale = NULL)
+prepareObserved(object, assay_name = "counts", scale = NULL)
 }
 \arguments{
-\item{counts}{a phyloseq object or a matrix of counts with features (OTUs,
-ASVs, genes) by row and samples by column.}
+\item{object}{a phyloseq object, a TreeSummarizedExperiment object, or a 
+matrix of counts.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{scale}{If specified it refers to the character vector used in
 \code{\link{fitHURDLE}} function. Either \code{median} or \code{default} to

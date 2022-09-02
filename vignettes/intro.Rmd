@@ -24,14 +24,15 @@ csl: bioinformatics.csl
 -->
 ```
 ```{r options, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(warning = FALSE, error = FALSE, message = FALSE, dev = switch(output(), html = "svg", latex = "pdf"))
+knitr::opts_chunk$set(warning = FALSE, error = FALSE, message = FALSE, 
+    dev = switch(output(), html = "svg", latex = "pdf"))
 ```
 
 # Introduction
 
 This vignette provides an introductory example on how to work with the analysis framework firstly proposed in [@calgaro].
 
-The package is named benchdamic, acronym for “BENCHmarking of Differential Abundance detection methods for MICrobial data”. Not only does the package structure allow the users to test a variety of commonly used methods for differential abundance analysis, but it also enables them to set benchmarks including custom methods on their datasets. Performances of each method are evaluated with respect to i) suitability of distributional assumptions, ii) ability to control false discoveries, iii) concordance of the findings, and iv) enrichment of differentially abundant microbial species in specific conditions. Each step of the assessment is flexible when it comes to the choice of differential abundance methods, their parameters, and input data types. Various graphic outputs lead the users to an informed decision when evaluating the most suitable method to use for their data.
+The package is named benchdamic, acronym for "BENCHmarking of Differential Abundance detection methods for MICrobial data". Not only does the package structure allow the users to test a variety of commonly used methods for differential abundance analysis, but it also enables them to set benchmarks including custom methods on their datasets. Performances of each method are evaluated with respect to i) suitability of distributional assumptions, ii) ability to control false discoveries, iii) concordance of the findings, and iv) enrichment of differentially abundant microbial species in specific conditions. Each step of the assessment is flexible when it comes to the choice of differential abundance methods, their parameters, and input data types. Various graphic outputs lead the users to an informed decision when evaluating the most suitable method to use for their data.
 
 # Installation
 
@@ -48,12 +49,16 @@ Then, load some packages for basic functions and data.
 
 ```{r load_packs}
 library(benchdamic)
+# Generate simulated data
+library(SPsimSeq)
 # Data management
 library(phyloseq)
+library(SummarizedExperiment)
 library(plyr)
-# Graphics
+# Graphics and tables
 library(ggplot2)
 library(cowplot)
+library(kableExtra)
 ```
 
 # Goodness of Fit
@@ -62,41 +67,41 @@ library(cowplot)
 
 We consider a homogeneous group of samples (e.g. only samples from a specific experimental condition, phenotype, treatment, body site...).
 
-In this demonstrative example, datasets are downloaded from the `HMP16SData` Bioconductor package [@HMP16SData].
-
 ```{r dataloading}
 data("ps_stool_16S")
 ps_stool_16S
 ```
+
+In this demonstrative example, datasets are downloaded from the `HMP16SData` Bioconductor package [@HMP16SData].
 
 ```{r 16S_stool_download, eval=FALSE, include=FALSE}
 ## 16S HMP data download
 library(HMP16SData)
 # Extracting V3-V5 16S sequenced regions' count data
 ps_stool_16S_raw <- V35() %>%
-  subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
-    RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
-    SEX == "Male" & # Only male subject
-    VISITNO == 1 & # Only the first visit
-    !duplicated(RSID)) %>% # Duplicated SubjectID removal
-  as_phyloseq()
+    subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
+        RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
+        SEX == "Male" & # Only male subject
+        VISITNO == 1 & # Only the first visit
+        !duplicated(RSID)) %>% # Duplicated SubjectID removal
+    as_phyloseq()
 # Remove low depth samples
-ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, ps_stool_16S_raw)
+ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, 
+    ps_stool_16S_raw)
 # Remove features with zero counts
 ps_stool_16S_filtered <- filter_taxa(ps_stool_16S_pruned, function(x) {
-  sum(x > 0) > 0
-}, 1)
+    sum(x > 0) > 0}, 1)
 # Collapse counts to the genus level
 ps_stool_16S <- tax_glom(ps_stool_16S_filtered, taxrank = "GENUS")
 ```
 
 ## GOF structure
 
-As different methods rely on different statistical distributions to perform DA analysis, we assess the goodness of fit (GOF) of the statistical models underlying each method on a 16S dataset. For each model, we evaluate its ability to correctly estimate the average counts and the proportion of zeroes by taxon.
+As different methods rely on different statistical distributions to perform DA analysis, we assess the goodness of fit (GOF) of the statistical models underlying some of the DA methods on a 16S dataset. For each model, we evaluate its ability to correctly estimate the average counts and the proportion of zeroes by taxon.
 
 We consider five distributions: (1) the negative binomial (NB) used in edgeR and DeSeq2 [@edger; @deseq2], (2) the zero-inflated negative binomial (ZINB) used in ZINB-WaVE [@zinbwave], (3) the truncated Gaussian Hurdle model of MAST [@mast], (4) the zero-inflated Gaussian (ZIG) mixture model of metagenomeSeq [@zig], and (5) the Dirichlet-Multinomial (DM) distribution underlying ALDEx2 [@aldex2].
 
-The relationships between the functions used in this section are explained by the diagram in Figure \@ref(fig:figGOF).
+The relationships between the functions used in this section are explained by the diagram in Figure \@ref(fig:figGOF). To help with the reading: green boxes represent the inputs or the outputs, red boxes are the methods and blue boxes are the main parameters of those method.
 
 ```{r figGOF, eval=TRUE, echo=FALSE, message=FALSE, error=FALSE, warning=FALSE, fig.cap="Goodness of Fit diagram."}
 knitr::include_graphics("./GOF_structure.svg")
@@ -128,7 +133,7 @@ The raw count for sample j and feature i is denoted by $c_{ij}$. The zero-inflat
 
 The mean model is specified as:$$E(y_{ij})=\pi_{j} + (1-\pi_j)\cdot\left(b_{i0}+\eta_ilog_2\left( \frac{s_j^{\hat{l}}}{N}+1 \right) \right)$$
 
-In this case, parameter $b_{i0}$ is the intercept of the model while the term including the logged normalization factor $log_2\left(\frac{s_j^{\hat{l}}}{N}+1 \right)$ captures feature-specific normalization factors through parameter $\eta_i$. In details, $s_j^{\hat{l}}$ is the median scaling factor resulted from the Cumulative Sum Scaling (CSS) normalization procedure. $N$ is a constant fixed by default at 1000 but it should be a number close to the scaling factors to be used as a reference, for this reason a good choice could be the median of the scaling factors. The mixture parameters $\pi_j(s_j)$ are modeled as a binomial process:
+In this case, parameter $b_{i0}$ is the intercept of the model while the term including the logged normalization factor $log_2\left(\frac{s_j^{\hat{l}}}{N}+1 \right)$ captures feature-specific normalization factors through parameter $\eta_i$. In details, $s_j^{\hat{l}}$ is the median scaling factor resulted from the Cumulative Sum Scaling (CSS) normalization procedure. $N$ is a constant fixed by default at 1000 but it should be a number close to the scaling factors to be used as a reference, for this reason a good choice could be the median of the scaling factors (which is used instead of 1000). The mixture parameters $\pi_j(s_j)$ are modeled as a binomial process:
 
 $$log\frac{\pi_j}{1-\pi_j} = \beta_0+\beta_1\cdot log(s_j)$$
 
@@ -174,35 +179,35 @@ To easily compare estimated and observed mean values the natural logarithm trans
 
 Except for `fitHURDLE`, which performs a CPM transformation on the counts (or the one with the median library size), and `fitZIG` which models the $log_2(counts+1)$, the other methods, `fitNB`, `fitZINB`, and `fitDM`, model the $counts$ directly. For these reasons, `fitHURDLE`'s output should not be compared directly to the observed $log(counts+1)$ mean values as for the other methods. Instead, the logarithm of the observed CPM (or the one with the median library size) should be used.
 
-```{r}
+```{r example_hurdle}
 example_HURDLE <- fitHURDLE(
-  counts = ps_stool_16S,
-  scale = "median"
+    object = ps_stool_16S,
+    scale = "median"
 )
 head(example_HURDLE)
 ```
 
-The values above are the `fitHURDLE` estimated values (*NA* value in the second row due to the sparsity of that taxon). The internally used function to prepare observed counts is `prepareObserved()`, specifying the `scale` parameter if the HURDLE model is considered.
+The values above are the `fitHURDLE` estimated values. Some *NA* values could be present due to taxa sparsity. The internally used function to prepare observed counts is `prepareObserved()`, specifying the `scale` parameter if the HURDLE model is considered.
 
-```{r}
+```{r prepareObserved_hurdle}
 observed_hurdle <- prepareObserved(
-  counts = ps_stool_16S, 
-  scale = "median")
+    object = ps_stool_16S, 
+    scale = "median")
 head(observed_hurdle)
 ```
 
 Which are different from the non-scaled observed values:
 
-```{r}
-head(prepareObserved(counts = ps_stool_16S))
+```{r prepareObserved_normal}
+head(prepareObserved(object = ps_stool_16S))
 ```
 
 The function to compute mean differences (MD) and zero probability difference (ZPD) between estimated and observed values, is `meanDifferences()` (also used internally).
 
-```{r}
+```{r meanDifferences_hurdle}
 head(meanDifferences(
-  estimated = example_HURDLE,
-  observed = observed_hurdle
+    estimated = example_HURDLE,
+    observed = observed_hurdle
 ))
 ```
 
@@ -210,11 +215,10 @@ A wrapper function to simultaneously perform the estimates and the mean differen
 
 ```{r fitting}
 GOF_stool_16S <- fitModels(
-  counts = ps_stool_16S,
-  models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
-  scale_ZIG = c("median", "default"),
-  scale_HURDLE = c("median", "default"),
-  verbose = FALSE
+    object = ps_stool_16S,
+    models = c("NB", "ZINB", "DM", "ZIG", "HURDLE"),
+    scale_HURDLE = c("median", "default"),
+    verbose = FALSE # TRUE is always suggested
 )
 ```
 
@@ -238,55 +242,67 @@ To plot estimated and observed values we use the function `plotMD`, based on `gg
 
 ```{r plotGOFMD, fig.width=15, fig.height=4, fig.cap="MD plot. Mean-difference (MD) between the estimated and observed count values for each distribution."}
 plotMD(
-  data = GOF_stool_16S,
-  difference = "MD",
-  split = TRUE
+    data = GOF_stool_16S,
+    difference = "MD",
+    split = TRUE
 )
 ```
 
-For the *HURDLE_default* model, a quite different range of values of mean differences is displayed because of the excessive 'default' scaling proposed (1 million). It is also possible to plot only a subset of the estimated models (Figure \@ref(fig:plotGOFMDnoHurdleDefault)):
+If any warning messages are shown with this graph, they are likely due to sparse taxa. To address this we can inspect the number of NA values generated by each model (which are 24 for each HURDLE model):
 
-```{r plotGOFMDnoHurdleDefault, fig.width=15, fig.height=4, fig.cap="MD plot reduced. Mean-difference (MD) between the estimated and observed count values for the first 6 distributions."}
+```{r NA_values}
+sapply(GOF_stool_16S, function(model) sum(is.na(model)))
+```
+
+From the plot in figure \@ref(fig:plotGOFMD) we would like to see no systematic trends for the mean difference values. Moreover, the closer the values are to the dotted line (representing equality between observed and estimated values), the better the goodness of fit relative to the model. To summarize the goodness of fit, the Root Mean Squared Error (RMSE) metric is also displayed for each model. For the *HURDLE_default* model, a quite different range of values of mean differences is displayed because of the excessive 'default' scaling proposed (1 million). It is also possible to plot only a subset of the estimated models (Figure \@ref(fig:plotGOFMDnoHurdleDefault)):
+
+```{r plotGOFMDnoHurdleDefault, warning=FALSE, fig.width=15, fig.height=4, fig.cap="MD plot reduced. Mean-difference (MD) between the estimated and observed count values for the first 5 distributions."}
 plotMD(
-  data = GOF_stool_16S[1:6],
-  difference = "MD",
-  split = TRUE
+    data = GOF_stool_16S[1:5],
+    difference = "MD",
+    split = TRUE
 )
 ```
 
-And the mean differences for their Zero Probability/Proportion (Figure \@ref(fig:plotGOFZPD)):
+From the Figure \@ref(fig:plotGOFMDnoHurdleDefault) we can see that *DM* distribution slightly overestimates the logarithm of the average counts for low values, while the *HURDLE_median* distribution presents an overestimation that increases as the observed values increase. *ZIG*, but especially *NB* and *ZINB* distributions produce very similar estimated and observed values. Similarly, to plot the mean differences for Zero Probability/Proportion we use the `plotMD` function (Figure \@ref(fig:plotGOFZPD)):
 
-```{r plotGOFZPD, fig.width=15, fig.height=4, fig.cap="ZPD plot. Mean-difference between the estimated probability to observe a zero and the observed proportion of zero values (ZPD) for the first 6 distributions."}
+```{r plotGOFZPD, fig.width=15, fig.height=4, fig.cap="ZPD plot. Mean-difference between the estimated probability to observe a zero and the observed proportion of zero values (ZPD) for the first 5 distributions."}
 plotMD(
-  data = GOF_stool_16S[1:6],
-  difference = "ZPD",
-  split = TRUE
+    data = GOF_stool_16S[1:5],
+    difference = "ZPD",
+    split = TRUE
 )
 ```
 
-MDs and ZPDs are also available in the Figure \@ref(fig:plotGOFMDcollapsed) other output layout:
+From the figure \@ref(fig:plotGOFZPD) we can see that *ZIG* and *NB* models underestimate the probability to observe a zero for sparse features, while the *HURDLE_median* model presents a perfect fit as the probability to observe a zero is the zero rate itself by construction. *DM* and *ZINB* models produce estimated values very similar to the observed ones. MDs and ZPDs are also available in the Figure \@ref(fig:plotGOFMDcollapsed) with a different output layout:
 
-```{r plotGOFMDcollapsed, fig.width=10, fig.height=5, fig.cap="MD and ZPD plots. MD and ZPD plotted together for the first 6 distributions."}
-plot_grid(plotMD(data = GOF_stool_16S[1:6], difference = "MD", split = FALSE),
-  plotMD(data = GOF_stool_16S[1:6], difference = "ZPD", split = FALSE),
-  ncol = 2
+```{r plotGOFMDcollapsed, warning=FALSE, fig.width=10, fig.height=5, fig.cap="MD and ZPD plots. MD and ZPD plotted together for the first 5 distributions."}
+plot_grid(plotMD(data = GOF_stool_16S[1:5], difference = "MD", split = FALSE),
+    plotMD(data = GOF_stool_16S[1:5], difference = "ZPD", split = FALSE),
+    ncol = 2
 )
 ```
 
 ### RMSE
 
-While a summary statistics for the overall performance is visible in Figure \@ref(fig:plotGOFRMSE):
+As already mentioned, to summarize the goodness of fit, the Root Mean Squared Error (RMSE) metric is used. The summary statistics for the overall performance are visible in Figure \@ref(fig:plotGOFRMSE):
 
 ```{r plotGOFRMSE, fig.width=10,fig.height=7, fig.cap="RMSE plot. Root Mean Squared Errors (RMSE) for both the MD and ZPD values for all the distributions."}
 plot_grid(plotRMSE(GOF_stool_16S, difference = "MD"),
-  plotRMSE(GOF_stool_16S, difference = "ZPD"),
-  ncol = 2
+    plotRMSE(GOF_stool_16S, difference = "ZPD"),
+    ncol = 2
 )
 ```
 
+The lower the RMSE value, the better the goodness of fit of the model.
+
+## Discussion about GOF
+
+The Goodness of Fit chapter is focused on some existing parametric models: NB, ZINB, HURDLE, ZIG, DM. The assumption of this analysis is that if a model estimates the data well, then a method based on that model may be a possibly good choice for studying the differential abundance. Other distributions could also be investigated (Poisson, Zero-Inflated Poisson...) but what about DA methods which are based on non-parametric models such as ANCOM? We can't use the GOF framework to compare the parametric models to non-parametric models. However, non-parametric methods may work well in real scenarios due to their added robustness and other evaluations are necessary in order not to favor one group of methods over another.
+
 # Type I Error Control
 
-We next try to evaluate Type I Error rate Control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 10 times (at least 1000 suggested). In this setting, the p-values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed $\alpha$), which is the observed proportion of significant tests, should match the nominal value (e.g., $\alpha=0.05$).
+We next try to evaluate Type I Error rate Control of each differential abundance detection method, i.e., the probability of the statistical test to call a feature DA when it is not. To do so, we consider mock comparisons on HMP Stool samples in which no true DA is present. Briefly, we randomly assign each sample to one of two experimental groups and perform DA analysis between these groups, repeating the process 10 times (at least 1000 times are suggested). In this setting, the p-values of a perfect test should be uniformly distributed between 0 and 1 and the false positive rate (FPR or observed $\alpha$), which is the observed proportion of significant tests, should match the nominal value (e.g., $\alpha=0.05$).
 
 ## TIEC structure
 
@@ -300,83 +316,119 @@ knitr::include_graphics("./TIEC_structure.svg")
 
 Where the DA framework decided by the user is composed by two main steps:
 
--   normalization;
-
+-   normalization (optional, depending on which methods are included);
 -   differential abundance.
 
-These steps can be performed both directly, using the `norm_*()` and `DA_*()` methods for normalization and differential abundance respectively, or indirectly, using the `setNormalizations()` and `set_*()` functions, as presented in Figure \@ref(fig:fignormDA). This allows a higher flexibility to the user which can set the instructions for normalization or DA analysis only at the beginning. If some modifications are needed, the user can re-sets the methods or modify the list of instructions directly.
+These steps can be performed both directly, using the `norm_*()` and `DA_*()` methods for normalization and differential abundance respectively, or indirectly, using the `setNormalizations()` and `set_*()` functions. This allows a higher flexibility to the users who can set the instructions for normalization or DA analysis only at the beginning. If some modifications are needed, the users can re-set the methods or modify the list of instructions directly. A list of the available methods is presented below (Table \@ref(tab:availableMethodsTable)). Some basic information are reported for each DA method, for more details please refer to functions' manual.
 
-```{r fignormDA, eval=TRUE, echo=FALSE, message=FALSE, error=FALSE, warning=FALSE, fig.cap="Normalizations and differential abundance methods diagram."}
-knitr::include_graphics("./norm_DA_structure.svg")
+```{r availableMethodsTable, echo=FALSE}
+available_methods <- read.csv(file = "./benchdamic_methods.csv", sep = ";")
+kableExtra::kable(
+    x = available_methods, 
+    caption = "DA methods available in benchdamic.",
+    col.names = c("Method (package)", "Short description", "Test",
+        "Normalization / Transformation", "Suggested input", "Output"), 
+    booktabs = TRUE) %>%
+    kable_styling(latex_options = "scale_down") %>%
+    row_spec(0, bold = TRUE, color = "black") %>%
+    column_spec(c(1,5,6), width = "3cm") %>% 
+    column_spec(2:4, width = "6cm") %>%
+    column_spec(1:6, color = "black")
 ```
 
 ## Create mock comparisons
 
-Using `createMocks()` function we can randomly group the samples, `N = 10` times. A higher `N` is suggested (at least 1000) but in that case a longer running time is required.
+Using `createMocks()` function we can randomly group the samples, `N = 2` times. A higher `N` is suggested (at least 1000) but in that case a longer running time is required.
 
 ```{r createMocks}
 set.seed(123)
 my_mocks <- createMocks(
-  nsamples = phyloseq::nsamples(ps_stool_16S),
-  N = 10
+    nsamples = phyloseq::nsamples(ps_stool_16S),
+    N = 2
 ) # At least N = 1000 is suggested
 ```
 
 ## Differential abundance
 
-Once the mocks have been generated, we perform DA analysis. Firstly we add to the `phyloseq` object some scaling factors, such as *TMM* from `edgeR` and *CSS* from `metagenomeSeq`, and some normalization factor such as *poscounts* from `DESeq2`. This can be done, manually, using the `norm_edgeR()`, `norm_DESeq2()`, and `norm_CSS()` methods:
+Once the mocks have been generated, we perform DA analysis. Firstly, we add to the `phyloseq` object (or `TreeSummarizedExperiment` object) some scaling factors, such as *TMM* from `edgeR` and *CSS* from `metagenomeSeq`, and some normalization factor such as *poscounts* from `DESeq2`. This can be done, manually, using the `norm_edgeR()`, `norm_DESeq2()`, and `norm_CSS()` methods:
 
 ```{r normalizationManual, eval=FALSE}
 ps_stool_16S <- norm_edgeR(
-  object = ps_stool_16S,
-  method = "TMM"
+    object = ps_stool_16S,
+    method = "TMM"
 )
 ps_stool_16S <- norm_DESeq2(
-  object = ps_stool_16S,
-  method = "poscounts"
+    object = ps_stool_16S,
+    method = "poscounts"
 )
 ps_stool_16S <- norm_CSS(
-  object = ps_stool_16S,
-  "median"
+    object = ps_stool_16S,
+    method = "CSS"
 )
 ```
 
 Or, more fastly, using the `setNormalizations()` and `runNormalizations()` methods:
 
 ```{r setNormalization}
-my_normalizations <- setNormalizations(fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"), 
-    method = c("TMM", "poscounts", "median"))
+my_normalizations <- setNormalizations(
+    fun = c("norm_edgeR", "norm_DESeq2", "norm_CSS"), 
+    method = c("TMM", "poscounts", "CSS"))
 ps_stool_16S <- runNormalizations(normalization_list = my_normalizations, 
     object = ps_stool_16S, verbose = TRUE)
+```
+
+Some messages "Found more than one"phylo" class in cache..." could be shown after running the previous functions. They are caused by duplicated class names between 'phyloseq' and 'tidytree' packages and can be ignored. After the normalization/scaling factors have been added to the phyloseq or TreeSummarizedExperiment object, the user could decide to filter rare taxa which do not carry much information. In this example vignette a simple filter is applied to keep only features with a count in at least 3 samples.
+
+```{r filter_rare_taxa}
+ps_stool_16S <- phyloseq::filter_taxa(
+    physeq = ps_stool_16S, 
+    flist = function(x) sum(x > 0) >= 3, prune = TRUE)
+ps_stool_16S
 ```
 
 We also compute the zero-inflated negative binomial weights using the `weights_ZINB` function.
 
 ```{r weights}
 zinbweights <- weights_ZINB(
-  object = ps_stool_16S,
-  K = 0,
-  design = "~ 1"
+    object = ps_stool_16S,
+    K = 0,
+    design = "~ 1"
 )
 ```
 
 For each row of the `mock_df` data frame we run a bunch of DA methods. In this demonstrative example we use:
 
--   `edgeR` with *TMM* scaling factors [@edger];
+-   basic *t* and *wilcox* tests;
 
--   `edgeR` with *TMM* scaling factors and *ZINB* weights [@edger; @zinbwave; @zinbweights];
+-   `edgeR` with *TMM* scaling factors [@edger] with and without *ZINB* weights [@zinbwave; @zinbweights];
 
--   `DESeq2` with *poscounts* normalization factors [@deseq2];
+-   `DESeq2` with *poscounts* normalization factors [@deseq2] with and without *ZINB* weights [@zinbwave; @zinbweights];
 
--   `DESeq2` with poscounts normalization factors and *ZINB* weights [@deseq2; @zinbwave; @zinbweights];
+-   `limma-voom` with *TMM* scaling factors [@limma; @voom; @limmarnaseq] with and without *ZINB* weights [@zinbwave; @zinbweights];
 
--   `limma-voom` with *TMM* scaling factors [@limma; @voom; @limmarnaseq];
+-   `ALDEx2` with *all* and *iqlr* data transformation (denom parameter) performing the wilcox test [@aldex2];
 
--   `limma-voom` with *TMM* scaling factors and *ZINB* weights [@limma; @voom; @limmarnaseq; @zinbwave; @zinbweights];
+-   `metagenomeSeq` with *CSS* normalization factors using both the *fitFeatureModel* (for a zero-inflated, log-normal distribution, mixture model, as suggested in the package vignette) and the *fitZig* (for a zero-inflated, gaussian distribution, mixture model) algorithms [@zig];
 
--   `limma-voom` with *CSS* scaling factors [@limma; @voom; @limmarnaseq; @zig];
+-   `corncob` with a focus on average differences (not dispersion, regulated by phi.formula and phi.formula_null parameters) using both *Wald* and *LRT* tests [@corncob];
+
+-   `MAST` with both rescalings, *default* (*i.e.* $10^6$, for CPMs) and *median* [@mast];
+
+-   `Seurat` with *LogNormalize* and *CLR* normalization/transformations, *t* and *wilcox* tests, and $10^5$ as scaling factor [@seurat];
+
+-   `ANCOM` based on ANCOM-II algorithm with sampling fraction bias correction (BC parameter) [@ancom-bc; @ancom-ii];
+
+-   `dearseq` with *permutation* and *asymptotic* tests [@dearseq];
+
+Among the available methods, `NOISeq` [@noiseq] has not been used since it does not return p-values but only adjusted ones. Many combination of parameters are still possible for all the methods.
 
 ```{r set_Methods}
+my_basic <- set_basic(pseudo_count = FALSE,
+    contrast = c("group", "grp2", "grp1"), 
+    test = c("t", "wilcox"), 
+    paired = FALSE, 
+    expand = TRUE)
+
 my_edgeR <- set_edgeR(
     pseudo_count = FALSE,
     group_name = "group",
@@ -385,8 +437,8 @@ my_edgeR <- set_edgeR(
     coef = 2,
     norm = "TMM",
     weights_logical = c(TRUE, FALSE),
-    expand = TRUE
-)
+    expand = TRUE)
+
 my_DESeq2 <- set_DESeq2(
     pseudo_count = FALSE,
     design = ~ group,
@@ -394,17 +446,77 @@ my_DESeq2 <- set_DESeq2(
     norm = "poscounts",
     weights_logical = c(TRUE, FALSE),
     alpha = 0.05,
-    expand = TRUE
-)
+    expand = TRUE)
+
 my_limma <- set_limma(
     pseudo_count = FALSE,
     design = ~ group,
     coef = 2,
-    norm = c("TMM", "TMM", "CSSmedian"),
-    weights_logical = c(FALSE, TRUE, FALSE),
-    expand = FALSE)
+    norm = "TMM",
+    weights_logical = c(FALSE, TRUE),
+    expand = TRUE)
 
-my_methods <- c(my_edgeR, my_DESeq2, my_limma)
+my_ALDEx2 <- set_ALDEx2(
+    pseudo_count = FALSE,
+    design = "group",
+    mc.samples = 128,
+    test = "wilcox",
+    paired.test = FALSE, 
+    denom = c("all", "iqlr"), 
+    contrast = c("group", "grp2", "grp1"),
+    expand = TRUE)
+
+my_metagenomeSeq <- set_metagenomeSeq(
+    pseudo_count = FALSE, 
+    design = "~ group", 
+    coef = "groupgrp2", 
+    norm = "CSS", 
+    model = c("fitFeatureModel", "fitZig"),
+    expand = TRUE)
+
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ group,
+    formula_null = ~ 1,
+    phi.formula = ~ group,
+    phi.formula_null = ~ group,
+    test = c("Wald", "LRT"),
+    boot = FALSE, 
+    coefficient = "groupgrp2")
+
+my_MAST <- set_MAST(
+    pseudo_count = FALSE,
+    rescale = c("default", "median"),
+    design = "~ 1 + group",
+    coefficient = "groupgrp2",
+    expand = TRUE)
+
+my_Seurat <- set_Seurat(
+    pseudo_count = FALSE,
+    test = c("t", "wilcox"),
+    contrast = c("group", "grp2", "grp1"),
+    norm = c("LogNormalize", "CLR"),
+    scale.factor = 10^5,
+    expand = TRUE
+)
+
+my_ANCOM <- set_ANCOM(
+    pseudo_count = FALSE,
+    formula = "group", 
+    contrast = c("group", "grp2", "grp1"),
+    BC = TRUE, 
+    expand = TRUE   
+)
+
+my_dearseq <- set_dearseq(
+    pseudo_count = FALSE,covariates = NULL,
+    variables2test = "group", 
+    preprocessed = FALSE, 
+    test = c("permutation", "asymptotic"),
+    expand = TRUE)
+
+my_methods <- c(my_basic, my_edgeR, my_DESeq2, my_limma, my_metagenomeSeq,
+    my_corncob, my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq)
 ```
 
 ```{r runMocks}
@@ -413,11 +525,13 @@ Stool_16S_mockDA <- runMocks(mocks = my_mocks, method_list = my_methods,
     object = ps_stool_16S, weights = zinbweights, verbose = FALSE)
 ```
 
+If some warnings are reported set `verbose = TRUE` to obtain the method name and the mock comparison where the warnings occured.
+
 The structure of the output in this example is the following:
 
 -   *Comparison1* to *Comparison10* on the first level, which contains:
 
-    -   *Method1* to *Method7* output lists on the second level:
+    -   *Method1* to *Method23* output lists on the second level:
 
         -   `pValMat` which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -482,15 +596,44 @@ runDA(my_methods = my_methods, object = dataObject)
 runMocks(mocks = mock_df, my_methods = my_methods, object = dataObject)
 ```
 
+It may happen that at a later time the user wants to add to the results already obtained, the results of another group of methods. First of all, the same mocks and the same object must be used to obtain the new results:
+
+```{r new_methods}
+my_new_limma <- set_limma(
+    pseudo_count = FALSE,
+    design = ~ group,
+    coef = 2,
+    norm = "CSS",
+    weights_logical = FALSE)
+```
+
+Which returns a new set of `limma` instructions and a warning for using CSS normalization factors instead of those native to `edgeR`. We can run the new instructions:
+
+```{r runMocks_new_limma}
+Stool_16S_mockDA_new_limma <- runMocks(mocks = my_mocks, 
+    method_list = my_new_limma, object = ps_stool_16S, verbose = FALSE)
+```
+
+To put everything together we can use a simple `mapply` and exploit the output structures:
+
+```{r merging_old_and_new}
+Stool_16S_mockDA_merged <- mapply(
+    Stool_16S_mockDA, 
+    Stool_16S_mockDA_new_limma, 
+    FUN = function(old, new){
+        c(old, new)
+    }, SIMPLIFY = FALSE)
+```
+
 ## Visualization
 
 Since the visualization rely on `ggplot2` package, firstly we run the `createTIEC()` function of the `benchdamic` package, in order to produce a list of 4 `data.frames`:
 
-1.  `df_pval` is a 3 columns and *number_of_features x methods x comparisons* rows `data.frame`. The three columns are called *Comparison*, *pval*, and *method*;
+1.  `df_pval` is a 5 columns and *number_of_features x methods x comparisons* rows `data.frame`. The four columns are called *Comparison*, *Method*, *variable* (which contains the feature names), *pval* and *padj*;
 
 2.  `df_FPR` is a 5 columns and *methods x comparisons* rows `data.frame`. For each set of method and comparison, the proportion of false positives, considering 3 threshold (0.01, 0.05, 0.1) are reported;
 
-3.  `df_qq` contains the coordinates to draw the QQ-plot for comparing the mean observed p-value distribution across comparisons, with the theoretical uniform distribution. Indeed, the observed p-values should follow a uniform distribution under the null hypothesis of no differential abundant features presence;
+3.  `df_QQ` contains the average p-value for each theoretical quantile, i.e. the coordinates to draw the QQ-plot for comparing the mean observed p-value distribution across comparisons, with the theoretical uniform distribution. Indeed, the observed p-values should follow a uniform distribution under the null hypothesis of no differential abundant features presence;
 
 4.  `df_KS` is a 5 columns and *methods x comparisons* rows `data.frame`. For each set of method and comparison, the Kolmogorov-Smirnov test statistics and pvalues are reported in *KS* and *KS_pval* columns respectively.
 
@@ -500,23 +643,30 @@ TIEC_summary <- createTIEC(Stool_16S_mockDA)
 
 ### False Positive Rate
 
-The false positive rate (FPR or observed $\alpha$), which is the observed proportion of significant tests, should match the nominal value because all the findings are false positive by construction. In this example `edgeR.TMM`, `edgeR.TMM.weighted`, and `limma.TMM.weighted` appear to be quite over all the thresholds, differently `DESeq2.poscounts`, `DESeq2.poscounts.weighted`, `limma.CSSmedian`, and `limma.TMM` methods are close to each threshold (Figure \@ref(fig:FPRplot)).
+The false positive rate (FPR or observed $\alpha$), which is the observed proportion of significant tests, should match the nominal value because all the findings are false positive by construction. In this example `edgeR.TMM`, `edgeR.TMM.weighted`, `limma.TMM.weighted`, and `metagenomeSeq.CSS.fitZig` appear to be quite over all the thresholds, differently `ALDEx2.all.wilcox.unpaired` and `basic_t` methods are below the thresholds (Figure \@ref(fig:FPRplot)).
 
-```{r FPRplot, fig.cap="FPR plot. Boxplots of the proportion of raw p-values lower than the commonly used thresholds for the nominal $\\alpha$ (i.e. the False Positive Rate) for each DA method."}
+```{r FPRplot, fig.cap="FPR plot. Boxplots of the proportion of raw p-values lower than the commonly used thresholds for the nominal $\\alpha$ (i.e. the False Positive Rate) for each DA method.", fig.width=8, fig.height=5}
 cols <- createColors(variable = levels(TIEC_summary$df_pval$Method))
 plotFPR(df_FPR = TIEC_summary$df_FPR, cols = cols)
 ```
 
 ### QQ-Plot
 
-The p-value distribution under the null hypothesis is uniform. This is qualitatively summarized in the QQ-plot in Figure \@ref(fig:QQplot) where the bisector represents a perfect correspondence between observed and theoretical quantiles of p-values. For each theoretical quantile, the corresponding observed quantile is obtained averaging the observed p-values' quantiles from all 10 mock datasets. The plotting area is zoomed-in to show clearly the area between 0 and 0.1.
+The p-value distribution under the null hypothesis should be uniform. This is qualitatively summarized in the QQ-plot in Figure \@ref(fig:QQplot) where the bisector represents a perfect correspondence between observed and theoretical quantiles of p-values. For each theoretical quantile, the corresponding observed quantile is obtained averaging the observed p-values' quantiles from all 10 mock datasets. The plotting area is zoomed-in to show clearly the area between 0 and 0.1.
 
 Methods over the bisector show a conservative behavior, while methods below the bisector a liberal one.
 
-The starting point is determined by the total number of features. In our example the starting point for the theoretical p-value is computed as 1 divided by 71, rounded to the second digit.
+The starting point is determined by the total number of features. In our example the starting point for the theoretical p-value is computed as 1 divided by the number of taxa, rounded to the second digit. In real experiments, where the number of taxa is higher, the starting point is closer to zero.
 
-```{r QQplot, fig.cap="QQ plot. Quantile-quantile plot from 0 to 0.1 for each DA methods. Average curves are reported"}
-plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1), cols = cols)
+```{r QQplot, fig.cap="QQ plot. Quantile-quantile plot from 0 to 0.1 for each DA methods. Average curves are reported", fig.width=7, fig.height=5}
+plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1), cols = cols) + 
+    guides(colour = guide_legend(ncol = 1))
+```
+
+As the number of methods increases, the difficulty of distinguishing their curves increases. For this reason it is also possible to plot each method singularly (Figure \@ref(fig:QQplotsplit)).
+
+```{r QQplotsplit, fig.cap="QQ plot. Quantile-quantile plots from 0 to 1 for each DA method are displayed separately. Average curves are reported", fig.height=10, fig.width=10}
+plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 1), cols = cols, split = TRUE)
 ```
 
 ### Kolmogorov-Smirnov test
@@ -527,6 +677,28 @@ Departure from uniformity is evaluated through the Kolmogorov-Smirnov test which
 plotKS(df_KS = TIEC_summary$df_KS, cols = cols)
 ```
 
+High KS values indicates departure from the uniformity while low values indicates closeness. All the clues we had seen in the previous figures \@ref(fig:QQplot) and \@ref(fig:QQplotsplit) are confirmed by the KS statistics: `metagenomeSeq.CSS.fitZig`, which was very liberal and its distribution of p-values is the farthest from uniformity among the tested methods. Also ALDEx2 based methods show high KS values, indeed they showed a very conservative behaviour.
+
+### Log distribution of p-values
+
+Looking at the p-values' log-scale can also be informative. This is because behavior in the tail may be poor even when the overall p-value distribution is uniform, with a few unusually small p-values in an otherwise uniform distribution. Figure \@ref(fig:LogPplot) displays the distributions of all the p-values (in negative log scale) generated by each DA method across all the mock comparisons.
+
+```{r LogPplot, fig.cap="-log10(p-value) plot. Negative logarithm distribution of p-values. Red-shaded vertical bars represent the 90, 95, and 99 percentiles for the negative log distribution of p-values for each method. They should align with the dotted lines which represent the percentiles of the IDEAL distribution.", fig.width=7, fig.height=7}
+plotLogP(df_pval = TIEC_summary$df_pval, cols = cols)
+```
+
+Similarly, figure \@ref(fig:AveLogPplot) exploits the structure of the `df_QQ` data.frame generated by the `createTIEC()` function to display the distribution of the p-values (in negative log scale) generated by each DA method, averaged among mock comparisons (only two in this vignette). As this second graphical representation is only based on 1 averaged p-value for each quantile, it is also less influenced by anomalously large values.
+
+```{r AveLogPplot, fig.cap="-log10(average p-value) plot ('average' refers to the average p-value computed for each quantile across mocks comparisons). Negative logarithm distribution of average p-values. Red-shaded vertical bars represent the 90, 95, and 99 percentiles for the negative log distribution of average p-values for each method. They should align with the dotted lines which represent the percentiles of the IDEAL distribution.", fig.width=7, fig.height=7}
+plotLogP(df_QQ = TIEC_summary$df_QQ, cols = cols)
+```
+
+In the figure \@ref(fig:LogPplot) and \@ref(fig:AveLogPplot), the $-\log_{10}(p-value)$ IDEAL distribution is reported in red color as the first method. To highlight tail's behaviors, 3 percentiles (0.9, 0.95, 0.99) are reported using red-shaded vertical segments for each method. If the method's distribution of negative log-transformed p-values or average p-values is still uniform in the 3 selected quantiles of the tail, the 3 red vertical segments will align to the respective dotted line. Methods are ordered using the distances between the observed quantiles and the ideal ones. Usually, when a method has its red segments to the left of the IDEAL's (e.g. `ALDEx2.iqlr.wilcox.unpaired` and `MAST.default`) its behavior is conservative. Indeed, for those methods, little p-values are fewer than expected. On the contrary, methods with red segments to the right of the IDEAL's (e.g. `edgeR.TMM`) have a liberal behavior. Mixed results could be present: a method that has a lower quantile for one threshold, while higher quantiles for the others (e.g. `limma.TMM`).
+
+## Discussion about TIEC
+
+Putting all the previous graphical representations together gives us a general overview of methods' ability to control false positives and p-values distribution under the null hypothesis (i.e. no differential abundance). It is clear that only methods that produce p-values can be included in this analysis. While figures \@ref(fig:QQplot) and \@ref(fig:QQplotsplit) have a main exploratory scope regarding the p-value distribution based on quantile-quantile comparison, figures \@ref(fig:FPRplot), \@ref(fig:KSplot), and \@ref(fig:AveLogPplot) are able to rank methods according to False Positive Rate, uniformity of p-value distribution, and departure from uniformity distribution in the tail. The latter graphical representations could be used as a first tool to establish which DA method to consider for further analyses and which DA methods to exclude.
+
 # Concordance
 
 If we want to measure the ability of each method to produce replicable results in independent data and the amount of concordance of the results of each method on two random subsets of the same dataset, we'll perform the Between Method Concordance (BMC) and the Within Method Concordance (WMC) analyses.
@@ -535,23 +707,25 @@ We consider the samples from the supragingival and subgingival plaques of 30 sub
 
 ```{r dataloading_concordance}
 data("ps_plaque_16S")
+ps_plaque_16S
 ```
 
 ```{r 16S_plaque_download, eval=FALSE, include=FALSE}
-ps_plaque_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions' count data
-  subset(select = HMP_BODY_SUBSITE %in% 
-    c("Supragingival Plaque", "Subgingival Plaque") & # Only gingival plaque samples
-    RUN_CENTER == "WUGC" & # Only sequenced at the WUCG RUN CENTER
-    SEX == "Male" & # Only male subject
-    VISITNO == 1) %>% # Only the first visit
-  as_phyloseq()
+ps_plaque_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions
+    subset(select = HMP_BODY_SUBSITE %in% c("Supragingival Plaque",
+        "Subgingival Plaque") & # Only gingival plaque samples
+        RUN_CENTER == "WUGC" & # Only sequenced at the WUCG RUN CENTER
+        SEX == "Male" & # Only male subject
+        VISITNO == 1) %>% # Only the first visit
+    as_phyloseq()
 
 # Only paired samples
 paired <- names(which(table(sample_data(ps_plaque_16S_raw)[, "RSID"]) == 2))
 ps_plaque_16S_paired <- subset_samples(ps_plaque_16S_raw, RSID %in% paired)
 
 # Remove low depth samples
-ps_plaque_16S_pruned <- prune_samples(sample_sums(ps_plaque_16S_paired) >= 10^3, 
+ps_plaque_16S_pruned <- prune_samples(
+    sample_sums(ps_plaque_16S_paired) >= 10^3, 
     ps_plaque_16S_paired)
 
 # Remove features with zero counts
@@ -574,41 +748,91 @@ knitr::include_graphics("./concordance_structure.svg")
 
 ## Split datasets
 
-Using the `createSplits()` function, the dataset is randomly divided by half. In this particular demonstrative dataset, samples are paired: 1 sample for supragingival plaque and 1 sample for subgingival plaque are considered for each subject. The *paired* parameter is passed to the method and it contains the name of the variable which describes the subject IDs. In this specific case, the two groups of samples are balanced between conditions, reflecting the starting dataset. However, if the starting dataset had been unbalanced, the *balanced* option would have allowed to keep the two splits unbalanced or not.
+Using the `createSplits()` function, the dataset is randomly divided by half. In this particular demonstrative dataset, samples are paired: 1 sample for supragingival plaque and 1 sample for subgingival plaque are considered for each subject. The *paired* parameter is passed to the method (it contains the name of the variable which describes the subject IDs) so the paired samples are inside the same split. In this specific case, the two groups of samples are balanced between conditions, reflecting the starting dataset. However, if the starting dataset had been unbalanced, the *balanced* option would have allowed to keep the two splits unbalanced or not.
 
 ```{r createSplits}
 set.seed(123)
 sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- 
     factor(sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE)
+sample_data(ps_plaque_16S)$RSID <- 
+    factor(sample_data(ps_plaque_16S)$RSID)
 
 my_splits <- createSplits(
   object = ps_plaque_16S,
   varName = "HMP_BODY_SUBSITE",
   paired = "RSID",
   balanced = TRUE,
-  N = 10
+  N = 2
 ) # At least 100 is suggested
 ```
 
-The structure produced by `createSplits()` function consists in a list of two matrices: *Subset1* and *Subset2*. Each matrix contains the randomly chosen sample IDs. The number of rows of both matrices is equal to the number of comparisons/splits.
+The structure produced by `createSplits()` function consists in a list of two matrices: *Subset1* and *Subset2*. Each matrix contains the randomly chosen sample IDs. The number of rows of both matrices is equal to the number of comparisons/splits (2 in our example, but at least 100 are suggested).
 
 ## Differential abundance
 
-For some of the methods implemented in this package it is possible to perform differential abundance testings for the repeated measurements experimental designs (e.g. by adding the subject ID in the model formula of `DESeq2`). However, for the sake of simplicity we consider the samples as independent between body sub sites.
+For some of the methods implemented in this package it is possible to perform differential abundance testings for the repeated measurements experimental designs (e.g. by adding the subject ID in the model formula of `DESeq2`).
 
 Once again, to set the differential abundance methods to use, the `set_*()` methods can be exploited. For a faster demonstration, differential abundance methods without weighting are used:
 
 ```{r set_Methods_noweights}
-my_edgeR_noWeights <- set_edgeR(group_name = "HMP_BODY_SUBSITE", 
-    design = ~ HMP_BODY_SUBSITE, coef = 2, norm = "TMM")
-my_DESeq2_noWeights <- set_DESeq2(contrast = c("HMP_BODY_SUBSITE",
-    "Supragingival Plaque", "Subgingival Plaque"), design = ~ HMP_BODY_SUBSITE, 
-    norm = "poscounts")
-my_limma_noWeights <- set_limma(design = ~ HMP_BODY_SUBSITE, coef = 2, 
-    norm = c("TMM", "CSSmedian"))
+my_edgeR_noWeights <- set_edgeR(
+    group_name = "HMP_BODY_SUBSITE", 
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque", 
+    norm = "TMM")
 
-my_methods_noWeights <- c(my_edgeR_noWeights, my_DESeq2_noWeights, 
-    my_limma_noWeights)
+my_DESeq2_noWeights <- set_DESeq2(
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"), 
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    norm = "poscounts")
+
+my_limma_noWeights <- set_limma(
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque", 
+    norm = "TMM")
+
+my_ALDEx2 <- set_ALDEx2(
+    pseudo_count = FALSE,
+    design = "HMP_BODY_SUBSITE",
+    mc.samples = 128,
+    test = "wilcox",
+    paired.test = TRUE, 
+    denom = "all", 
+    contrast = c("HMP_BODY_SUBSITE", "Supragingival Plaque", "Subgingival Plaque"))
+
+my_MAST <- set_MAST(
+    pseudo_count = FALSE,
+    rescale = "median",
+    design = "~ 1 + RSID + HMP_BODY_SUBSITE",
+    coefficient = "HMP_BODY_SUBSITESupragingival Plaque")
+
+my_dearseq <- set_dearseq(
+    pseudo_count = FALSE, 
+    covariates = NULL,
+    variables2test = "HMP_BODY_SUBSITE",
+    sample_group = "RSID", 
+    test = "asymptotic", 
+    preprocessed = FALSE)
+
+# Very time consuming
+my_ANCOM <- set_ANCOM(
+    pseudo_count = FALSE,
+    adj_formula = NULL,
+    rand_formula = "~ 1 | RSID",
+    lme_control = list(maxIter = 100, msMaxIter = 100, opt = "optim"),
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"),
+    BC = FALSE)
+
+my_methods_noWeights <- c(
+    my_edgeR_noWeights, 
+    my_DESeq2_noWeights, 
+    my_limma_noWeights,  
+    my_ALDEx2,
+    my_MAST,
+    my_dearseq,
+    my_ANCOM)
 ```
 
 Similarly, to set the normalization methods, the `setNormalizations()` function can be used. In this case it has already been set up for the TIEC analysis.
@@ -617,12 +841,16 @@ Similarly, to set the normalization methods, the `setNormalizations()` function 
 str(my_normalizations)
 ```
 
-The `runSplits()` function generates the subsets and performs DA analysis:
+The `runSplits()` function generates the subsets and performs DA analysis on the features with at least 1 (min_counts \> 0) count in more than 2 samples (min_samples \> 2):
 
 ```{r runSplits}
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
+
 Plaque_16S_splitsDA <- runSplits(split_list = my_splits, 
     method_list = my_methods_noWeights, normalization_list = my_normalizations, 
-    object = ps_plaque_16S, verbose = FALSE)
+    object = ps_plaque_16S, min_counts = 0, min_samples = 2, verbose = FALSE)
 ```
 
 The structure of the output in this example is the following:
@@ -631,7 +859,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison10* output lists on the second level:
 
-        -   results of 4 methods on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors, `limma-voom` with *CSS* scaling factors. They are organized as already described in the "Goodness of Fit" chapter:
+        -   results of 7 methods on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with median scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction (since it only allows for cross-sectional data). They are organized as already described in the "Goodness of Fit" chapter:
 
             -   `pValMat` which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -641,6 +869,34 @@ The structure of the output in this example is the following:
 
             -   `name` which contains the complete name of the used method.
 
+It may happen that at a later time the user wants to add to the results already obtained, the results of another group of methods. First of all, the same splits and the same object must be used to obtain the new results:
+
+```{r set_basic_methods}
+my_basic <- set_basic(
+    pseudo_count = FALSE, 
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"), 
+    test = "wilcox", 
+    paired = TRUE)
+
+Plaque_16S_splitsDA_basic <- runSplits(split_list = my_splits, 
+    method_list = my_basic, normalization_list = NULL, object = ps_plaque_16S,
+    min_counts = 0, min_samples = 2, verbose = FALSE)
+```
+
+To put everything together we can use two nested `mapply`s and exploit the output structures:
+
+```{r add_second_round}
+Plaque_16S_splitsDA_all <- mapply(
+    Plaque_16S_splitsDA, 
+    Plaque_16S_splitsDA_basic, 
+    FUN = function(splits1, splits2){
+        mapply(splits1, splits2, FUN = function(group1, group2){
+            return(c(group1, group2))
+        }, SIMPLIFY = FALSE)
+    }, SIMPLIFY = FALSE)
+```
+
 For each pair of methods the concordance is computed by the `createConcordance()` function. It produces a long format `data.frame` object with several columns:
 
 -   *comparison* which indicates the comparison number;
@@ -648,43 +904,60 @@ For each pair of methods the concordance is computed by the `createConcordance()
 -   name of *method1*;
 -   name of *method2*;
 -   *rank*;
--   *concordance* which is defined as the cardinality of the intersection of the top *rank* elements of each list, divided by *rank*, i.e., $\frac{L_{1:rank} \bigcap M_{1:rank}}{rank}$, where *L* and *M* represent the lists of p-values of *method1* and *method2* respectively.
+-   *concordance* which is defined as the cardinality of the intersection of the top *rank* elements of each list, divided by *rank*, i.e., $\frac{L_{1:rank} \bigcap M_{1:rank}}{rank}$, where *L* and *M* represent the lists of p-values of *method1* and *method2* respectively. A noise value ($<10^{-10}$) is added to each p-value (or statistic) in order to avoid duplicated values which can not be ordered.
 
 ```{r createConcordance}
 concordance <- createConcordance(
-    object = Plaque_16S_splitsDA,
+    object = Plaque_16S_splitsDA_all,
     slot = "pValMat",
     colName = "rawP",
     type = "pvalue"
 )
+
 head(concordance)
 ```
 
-The `createConcordance()` method is very flexible. In the example below the concordances are built using the log fold changes instead of the p-values. To do so, it is necessary to know the column names generated by each differential abundance method in the `statInfo` matrix.
+The `createConcordance()` method is very flexible. In the example below the concordances are built using the log fold changes or other statistics instead of the p-values. To do so, it is necessary to know the column names generated by each differential abundance method in the `statInfo` matrix.
 
-Firstly inspect the method order:
+Firstly, inspect the method order:
 
 ```{r getNames}
-names(Plaque_16S_splitsDA$Subset1$Comparison1)
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1)
 ```
 
-Then look at the column names:
+Then, look at the column names:
 
 ```{r logFC_names}
-names(Plaque_16S_splitsDA$Subset1$Comparison1$edgeR.TMM$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$DESeq2.poscounts$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.CSSmedian$statInfo)
-names(Plaque_16S_splitsDA$Subset1$Comparison1$limma.TMM$statInfo)
+cat("edgeR.TMM", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$edgeR.TMM$statInfo)
+cat("DESeq2.poscounts", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$DESeq2.poscounts$statInfo)
+cat("limma.TMM", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$limma.TMM$statInfo)
+cat("ALDEx2.all.wilcox.paired", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ALDEx2.all.wilcox.paired$
+    statInfo)
+cat("MAST.median", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$MAST.median$statInfo)
+cat("dearseq.repeated.asymptotic", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$dearseq.repeated.asymptotic$
+    statInfo)
+cat("ANCOM", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM$statInfo)
+cat("basic.wilcox.paired", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$basic.wilcox.paired$statInfo)
 ```
 
-All methods, except for `DESeq2`, contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the concordance `data.frame` can be built using:
+All methods, except for `DESeq2`, `ALDEx2`, `dearseq`, and `ANCOM`, contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the concordance `data.frame` can be built using:
 
 ```{r alternativeConcordance, eval=FALSE}
 concordance_alternative <- createConcordance(
-  object = Plaque_16S_splitsDA,
-  slot = "statInfo",
-  colName = c("logFC", "log2FoldChange", "logFC", "logFC"),
-  type = "logfc"
+    object = Plaque_16S_splitsDA_all,
+    slot = "statInfo",
+    colName = c("logFC", "log2FoldChange", "logFC", "effect", "logFC", "rawP", 
+        "W", "logFC"),
+    type = c("logfc", "logfc", "logfc", "logfc", "logfc", "pvalue", "logfc",
+        "logfc")
 )
 ```
 
@@ -704,11 +977,11 @@ cowplot::plot_grid(plotlist = pC, ncol = 2, align = "h", axis = "tb",
     rel_widths = c(1, 3))
 ```
 
-The WMC and BMC from rank 1 to rank 30 are reported in the plot above. 69 is the maximum rank because it is the number of taxa for which all methods have been able to calculate p-values (in all comparisons). However, a custom threshold of 30 was supplied .
+The WMC and BMC from rank 1 to rank 30 are reported in the plot above. More than 40 (use `table(concordance$rank)` to find out) is the maximum rank obtained by all split comparisons, *i.e.* the number of taxa for which all methods have been able to calculate p-values (in all comparisons). However, a custom threshold of 30 was supplied .
 
 It is common that WMC values (in red rectangles) are lower than BMC ones. Indeed, BMC is computed between different methods on the same data, while WMC is computed for a single method, run in different datasets (some taxa are dataset-specific).
 
-`limma.CSSmedian` and `limma.TMM` methods show the highest BMC values. Regarding the WMC, `edgeR.TMM` has the lowest values while other methods have comparable ones.
+`limma.CSSmedian` and `limma.TMM` methods show the highest BMC values. Regarding the WMC, `MAST.median` has the lowest values, maybe because it has not been implemented properly for repeated measure designs. Also `ANCOM` shows low values, maybe because the statistic chosen as p-value (in the *pValMat* slot) is in reality computed as $1-W/(ntaxa-1)$ which is not a p-value. Other methods have comparable WMC values.
 
 # Enrichment analysis
 
@@ -755,46 +1028,58 @@ priorInfo[, "newNames"] <- paste0(rownames(priorInfo), "|",
 
 ## Differential abundance
 
-Prepare some normalization/scaling factors.
+Both the normalization/scaling factors and the DA methods' instructions are available since the dataset is the same used in the previous section.
 
-```{r setNormalizations_enrichment}
-none_normalization <- setNormalizations(fun = "norm_edgeR", method = "none")
-my_normalizations_enrichment <- c(my_normalizations, none_normalization)
-ps_plaque_16S <- runNormalizations(normalization_list = my_normalizations_enrichment, 
-    object = ps_plaque_16S, verbose = FALSE)
+To add the normalization/scaling factors to the object:
+
+```{r normalize_plaque}
+ps_plaque_16S <- runNormalizations(my_normalizations, object = ps_plaque_16S)
 ```
 
-Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` object. For this reason many methods can be assessed without computational trade-offs [@edger; @deseq2; @limma; @voom; @limmarnaseq; @zig; @aldex2; @corncob; @mast; @seurat].
+A simple filter to remove rare taxa:
 
-```{r set_Methods_enrichment}
-my_metagenomeSeq <- set_metagenomeSeq(design = ~ HMP_BODY_SUBSITE, 
-    coef = 2, norm = "CSSmedian")
-my_ALDEx2 <- set_ALDEx2(conditions = "HMP_BODY_SUBSITE", 
-    test = "t", norm = "none")
-my_corncob <- set_corncob(formula = ~ HMP_BODY_SUBSITE, 
-    phi.formula = ~ HMP_BODY_SUBSITE, 
-    formula_null = ~ 1, 
-    phi.formula_null = ~ HMP_BODY_SUBSITE, 
-    test = "Wald", 
-    coefficient = "HMP_BODY_SUBSITESupragingival Plaque", 
-    norm = "none")
-my_MAST <- set_MAST(rescale = "median", design = ~ HMP_BODY_SUBSITE, 
-    coefficient = "HMP_BODY_SUBSITESupragingival Plaque", norm = "none")
-my_Seurat <- set_Seurat(test.use = "wilcox", 
-    contrast = c("HMP_BODY_SUBSITE", 
-                 "Supragingival Plaque", 
-                 "Subgingival Plaque"), 
-    norm = "none")
-
-my_methods_enrichment <- c(
-    my_methods_noWeights,
-    my_metagenomeSeq,
-    my_ALDEx2,
-    my_corncob,
-    my_MAST,
-    my_Seurat
-)
+```{r filter_plauque}
+ps_plaque_16S <- phyloseq::filter_taxa(physeq = ps_plaque_16S, 
+    flist = function(x) sum(x > 0) >= 3, prune = TRUE)
+ps_plaque_16S
 ```
+
+Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` or `TreeSummarizedExperiment` object (no mocks, no splits, no comparisons). For this reason many methods can be assessed without computational trade-offs (e.g. `ANCOM` without sampling fraction bias correction and methods which use *ZINB* weights).
+
+To compute observational weights:
+
+```{r plaque_weights}
+plaque_weights <- weights_ZINB(object = ps_plaque_16S, design = ~ 1,
+    zeroinflation = TRUE)
+```
+
+We add to the existing methods, methods with observational weights:
+
+```{r enrichment_methods}
+my_edgeR <- set_edgeR(
+    group_name = "HMP_BODY_SUBSITE", 
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque", 
+    norm = "TMM", 
+    weights_logical = TRUE)
+
+my_DESeq2 <- set_DESeq2(
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"), 
+    design = ~ 0 + RSID + HMP_BODY_SUBSITE, 
+    norm = "poscounts",
+    weights_logical = TRUE)
+
+my_limma <- set_limma(
+    design = ~ 1 + RSID + HMP_BODY_SUBSITE, 
+    coef = "HMP_BODY_SUBSITESupragingival Plaque", 
+    norm = "TMM",
+    weights_logical = TRUE)
+
+my_methods <- c(my_methods_noWeights, my_edgeR, my_DESeq2, my_limma)
+```
+
+All the ingredients are ready:
 
 ```{r runDA_enrichment, message=FALSE}
 # Convert to factor
@@ -805,13 +1090,17 @@ sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE <- relevel(
     x = sample_data(ps_plaque_16S)$HMP_BODY_SUBSITE,
     ref = "Subgingival Plaque"
 )
-Plaque_16S_DA <- runDA(method_list = my_methods_enrichment, 
-    object = ps_plaque_16S, weights = zinbweights, verbose = FALSE)
+# Make sure the subject ID variable is a factor
+phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
+    phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
+
+Plaque_16S_DA <- runDA(method_list = my_methods, 
+    object = ps_plaque_16S, weights = plaque_weights, verbose = FALSE)
 ```
 
 ## Visualization
 
-`Plaque_16_DA` object contains the results for 9 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
+`Plaque_16_DA` object contains the results for 10 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
 
 In the *direction* argument, which is set to `NULL` by default, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's `statInfo` matrix must be supplied.
 
@@ -829,19 +1118,26 @@ Following the methods' order, the *direction* parameter is supplied together wit
 
 -   *priorKnowledge*, *enrichmentCol*, and *namesCol*, to add enrichment information to DA analysis;
 
+We use the `createEnrichment()` with the direction parameter for all method except `ANCOM` and `dearseq` (the first has the *W* statistic which is only positive, while the second has only p-values).
+
 ```{r createEnrichment}
 enrichment <- createEnrichment(
-    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
-    namesCol = "newNames", slot = "pValMat", colName = "adjP", type = "pvalue",
-    direction = c("logFC", # edgeR
+    object = Plaque_16S_DA[-c(6:7)], 
+    priorKnowledge = priorInfo, 
+    enrichmentCol = "Type",
+    namesCol = "newNames", 
+    slot = "pValMat", 
+    colName = "adjP", 
+    type = "pvalue",
+    direction = c(
+        "logFC", # edgeR
         "log2FoldChange", # DEseq2
         "logFC", # limma
-        "logFC", # limma
-        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
         "effect", # ALDEx2
-        "Estimate", # corncob
-        "logFC",# MAST
-        "avg_log2FC"), # Seurat
+        "logFC", # MAST
+        "logFC", # edgeR with weights
+        "log2FoldChange", # DESeq2 with weights
+        "logFC"), # limma with weights
     threshold_pvalue = 0.1,
     threshold_logfc = 0,
     top = NULL,
@@ -852,7 +1148,7 @@ enrichment <- createEnrichment(
 
 The produced *enrichment* object consists in a list of elements as long as the number of tested methods:
 
--   the `data` slot contains information for each feature. P-values, adjusted p-values (or other statistics) in *stats* column, log fold changes (or other statistics, if specified) in *direction* column, differential abundace information in the *DA* column (according to the thresholds), the variable of interest for the enrichment analysis, and the name of the feature in the *feature* column;
+-   the `data` slot contains information for each feature. P-values, adjusted p-values (or other statistics) in *stats* column, log fold changes (or other statistics, if specified) in *direction* column, differential abundance information in the *DA* column (according to the thresholds), the variable of interest for the enrichment analysis, and the name of the feature in the *feature* column;
 
 -   in the `tables` slot a maximum of *2 x (levels of enrichment variable)* contingency tables (*2x2*) are present;
 
@@ -860,12 +1156,12 @@ The produced *enrichment* object consists in a list of elements as long as the n
 
 -   in the `summaries` slot, the first elements of the contingency tables and the respective p-values are collected for graphical purposes.
 
-Considering the most liberal method of our example, *metagenomeSeq.CSSmedian,* we obtain 8 contingency tables. Both UP Abundant and DOWN Abundant taxa are found and the enrichment variable has Aerobic, Anaerobic, F_Anaerobic, and Unknown levels. For each level, we can build 2 contingency tables: one for DOWN Abundant vs non.DOWN Abundant features and one for UP Abundant vs non.UP Abundant features. The enrichment is tested using Fisher exact test. The `plotContingency()` function summarize all these information (Figure \@ref(fig:plotContingency)).
+Considering one of the methods, `DESeq2.poscounts`, we obtain 8 contingency tables. Both UP Abundant and DOWN Abundant taxa are found and the enrichment variable has Aerobic, Anaerobic, F_Anaerobic, and Unknown levels. For each level, we can build 2 contingency tables: one for DOWN Abundant vs non-DOWN Abundant features and one for UP Abundant vs non-UP Abundant features. The enrichment is tested using Fisher exact test. The `plotContingency()` function summarize all these information (Figure \@ref(fig:plotContingency)).
 
-```{r plotContingency, fig.cap="Contingency tables plot. Contingency tables for Aerobic and Anaerobic taxa found as differentially abundant by metagenomeSeq.CSSmedian DA method. Fisher exact test has been performed on each contingency table. If the enrichment is signficantly present, the correspondent cell will be highlighted."}
+```{r plotContingency, fig.cap="Contingency tables plot. Contingency tables for Aerobic and Anaerobic taxa found as differentially abundant by DESeq2.poscounts DA method. Fisher exact test has been performed on each contingency table. If the enrichment is signficantly present, the correspondent cell will be highlighted."}
 plotContingency(enrichment = enrichment, 
     levels_to_plot = c("Aerobic", "Anaerobic"), 
-    method = "metagenomeSeq.CSSmedian")
+    method = "DESeq2.poscounts")
 ```
 
 To summarize enrichment analysis for all the methods simultaneously, the `plotEnrichment()` function can be used. Only Aerobic and Anaerobic levels are plotted in Figure \@ref(fig:plotEnrichment):
@@ -875,7 +1171,7 @@ plotEnrichment(enrichment = enrichment, enrichmentCol = "Type",
     levels_to_plot = c("Aerobic", "Anaerobic"))
 ```
 
-Since "Subgingival Plaque" is the reference level for each method, the coefficients extracted from the methods are referred to the "Supragingival Plaque" class. Five out of nine methods identify, as expected, a statistically significant ($0.001 < p \le 0.05$) amount of DOWN Abundant Anaerobic features in Supragingival Plaque (Figure \@ref(fig:plotEnrichment)). Moreover, *metagenomeSeq.CSSmedian* finds some UP Abundant Aerobic genera in Supragingival Plaque but, together with *edgeR.TMM*, some Anaerobic genera as UP Abundant, which are probably false positives. *Seurat.none.wilcox*, *ALDEx2.none.iqlr.t*, and *limma.CSSmedian* have instead a more conservative behavior, but still they can find some DOWN Abundant genera towards the expected direction. Finally, *MAST.none* doesn't find any DA feature.
+Since "Subgingival Plaque" is the reference level for each method, the coefficients extracted from the methods are referred to the "Supragingival Plaque" class. Five out of eight methods identify, as expected, a statistically significant ($0.001 < p \le 0.05$) amount of DOWN Abundant Anaerobic features in Supragingival Plaque (Figure \@ref(fig:plotEnrichment)). Moreover, all of them find and enriched amount of UP Abundant Aerobic genera in Supragingival Plaque. Both `DESeq2.poscounts` and `DESeq2.poscounts.weighted` find many Anaerobic genera as UP Abundant, which are not expected and could be false positives, probably.
 
 To investigate the DA features, the `plotMutualFindings()` function can be used (Figure \@ref(fig:plotMutualFindings)). While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
 
@@ -884,7 +1180,7 @@ plotMutualFindings(enrichment, enrichmentCol = "Type",
     levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
 ```
 
-In this example (Figure \@ref(fig:plotMutualFindings)), only Anaerobic genera are found as DA by more than 1 method simultaneously. Among them *Prevotella*, *Fusobacterium*, *Catonella*, and *Dialister* genera are found as DOWN Abundant in Supragingival Plaque by the majority of methods. Only the Bacteroides genus is considered UP Abundant in Supragingival Plaque by *edgeR.TMM*. However, the same feature is found as DOWN Abundant by *metagenomeSeq.CSSmedian*.
+In this example (Figure \@ref(fig:plotMutualFindings)), many Anaerobic genera and 6 Aerobic genera are found as DA by more than 1 method simultaneously. Among them *Prevotella*, *Treponema*, *Fusobacterium*, *Catonella*, and *Dialister* genera are found as DOWN Abundant in Supragingival Plaque by all methods. While the *Actinomyces* genus is considered UP Abundant in Supragingival Plaque .
 
 ## True and False Positives
 
@@ -892,20 +1188,25 @@ To evaluate the overall performances we can study a statistic based on the diffe
 
 ```{r createPositives}
 positives <- createPositives(
-    object = Plaque_16S_DA, priorKnowledge = priorInfo, enrichmentCol = "Type",
-    namesCol = "newNames", slot = "pValMat", colName = "rawP", type = "pvalue",
-    direction = c("logFC", # edgeR
+    object = Plaque_16S_DA[-c(6,7)], 
+    priorKnowledge = priorInfo, 
+    enrichmentCol = "Type",
+    namesCol = "newNames", 
+    slot = "pValMat", 
+    colName = "rawP", 
+    type = "pvalue",
+    direction = c(
+        "logFC", # edgeR
         "log2FoldChange", # DEseq2
         "logFC", # limma
-        "logFC", # limma
-        "HMP_BODY_SUBSITESupragingival Plaque", # metagenomeSeq
         "effect", # ALDEx2
-        "Estimate", # corncob
-        "logFC",# MAST
-        "avg_log2FC"), # Seurat
+        "logFC", # MAST
+        "logFC", # edgeR with weights
+        "log2FoldChange", # DESeq2 with weights
+        "logFC"), # limma with weights
     threshold_pvalue = 1,
     threshold_logfc = 0,
-    top = seq.int(from = 0, to = 50, by = 5),
+    top = seq.int(from = 0, to = 40, by = 5),
     alternative = "greater",
     verbose = FALSE,
     TP = list(c("DOWN Abundant", "Anaerobic"), c("UP Abundant", "Aerobic")),
@@ -920,7 +1221,300 @@ Finally, the `plotPositives()` function can be used to summarize the methods' pe
 plotPositives(positives)
 ```
 
-*MAST.none.median* and *ALDEx2.none.iqlr.t* methods are obviously very conservative and are located on the lower part of the Figure \@ref(fig:plotPositives). Very liberal methods, such as *metagenomeSeq.CSSmedian* and *edgeR.TMM* show instead the highest values. This means that their findings are in line with the *a priori* knowledge supplied by the user, however we are considering a toy example with only 88 features.
+`MAST.median` and `ALDEx2.all.wilcox.paired` methods are very conservative and are located on the lower part of the Figure \@ref(fig:plotPositives). More liberal methods, such as `limma.TMM.weighted` and `edgeR.TMM` show instead the highest values. This means that their findings are in line with the *a priori* knowledge supplied by the user, however we are considering a toy example with only 58 features.
+
+## Enrichment without direction
+
+When the user have a custom method where the direction of the differential abundance is not returned (*e.g.* NOISeq), or when the direction of DA is not of interest, the sole information about DA and not DA feature can be used. We use the `createEnrichment()` without the direction parameter for all methods.
+
+```{r createEnrichment_nodir}
+enrichment_nodir <- createEnrichment(
+    object = Plaque_16S_DA, 
+    priorKnowledge = priorInfo, 
+    enrichmentCol = "Type",
+    namesCol = "newNames", 
+    slot = "pValMat", 
+    colName = "adjP", 
+    type = "pvalue",
+    threshold_pvalue = 0.1,
+    threshold_logfc = 0,
+    top = NULL,
+    alternative = "greater",
+    verbose = FALSE
+)
+```
+
+To summarize enrichment analysis for all the methods simultaneously, the `plotEnrichment()` function can be used. All levels are plotted in Figure \@ref(fig:plotEnrichmentnodir).
+
+```{r plotEnrichmentnodir, fig.width=7, fig.height=7, fig.cap="Enrichment plot. Number of differentially abundant features, colored by metabolism."}
+plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Type")
+```
+
+The highest amount of DA features belongs to the *Anerobic* metabolism, followed by *F_Anaerobic*, and *Aerobic*. The method that finds more DA features is `DESeq2.poscounts`, while `ANCOM` is the most conservative
+
+As for enrichment analysis with DA direction, the `plotMutualFindings()` function can be used here too (Figure \@ref(fig:plotMutualFindingsnodir)). While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
+
+```{r plotMutualFindingsnodir, fig.width=6, fig.height=6, fig.cap="Mutual Findings plot. Number of differentially abundant features mutually found by 1 or more methods, separated by aerobic and anaerobic metabolism."}
+plotMutualFindings(enrichment_nodir, enrichmentCol = "Type", 
+    levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
+```
+
+In this example (Figure \@ref(fig:plotMutualFindingsnodir)), only a *Prevotella* OTU is found as DA in Supragingival Plaque by all methods (probably because `ANCOM` p-value threshold is not interpretable as the same threshold for the other methods).
+
+## Enrichment analysis for simulated data
+
+To enlarge the scope of the enrichment analysis, simulations could be used, e.g. by using the user's dataset as a template to generate simulated data, in which to know the DA features and provide this information as prior knowledge.
+
+As an example, here we leverage the `SPsimSeq` package (the tool to use is up to the user) to simulate only a single dataset (`n.sim = 1`) from the `ps_plaque_16S` dataset where two body sub sites are available (without considering the paired design). The data are simulated with the following properties - 100 features (`n.genes = 100`) - 50 samples (`tot.samples = 50`) - the samples are equally divided into 2 groups each with 25 samples (`group.config = c(0.5, 0.5)`) - all samples are from a single batch (`batch.config = 1`) - we add 20% DA features (`pDE = 0.2`) - the DA features have a log-fold-change of at least 0.5 - we do not model the zeroes separately (`model.zero.prob = FALSE`).
+
+```{r simulate_plaques}
+data("ps_plaque_16S")
+counts_and_metadata <- get_counts_metadata(ps_plaque_16S)
+plaque_counts <- counts_and_metadata[["counts"]]
+plaque_metadata <- counts_and_metadata[["metadata"]]
+
+set.seed(123)
+
+sim_list <- SPsimSeq(
+    n.sim = 1, 
+    s.data = plaque_counts,
+    group = plaque_metadata[, "HMP_BODY_SUBSITE"],
+    n.genes = 100, 
+    batch.config = 1,
+    group.config = c(0.5, 0.5), 
+    tot.samples = 50, 
+    pDE = 0.2, 
+    lfc.thrld = 0.5, 
+    model.zero.prob = FALSE,
+    result.format = "list")
+```
+
+Simulated data are organised into a `TreeSummarizedExperiment` object:
+
+```{r simulated_to_TSE}
+library(TreeSummarizedExperiment)
+
+sim_obj <- TreeSummarizedExperiment::TreeSummarizedExperiment(
+    assays = list("counts" = sim_list[[1]][["counts"]]),
+    rowData = sim_list[[1]]["rowData"],
+    colData = sim_list[[1]]["colData"],
+)
+# Group as factor
+SummarizedExperiment::colData(sim_obj)[, "colData.Group"] <- as.factor(
+    SummarizedExperiment::colData(sim_obj)[, "colData.Group"])
+```
+
+The *apriori* informations are readily available from the `sim_list[[1]]["rowData"]`.
+
+```{r priorInfo_simulated}
+priorInfo <- sim_list[[1]][["rowData"]]
+priorInfo$Reality <- ifelse(priorInfo[, "DE.ind"], "is DA", "is not DA")
+```
+
+Once again we compute the normalization/scaling factors:
+
+```{r normalizing_simulated}
+sim_obj <- runNormalizations(normalization_list = my_normalizations, 
+    object = sim_obj, verbose = TRUE)
+```
+
+We filter rare taxa:
+
+```{r filter_simulated}
+taxa_to_keep <- apply(assays(sim_obj)[["counts"]], 1, function(x) 
+        sum(x > 0) >= 3)
+sim_obj <- sim_obj[taxa_to_keep, ]
+priorInfo <- priorInfo[taxa_to_keep, ]
+```
+
+We compute weights:
+
+```{r weights_simulated}
+sim_weights <- weights_ZINB(object = sim_obj, design = ~ 1, 
+    zeroinflation = TRUE)
+```
+
+We set the methods' instructions:
+
+```{r set_methods_simulated}
+my_basic <- set_basic(pseudo_count = FALSE,
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"), 
+    test = c("t", "wilcox"), 
+    paired = FALSE, 
+    expand = TRUE)
+
+my_edgeR <- set_edgeR(
+    pseudo_count = FALSE,
+    group_name = "colData.Group",
+    design = ~ colData.Group,
+    robust = FALSE,
+    coef = 2,
+    norm = "TMM",
+    weights_logical = c(TRUE, FALSE),
+    expand = TRUE)
+
+my_DESeq2 <- set_DESeq2(
+    pseudo_count = FALSE,
+    design = ~ colData.Group,
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    norm = "poscounts",
+    weights_logical = c(TRUE, FALSE),
+    alpha = 0.05,
+    expand = TRUE)
+
+my_limma <- set_limma(
+    pseudo_count = FALSE,
+    design = ~ colData.Group,
+    coef = 2,
+    norm = "TMM",
+    weights_logical = c(FALSE, TRUE),
+    expand = TRUE)
+
+my_ALDEx2 <- set_ALDEx2(
+    pseudo_count = FALSE,
+    design = "colData.Group",
+    mc.samples = 128,
+    test = "wilcox",
+    paired.test = FALSE, 
+    denom = c("all", "iqlr"), 
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    expand = TRUE)
+
+my_metagenomeSeq <- set_metagenomeSeq(
+    pseudo_count = FALSE, 
+    design = "~ colData.Group", 
+    coef = "colData.GroupSupragingival Plaque", 
+    norm = "CSS", 
+    model = "fitFeatureModel",
+    expand = TRUE)
+
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ colData.Group,
+    formula_null = ~ 1,
+    phi.formula = ~ colData.Group,
+    phi.formula_null = ~ colData.Group,
+    test = c("Wald", "LRT"),
+    boot = FALSE, 
+    coefficient = "colData.GroupSupragingival Plaque")
+
+my_MAST <- set_MAST(
+    pseudo_count = FALSE,
+    rescale = c("default", "median"),
+    design = "~ 1 + colData.Group",
+    coefficient = "colData.GroupSupragingival Plaque",
+    expand = TRUE)
+
+my_Seurat <- set_Seurat(
+    pseudo_count = FALSE,
+    test = c("t", "wilcox"),
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    norm = c("LogNormalize", "CLR"),
+    scale.factor = 10^5,
+    expand = TRUE
+)
+
+my_ANCOM <- set_ANCOM(
+    pseudo_count = FALSE,
+    formula = "colData.Group", 
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    BC = c(TRUE, FALSE), 
+    expand = TRUE   
+)
+
+my_dearseq <- set_dearseq(
+    pseudo_count = FALSE,
+    covariates = NULL,
+    variables2test = "colData.Group", 
+    preprocessed = FALSE, 
+    test = c("permutation", "asymptotic"),
+    expand = TRUE)
+
+my_NOISeq <- set_NOISeq(
+    pseudo_count = FALSE, 
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    norm = c("rpkm", "tmm"), 
+    expand = TRUE)
+
+my_methods <- c(my_basic, my_edgeR, my_DESeq2, my_limma, my_metagenomeSeq,
+    my_corncob, my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq, my_NOISeq)
+```
+
+We run the methods:
+
+```{r runDA_simulated}
+sim_DA <- runDA(method_list = my_methods, 
+    object = sim_obj, weights = sim_weights, verbose = FALSE)
+```
+
+We use the `createEnrichment()` without the direction parameter for all methods using 0.1 as threshold for the adjusted p-values in order to define DA and non-DA taxa.
+
+```{r createEnrichment_nodir_sim}
+enrichment_nodir <- createEnrichment(
+    object = sim_DA, 
+    priorKnowledge = priorInfo, 
+    enrichmentCol = "Reality",
+    namesCol = NULL, 
+    slot = "pValMat", 
+    colName = "adjP", 
+    type = "pvalue",
+    threshold_pvalue = 0.1,
+    threshold_logfc = 0,
+    top = NULL,
+    alternative = "greater",
+    verbose = FALSE
+)
+```
+
+To summarize enrichment analysis for all the methods simultaneously, the `plotEnrichment()` function can be used. Both the numbers of "is DA" and "is not DA" features are plotted in Figure \@ref(fig:plotEnrichmentnodirsim). Their interpretation is quite straightforward: "is DA" are the true positive findings, while the "is not DA" are the false positives.
+
+```{r plotEnrichmentnodirsim, fig.width=7, fig.height=7, fig.cap="Enrichment plot for simulated data. Number of differentially abundant features, colored by DA reality."}
+plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Reality")
+```
+
+From this example, only 9 out of 25 methods are able to find an enriched amount of truly DA features without any false discovery: `ANCOM.counts.BC` and `dearseq.counts.permutation.1000` in the first position.
+
+To further assess methods' power, the `createPositives()` function can be used specifying as True Positives the resulting DA features created as real DA features and as False Positives the resulting DA features created as not DA features (figure \@ref(fig:plotPositivessim)).
+
+We use a *threshold_pvalue = 0.1* to call a feature DA based on its adjusted p-value. We compute the difference between TPs and FPs for several *top* thresholds (from 5 to 30, by 5) in order to observe a trend.
+
+```{r createPositives_sim}
+positives_nodir <- createPositives(
+    object = sim_DA, 
+    priorKnowledge = priorInfo, 
+    enrichmentCol = "Reality",
+    namesCol = NULL, 
+    slot = "pValMat", 
+    colName = "adjP", 
+    type = "pvalue",
+    threshold_pvalue = 0.1,
+    threshold_logfc = 0,
+    top = seq(5, 30, by = 5),
+    alternative = "greater",
+    verbose = FALSE,
+    TP = list(c("DA", "is DA")),
+    FP = list(c("DA", "is not DA"))
+)
+```
+
+Since we simulated 20 DA features, we know that the maximum number of TPs is 20.
+
+```{r plotPositivessim, fig.cap="TP, FP differences plot. Differences between the number of True Positives and False Positives for several thresholds of the top ranked adjusted p-values lower than 0.1 (the top 5 lowest adjusted p-values, the top 10, 15, ..., 30) for each method in simulated data. Red dotted line represents the total number of DA simulated features.", fig.width=8, fig.height=8}
+plotPositives(positives = positives_nodir) +
+    facet_wrap( ~ method) + 
+    theme(legend.position = "none") +
+    geom_hline(aes(yintercept = 20), linetype = "dotted", color = "red") +
+    geom_hline(aes(yintercept = 0), color = "black") +
+    ylim(NA, 21)
+```
+
+From figure \@ref(fig:plotPositivessim) it is clearly visible that `ANCOM.counts.BC` and `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of False Positives. On the contrary, if their lines are below the zero line, it means that the number of False Positives is greater (*e.g.* `edgeR.counts.TMM.weighted` has negative values, maybe due to poor weight estimates).
 
 # Session Info
 

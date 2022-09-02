@@ -14,7 +14,7 @@ characters which represent the mock groups pattern. Produced by the
 
 \item{method_list}{a list object containing the methods and their parameters.}
 
-\item{object}{a phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
 
@@ -38,13 +38,12 @@ head(mocks)
 
 # Add some normalization/scaling factors to the phyloseq object
 my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
-    method = c("TMM", "median"))
+    method = c("TMM", "CSS"))
 ps_stool_16S <- runNormalizations(normalization_list = my_norm,
     object = ps_stool_16S)
 
 # Initialize some limma based methods
-my_limma <- set_limma(design = ~ group, coef = 2,
-    norm = c("TMM", "CSSmedian"))
+my_limma <- set_limma(design = ~ group, coef = 2, norm = c("TMM", "CSS"))
 
 # Run methods on mock datasets
 results <- runMocks(mocks = mocks, method_list = my_limma,

@@ -5,6 +5,7 @@
 \title{set_DESeq2}
 \usage{
 set_DESeq2(
+  assay_name = "counts",
   pseudo_count = FALSE,
   design = NULL,
   contrast = NULL,
@@ -15,21 +16,14 @@ set_DESeq2(
 )
 }
 \arguments{
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
+
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{design}{(Required). A \code{\link{formula}} which specifies the design of the experiment,
-taking the form \code{formula(~ x + y + z)}. That is, a formula with right-hand side only.
-By default, the functions in this package and DESeq2
-will use the last variable in the formula (e.g. \code{z})
-for presenting results (fold changes, etc.) and plotting.
-When considering your specification of experimental design, you will want to 
-re-order the levels so that the \code{NULL} set is first.
-For example, the following line of code would ensure that Enterotype 1 is used as the 
-reference sample class in tests by setting it to the first of the factor levels
-using the \code{\link{relevel}} function:
-
-\code{sample_data(entill)$Enterotype <- relevel(sample_data(entill)$Enterotype, "1")}}
+\item{design}{character or formula to specify the model matrix.}
 
 \item{contrast}{character vector with exactly three elements: the name of a
 factor in the design formula, the name of the numerator level for the fold
@@ -39,11 +33,15 @@ change, and the name of the denominator level for the fold change.}
 filtering (by default 0.05). If the adjusted p-value cutoff (FDR) will be a
 value other than 0.05, alpha should be set to that value.}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose between the native DESeq2 normalization methods, 
+such as \code{ratio}, \code{poscounts}, or \code{iterate}. Alternatively 
+(only for advanced users), if \code{norm} is equal to "TMM", "TMMwsp", 
+"RLE", "upperquartile", "posupperquartile", or "none" from 
+\code{\link{norm_edgeR}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+\code{\link{norm_TSS}}, the normalization factors are automatically 
+transformed into size factors. If custom factors are supplied, make sure 
+they are compatible with DESeq2 size factors.}
 
 \item{weights_logical}{logical vector, if TRUE a matrix of observational
 weights will be used for differential abundance analysis (default
@@ -62,10 +60,10 @@ Set the parameters for DESeq2 differential abundance detection method.
 \examples{
 # Set some basic combinations of parameters for DESeq2
 base_DESeq2 <- set_DESeq2(design = ~ group, contrast = c("group", "B", "A"))
-# Set a specific set of normalization for DESeq2 (even of other packages!)
+# Set a specific set of normalization for DESeq2
 setNorm_DESeq2 <- set_DESeq2(design = ~ group, contrast =
-    c("group", "B", "A"), norm = c("TMM", "poscounts"))
-# Set many possible combinations of parameters for edgeR
+    c("group", "B", "A"), norm = c("ratio", "poscounts"))
+# Set many possible combinations of parameters for DESeq2
 all_DESeq2 <- set_DESeq2(pseudo_count = c(TRUE, FALSE), design = ~ group,
     contrast = c("group", "B", "A"), weights_logical = c(TRUE,FALSE))
 }

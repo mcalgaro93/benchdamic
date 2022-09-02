@@ -39,7 +39,7 @@ ps <- runNormalizations(normalization_list = my_norm, object = ps)
 
 # Set some limma instances
 my_methods <- set_limma(design = ~ group, coef = 2,
-    norm = c("TMM", "poscounts", "CSSmedian"))
+    norm = c("TMM", "poscounts", "CSS"))
 
 # Run the methods
 results <- runDA(method_list = my_methods, object = ps)

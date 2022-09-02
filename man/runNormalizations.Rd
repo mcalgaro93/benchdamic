@@ -4,13 +4,22 @@
 \alias{runNormalizations}
 \title{runNormalizations}
 \usage{
-runNormalizations(normalization_list, object, verbose = TRUE)
+runNormalizations(
+  normalization_list,
+  object,
+  assay_name = "counts",
+  verbose = TRUE
+)
 }
 \arguments{
 \item{normalization_list}{a list object containing the normalization methods
 and their parameters.}
 
-\item{object}{a phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}

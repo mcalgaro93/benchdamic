@@ -28,7 +28,7 @@
 #'
 #' # Set some limma instances
 #' my_methods <- set_limma(design = ~ group, coef = 2,
-#'     norm = c("TMM", "poscounts", "CSSmedian"))
+#'     norm = c("TMM", "poscounts", "CSS"))
 #'
 #' # Run the methods
 #' results <- runDA(method_list = my_methods, object = ps)
@@ -38,12 +38,12 @@ runDA <- function(method_list, object, weights = NULL, verbose = TRUE) {
             out <- lapply(X = method_list, FUN = function(x) {
                 method <- as.character(x[["method"]])
                 if(verbose)
-                    cat("      * Running now:", method, "\n")
+                    message("      * Running now:", method, "\n")
                 params <- unlist(lapply(x[-1], paste, collapse = "."))
                 param_names <- paste(names(x[-1]))
                 if(verbose)
-                    cat("        Parameters:", paste(param_names, "=", params,
-                        sep = "", collapse = ", "), "\n")
+                    message("        Parameters:", paste(param_names, "=", 
+                        params, sep = "", collapse = ", "), "\n")
                 if(is.element(el = "weights", set = names(x)))
                     if(x[["weights"]]){
                         x["weights"] <- NULL

@@ -6,34 +6,27 @@
 \usage{
 DA_DESeq2(
   object,
+  assay_name = "counts",
   pseudo_count = FALSE,
   design = NULL,
   contrast = NULL,
   alpha = 0.05,
-  norm = c("TMM", "TMMwsp", "RLE", "upperquartile", "posupperquartile", "none",
-    "ratio", "poscounts", "iterate", "TSS", "CSSmedian", "CSSdefault"),
+  norm = c("ratio", "poscounts", "iterate"),
   weights,
   verbose = TRUE
 )
 }
 \arguments{
-\item{object}{phyloseq object.}
+\item{object}{a phyloseq or TreeSummarizedExperiment object.}
+
+\item{assay_name}{the name of the assay to extract from the 
+TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
+used if the input object is a phyloseq.}
 
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{design}{(Required). A \code{\link{formula}} which specifies the design of the experiment,
-taking the form \code{formula(~ x + y + z)}. That is, a formula with right-hand side only.
-By default, the functions in this package and DESeq2
-will use the last variable in the formula (e.g. \code{z})
-for presenting results (fold changes, etc.) and plotting.
-When considering your specification of experimental design, you will want to 
-re-order the levels so that the \code{NULL} set is first.
-For example, the following line of code would ensure that Enterotype 1 is used as the 
-reference sample class in tests by setting it to the first of the factor levels
-using the \code{\link{relevel}} function:
-
-\code{sample_data(entill)$Enterotype <- relevel(sample_data(entill)$Enterotype, "1")}}
+\item{design}{character or formula to specify the model matrix.}
 
 \item{contrast}{character vector with exactly three elements: the name of a
 factor in the design formula, the name of the numerator level for the fold
@@ -43,11 +36,15 @@ change, and the name of the denominator level for the fold change.}
 filtering (by default 0.05). If the adjusted p-value cutoff (FDR) will be a
 value other than 0.05, alpha should be set to that value.}
 
-\item{norm}{name of the normalization method used to compute the
-normalization factors to use in the differential abundance analysis. If
-\code{norm} is equal to "TMM", "TMMwsp", "RLE", "upperquartile",
-"posupperquartile", "CSSmedian", "CSSdefault", "TSS" the scaling factors are
-automatically transformed into normalization factors.}
+\item{norm}{name of the normalization method to use in the differential 
+abundance analysis. Choose between the native DESeq2 normalization methods, 
+such as \code{ratio}, \code{poscounts}, or \code{iterate}. Alternatively 
+(only for advanced users), if \code{norm} is equal to "TMM", "TMMwsp", 
+"RLE", "upperquartile", "posupperquartile", or "none" from 
+\code{\link{norm_edgeR}}, "CSS" from \code{\link{norm_CSS}}, or "TSS" from 
+\code{\link{norm_TSS}}, the normalization factors are automatically 
+transformed into size factors. If custom factors are supplied, make sure 
+they are compatible with DESeq2 size factors.}
 
 \item{weights}{an optional numeric matrix giving observational weights.}
 
@@ -71,14 +68,14 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
-# Calculate the poscounts normalization factors
+# Calculate the poscounts size factors
 ps_NF <- norm_DESeq2(object = ps, method = "poscounts")
-# The phyloseq object now contains the normalization factors:
-scaleFacts <- phyloseq::sample_data(ps_NF)[, "NF.poscounts"]
-head(scaleFacts)
+# The phyloseq object now contains the size factors:
+sizeFacts <- phyloseq::sample_data(ps_NF)[, "NF.poscounts"]
+head(sizeFacts)
 # Differential abundance
 DA_DESeq2(object = ps_NF, pseudo_count = FALSE, design = ~ group, contrast =
-              c("group", "B", "A"), norm = "poscounts")
+    c("group", "B", "A"), norm = "poscounts")
 }
 \seealso{
 \code{\link[phyloseq]{phyloseq_to_deseq2}} for phyloseq to DESeq2
