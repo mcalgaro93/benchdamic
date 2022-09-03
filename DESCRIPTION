@@ -1,0 +1,84 @@
+Package: benchdamic
+Type: Package
+Title: Benchmark of differential abundance methods on microbiome data
+Version: 1.2.1
+Authors@R: 
+    c(person(given = "Matteo", 
+             family = "Calgaro", 
+             email = "mcalgaro93@gmail.com",
+             role = c("aut", "cre")),
+      person(given = "Chiara", 
+             family = "Romualdi", 
+             role = c("aut")),
+      person(given = "Davide", 
+             family = "Risso", 
+             email = "mcalgaro93@gmail.com",
+             role = c("aut")),
+      person(given = "Nicola", 
+             family = "Vitulo", 
+             role = c("aut")))       
+Description: Starting from a microbiome dataset (16S or WMS with absolute count
+    values) it is possible to perform several analysis to assess the 
+    performances of many differential abundance detection methods. A basic and 
+    standardized version of the main differential abundance analysis methods is 
+    supplied but the user can also add his method to the benchmark.
+    The analyses focus on 4 main aspects: i) the goodness of fit of each 
+    method's distributional assumptions on the observed count data, ii) the 
+    ability to control the false discovery rate, iii) the within and between 
+    method concordances, iv) the truthfulness of the findings if any apriori 
+    knowledge is given. Several graphical functions are available for result 
+    visualization.
+License: Artistic-2.0
+Encoding: UTF-8
+Depends: R (>= 4.2.0)
+Imports: stats,
+    stats4,
+    utils,
+    methods,
+    phyloseq,
+    TreeSummarizedExperiment,
+    BiocParallel,
+    zinbwave,
+    edgeR,
+    DESeq2,
+    limma,
+    ALDEx2,
+    detectseparation (<= 0.2.0),
+    corncob,
+    SummarizedExperiment,
+    MAST,
+    Seurat,
+    ANCOMBC,
+    NOISeq,
+    dearseq,
+    metagenomeSeq,
+    MGLM,
+    ggplot2,
+    RColorBrewer,
+    plyr,
+    ffpe,
+    reshape2,
+    ggdendro,
+    ggridges,
+    graphics,
+    cowplot,
+    tidytext
+Suggests: knitr, 
+    rmarkdown,
+    kableExtra,
+    HMP16SData,
+    curatedMetagenomicData,
+    BiocStyle,
+    SPsimSeq,
+    testthat
+VignetteBuilder: knitr
+LazyData: TRUE
+RoxygenNote: 7.2.1
+biocViews: Metagenomics, 
+  Microbiome,
+  DifferentialExpression,
+  MultipleComparison,
+  Normalization,
+  Preprocessing,
+  Software
+BugReports: https://github.com/mcalgaro93/benchdamic/issues
