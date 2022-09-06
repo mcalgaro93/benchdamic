@@ -58,41 +58,17 @@ library(plyr)
 # Graphics and tables
 library(ggplot2)
 library(cowplot)
-library(kableExtra)
 ```
 
 # Goodness of Fit
 
 ## Data loading
 
-We consider a homogeneous group of samples (e.g. only samples from a specific experimental condition, phenotype, treatment, body site...).
+In this demonstrative example, datasets are downloaded from the `HMP16SData` Bioconductor package [@HMP16SData]. We consider a homogeneous group of samples (e.g. only samples from a specific experimental condition, phenotype, treatment, body site...). See `help("ps_stool_16S")` for details.
 
 ```{r dataloading}
 data("ps_stool_16S")
 ps_stool_16S
-```
-
-In this demonstrative example, datasets are downloaded from the `HMP16SData` Bioconductor package [@HMP16SData].
-
-```{r 16S_stool_download, eval=FALSE, include=FALSE}
-## 16S HMP data download
-library(HMP16SData)
-# Extracting V3-V5 16S sequenced regions' count data
-ps_stool_16S_raw <- V35() %>%
-    subset(select = HMP_BODY_SUBSITE == "Stool" & # Only fecal samples
-        RUN_CENTER == "BI" & # Only sequenced at the BI RUN CENTER
-        SEX == "Male" & # Only male subject
-        VISITNO == 1 & # Only the first visit
-        !duplicated(RSID)) %>% # Duplicated SubjectID removal
-    as_phyloseq()
-# Remove low depth samples
-ps_stool_16S_pruned <- prune_samples(sample_sums(ps_stool_16S_raw) >= 10^3, 
-    ps_stool_16S_raw)
-# Remove features with zero counts
-ps_stool_16S_filtered <- filter_taxa(ps_stool_16S_pruned, function(x) {
-    sum(x > 0) > 0}, 1)
-# Collapse counts to the genus level
-ps_stool_16S <- tax_glom(ps_stool_16S_filtered, taxrank = "GENUS")
 ```
 
 ## GOF structure
@@ -322,18 +298,25 @@ Where the DA framework decided by the user is composed by two main steps:
 These steps can be performed both directly, using the `norm_*()` and `DA_*()` methods for normalization and differential abundance respectively, or indirectly, using the `setNormalizations()` and `set_*()` functions. This allows a higher flexibility to the users who can set the instructions for normalization or DA analysis only at the beginning. If some modifications are needed, the users can re-set the methods or modify the list of instructions directly. A list of the available methods is presented below (Table \@ref(tab:availableMethodsTable)). Some basic information are reported for each DA method, for more details please refer to functions' manual.
 
 ```{r availableMethodsTable, echo=FALSE}
-available_methods <- read.csv(file = "./benchdamic_methods.csv", sep = ";")
-kableExtra::kable(
-    x = available_methods, 
-    caption = "DA methods available in benchdamic.",
-    col.names = c("Method (package)", "Short description", "Test",
-        "Normalization / Transformation", "Suggested input", "Output"), 
-    booktabs = TRUE) %>%
-    kable_styling(latex_options = "scale_down") %>%
-    row_spec(0, bold = TRUE, color = "black") %>%
-    column_spec(c(1,5,6), width = "3cm") %>% 
-    column_spec(2:4, width = "6cm") %>%
-    column_spec(1:6, color = "black")
+if(!require("kableExtra", quietly = TRUE)){
+    message("Please install 'kableExtra' to plot the methods.")
+} else {
+    available_methods <- read.csv(file = "./benchdamic_methods.csv", sep = ";")
+    kableExtra::kable(
+        x = available_methods, 
+        caption = "DA methods available in benchdamic.",
+        col.names = c("Method (package)", 
+            "Short description", "Test",
+            "Normalization / Transformation", 
+            "Suggested input", "Output"), 
+        booktabs = TRUE) %>%
+        kable_styling(latex_options = "scale_down") %>%
+        row_spec(0, bold = TRUE, color = "black") %>%
+        column_spec(c(1,5,6), width = "3cm") %>% 
+        column_spec(2:4, width = "6cm") %>%
+        column_spec(1:6, color = "black")
+}
+
 ```
 
 ## Create mock comparisons
@@ -703,37 +686,11 @@ Putting all the previous graphical representations together gives us a general o
 
 If we want to measure the ability of each method to produce replicable results in independent data and the amount of concordance of the results of each method on two random subsets of the same dataset, we'll perform the Between Method Concordance (BMC) and the Within Method Concordance (WMC) analyses.
 
-We consider the samples from the supragingival and subgingival plaques of 30 subjects.
+We consider the samples from the supragingival and subgingival plaques of 30 subjects. See `help("ps_plaque_16S")` for details.
 
 ```{r dataloading_concordance}
 data("ps_plaque_16S")
 ps_plaque_16S
-```
-
-```{r 16S_plaque_download, eval=FALSE, include=FALSE}
-ps_plaque_16S_raw <- V35() %>% # Extracting V3-V5 16S sequenced regions
-    subset(select = HMP_BODY_SUBSITE %in% c("Supragingival Plaque",
-        "Subgingival Plaque") & # Only gingival plaque samples
-        RUN_CENTER == "WUGC" & # Only sequenced at the WUCG RUN CENTER
-        SEX == "Male" & # Only male subject
-        VISITNO == 1) %>% # Only the first visit
-    as_phyloseq()
-
-# Only paired samples
-paired <- names(which(table(sample_data(ps_plaque_16S_raw)[, "RSID"]) == 2))
-ps_plaque_16S_paired <- subset_samples(ps_plaque_16S_raw, RSID %in% paired)
-
-# Remove low depth samples
-ps_plaque_16S_pruned <- prune_samples(
-    sample_sums(ps_plaque_16S_paired) >= 10^3, 
-    ps_plaque_16S_paired)
-
-# Remove features with zero counts
-ps_plaque_16S_filtered <- filter_taxa(ps_plaque_16S_pruned, function(x) 
-    sum(x > 0) > 0, 1)
-
-# Collapse counts to the genus level
-ps_plaque_16S <- tax_glom(ps_plaque_16S_filtered, taxrank = "GENUS")
 ```
 
 ## Concordance structure
