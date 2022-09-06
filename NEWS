@@ -1,3 +1,17 @@
+Changes in Version 1.2.3 (2022-09-07)
+=====================================
+
+* Porting the changes of devel version 1.3.4 to release
+
+Changes in Version 1.3.4 (2022-09-07)
+=====================================
+
+* Updated intro vignette. 
+* Removed HMP16SData chunks.
+* Added conditional usage of kableExtra
+* Removed dependency from HMP16SData and ffpe
+* Implemented CAT function instead of using ffpe::CATplot
+
 Changes in Version 1.2.2 (2022-09-06)
 =====================================
 
