@@ -116,11 +116,16 @@ DA_basic <- function(object, assay_name = "counts", pseudo_count = FALSE,
     }
     statInfo <- plyr::ldply(apply(X = counts, MARGIN = 1, 
         FUN = function(feature){
-        # Compute the average values
-        avg_group1 <- mean(feature[group1]) 
-        avg_group2 <- mean(feature[group2])
-        # Compute the logFC
-        logFC <- log1p(avg_group1) - log1p(avg_group2)
+            if(!paired){
+                # Compute the average values
+                avg_group1 <- mean(feature[group1]) 
+                avg_group2 <- mean(feature[group2])
+                # Compute the logFC
+                logFC <- log1p(avg_group1) - log1p(avg_group2)
+            } else {
+                logFC <- mean(log1p(feature[group1]) - log1p(feature[group2]))
+            }
+        
         if(test == "t"){
             results <- stats::t.test(x = feature[group1], y = feature[group2], 
                 paired = paired)
@@ -137,12 +142,10 @@ DA_basic <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 "statistic" = results[["statistic"]], 
                 "pvalue" = results[["p.value"]])
         }
-        out <- data.frame(out, avg_group1, avg_group2, logFC)
+        out <- data.frame(out, "logFC" = logFC)
         return(out)
     }))
     colnames(statInfo)[1] <- "taxon"
-    colnames(statInfo)[ncol(statInfo) - 2] <- paste0("avg_", contrast[2])
-    colnames(statInfo)[ncol(statInfo) - 1] <- paste0("avg_", contrast[3])
     # Creating pValMat
     padj <- stats::p.adjust(p = statInfo$pvalue, method = "BH")
     pValMat <- data.frame("rawP" = statInfo[, "pvalue"], "adjP" = padj)
