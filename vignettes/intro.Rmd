@@ -529,7 +529,7 @@ If some warnings are reported set `verbose = TRUE` to obtain the method name and
 
 The structure of the output in this example is the following:
 
--   *Comparison1* to *Comparison10* on the first level, which contains:
+-   *Comparison1* to *Comparison2* on the first level, which contains:
 
     -   *Method1* to *Method23* output lists on the second level:
 
@@ -857,7 +857,7 @@ The structure of the output in this example is the following:
 
 -   *Subset1* and *Subset2* on the first level, which contains:
 
-    -   *Comparison1* to *Comparison10* output lists on the second level:
+    -   *Comparison1* to *Comparison2* output lists on the second level:
 
         -   results of 7 methods on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with median scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction (since it only allows for cross-sectional data). They are organized as already described in the "Goodness of Fit" chapter:
 
