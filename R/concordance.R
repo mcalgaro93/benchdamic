@@ -495,7 +495,7 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
 
 CAT <- function (vec1, vec2, maxrank = min(length(vec1), length(vec2))) 
 {
-    if (class(vec1) == "numeric" & class(vec2) == "numeric" & 
+    if (is.numeric(vec1) & is.numeric(vec2) & 
         !is.null(names(vec1)) & !is.null(names(vec1))) {
         vec1 <- sort(vec1)
         vec1 <- names(vec1)
