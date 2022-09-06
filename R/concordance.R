@@ -339,7 +339,6 @@ runSplits <- function(split_list, method_list, normalization_list, object,
 #' @title createConcordance
 #'
 #' @export
-#' @importFrom ffpe CATplot
 #' @importFrom plyr ddply ldply
 #' @importFrom stats runif
 #' @description
@@ -439,19 +438,13 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
                     vec1 <- comparison1[[method_names[j]]] 
                     vec2 <- comparison1[[method_names[k]]]  
                     noise <- stats::runif(length(vec1), 0, 1e-10)
-                    conc1 <- ffpe::CATplot(
-                        vec1 = vec1 + noise, vec2 = vec2 + noise, make.plot =
-                            FALSE
-                    )
+                    conc1 <- CAT(vec1 = vec1 + noise, vec2 = vec2 + noise)
                     conc1 <- data.frame(conc1, "n_features" = n_features1)
                     # For subset2
                     vec1 <- comparison2[[method_names[j]]]
                     vec2 <- comparison2[[method_names[k]]]
                     noise <- stats::runif(length(vec1), 0, 1e-10)
-                    conc2 <- ffpe::CATplot(
-                        vec1 = vec1 + noise, vec2 = vec2 + noise, make.plot =
-                            FALSE
-                    )
+                    conc2 <- CATplot(vec1 = vec1 + noise, vec2 = vec2 + noise)
                     conc2 <- data.frame(conc2, "n_features" = n_features2)
                     # Together
                     conc <- rbind(conc1, conc2)
@@ -460,10 +453,7 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
                     vec2 <- comparison2[[method_names[k]]]
                     noise1 <- stats::runif(length(vec1), 0, 1e-10)
                     noise2 <- stats::runif(length(vec2), 0, 1e-10)
-                    conc <- ffpe::CATplot(
-                        vec1 = vec1 + noise1, vec2 = vec2 + noise2, make.plot =
-                            FALSE
-                    )
+                    conc <- CATplot(vec1 = vec1 + noise1, vec2 = vec2 + noise2)
                     conc <- data.frame(conc, "n_features" = n_features)
                 }
                 conc[, "method1"] <- method_names[j]
@@ -474,6 +464,54 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
         })
     })
     return(concordance)
+}
+
+#' @title CAT
+#'
+#' @export
+#' @description
+#' For the i top-ranked members of each list, concordance is defined as 
+#' \code{length(intersect(vec1[1:i],vec2[1:i]))/i}.
+#'
+#' @param vec1,vec2 Two numeric vectors, for computing concordance. If these 
+#' are numeric vectors with names, the numeric values will be used for sorting 
+#' and the names will be used for calculating concordance. Otherwise, they are 
+#' assumed to be already-ranked vectors, and the values themselves will be 
+#' used for calculating concordance.
+#' @param maxrank Optionally specify the maximum size of top-ranked items that 
+#' you want to plot.
+#'
+#' @return a data.frame with two columns: \code{rank} containing the length of 
+#' the top lists and \code{concordance} which is the fraction in common that 
+#' the two provided lists have in the top \code{rank} items.
+#'
+#' @seealso \code{\link{createConcordance}}.
+#'
+#' @examples
+#' vec1 <- c("A" = 10, "B" = 5, "C" = 20, "D" = 15)
+#' vec2 <- c("A" = 1, "B" = 2, "C" = 3, "D" = 4)
+#' 
+#' CAT(vec1, vec2)
+
+CAT <- function (vec1, vec2, maxrank = min(length(vec1), length(vec2))) 
+{
+    if (class(vec1) == "numeric" & class(vec2) == "numeric" & 
+        !is.null(names(vec1)) & !is.null(names(vec1))) {
+        vec1 <- sort(vec1)
+        vec1 <- names(vec1)
+        vec2 <- sort(vec2)
+        vec2 <- names(vec2)
+    }
+    if (is.na(maxrank) | is.null(maxrank) | 
+        maxrank > min(length(vec1), length(vec2))) {
+        maxrank <- min(length(vec1), length(vec2))
+    }
+    output <- data.frame(rank = 1:maxrank, concordance = NA)
+    for (i in 1:nrow(output)) {
+        output[i, "concordance"] <- length(
+            intersect(vec1[1:i], vec2[1:i]))/i
+    }
+    return(output)
 }
 
 #' @title areaCAT
