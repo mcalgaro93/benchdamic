@@ -444,7 +444,7 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
                     vec1 <- comparison2[[method_names[j]]]
                     vec2 <- comparison2[[method_names[k]]]
                     noise <- stats::runif(length(vec1), 0, 1e-10)
-                    conc2 <- CATplot(vec1 = vec1 + noise, vec2 = vec2 + noise)
+                    conc2 <- CAT(vec1 = vec1 + noise, vec2 = vec2 + noise)
                     conc2 <- data.frame(conc2, "n_features" = n_features2)
                     # Together
                     conc <- rbind(conc1, conc2)
@@ -453,7 +453,7 @@ createConcordance <- function(object, slot = "pValMat", colName = "rawP",
                     vec2 <- comparison2[[method_names[k]]]
                     noise1 <- stats::runif(length(vec1), 0, 1e-10)
                     noise2 <- stats::runif(length(vec2), 0, 1e-10)
-                    conc <- CATplot(vec1 = vec1 + noise1, vec2 = vec2 + noise2)
+                    conc <- CAT(vec1 = vec1 + noise1, vec2 = vec2 + noise2)
                     conc <- data.frame(conc, "n_features" = n_features)
                 }
                 conc[, "method1"] <- method_names[j]
