@@ -28,9 +28,9 @@ library size if 'median' ('median' is suggested for metagenomics data).}
 or a character similar to "~ 1 + group", or a formula, or a `model.matrix`
 object.}
 
-\item{coefficient}{The coefficient of interest as a single word formed by the
-variable name and the non reference level. (e.g.: 'ConditionDisease' if the
-reference level for the variable 'Condition' is 'control').}
+\item{coefficient}{The coefficient of interest as a single word formed by 
+the variable name and the non reference level. (e.g.: 'ConditionDisease' if 
+the reference level for the variable 'Condition' is 'control').}
 
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE})}

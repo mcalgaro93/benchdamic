@@ -31,9 +31,9 @@ library size if 'median' ('median' is suggested for metagenomics data).}
 or a character similar to "~ 1 + group", or a formula, or a `model.matrix`
 object.}
 
-\item{coefficient}{The coefficient of interest as a single word formed by the
-variable name and the non reference level. (e.g.: 'ConditionDisease' if the
-reference level for the variable 'Condition' is 'control').}
+\item{coefficient}{The coefficient of interest as a single word formed by 
+the variable name and the non reference level. (e.g.: 'ConditionDisease' if 
+the reference level for the variable 'Condition' is 'control').}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}

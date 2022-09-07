@@ -8,12 +8,15 @@
 #' @description
 #' Fast run for MAST differential abundance detection method.
 #'
-#' @inheritParams DA_corncob
+#' @inheritParams DA_DESeq2
 #' @param rescale Rescale count data, per million if 'default', or per median
 #' library size if 'median' ('median' is suggested for metagenomics data).
 #' @param design The model for the count distribution. Can be the variable name,
 #' or a character similar to "~ 1 + group", or a formula, or a `model.matrix`
 #' object.
+#' @param coefficient The coefficient of interest as a single word formed by 
+#' the variable name and the non reference level. (e.g.: 'ConditionDisease' if 
+#' the reference level for the variable 'Condition' is 'control').
 #'
 #' @return A list object containing the matrix of p-values `pValMat`, the matrix
 #' of summary statistics for each tag `statInfo`, and a suggested `name` of the
