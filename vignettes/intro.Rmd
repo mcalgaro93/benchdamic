@@ -393,7 +393,7 @@ For each row of the `mock_df` data frame we run a bunch of DA methods. In this d
 
 -   `metagenomeSeq` with *CSS* normalization factors using both the *fitFeatureModel* (for a zero-inflated, log-normal distribution, mixture model, as suggested in the package vignette) and the *fitZig* (for a zero-inflated, gaussian distribution, mixture model) algorithms [@zig];
 
--   `corncob` with a focus on average differences (not dispersion, regulated by phi.formula and phi.formula_null parameters) using both *Wald* and *LRT* tests [@corncob];
+-   `corncob` (temporarily removed) with a focus on average differences (not dispersion, regulated by phi.formula and phi.formula_null parameters) using both *Wald* and *LRT* tests [@corncob];
 
 -   `MAST` with both rescalings, *default* (*i.e.* $10^6$, for CPMs) and *median* [@mast];
 
@@ -457,15 +457,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = c("fitFeatureModel", "fitZig"),
     expand = TRUE)
 
-my_corncob <- set_corncob(
-    pseudo_count = FALSE,
-    formula = ~ group,
-    formula_null = ~ 1,
-    phi.formula = ~ group,
-    phi.formula_null = ~ group,
-    test = c("Wald", "LRT"),
-    boot = FALSE, 
-    coefficient = "groupgrp2")
+# my_corncob <- set_corncob(
+#     pseudo_count = FALSE,
+#     formula = ~ group,
+#     formula_null = ~ 1,
+#     phi.formula = ~ group,
+#     phi.formula_null = ~ group,
+#     test = c("Wald", "LRT"),
+#     boot = FALSE, 
+#     coefficient = "groupgrp2")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -499,7 +499,8 @@ my_dearseq <- set_dearseq(
     expand = TRUE)
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, my_limma, my_metagenomeSeq,
-    my_corncob, my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq)
+    # my_corncob, 
+    my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq)
 ```
 
 ```{r runMocks}
@@ -514,7 +515,7 @@ The structure of the output in this example is the following:
 
 -   *Comparison1* to *Comparison2* on the first level, which contains:
 
-    -   *Method1* to *Method23* output lists on the second level:
+    -   *Methods'* output lists on the second level:
 
         -   `pValMat` which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -816,7 +817,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison2* output lists on the second level:
 
-        -   results of 7 methods on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with median scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction (since it only allows for cross-sectional data). They are organized as already described in the "Goodness of Fit" chapter:
+        -   results of the methods on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with median scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction (since it only allows for cross-sectional data). They are organized as already described in the "Goodness of Fit" chapter:
 
             -   `pValMat` which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1057,7 +1058,7 @@ Plaque_16S_DA <- runDA(method_list = my_methods,
 
 ## Visualization
 
-`Plaque_16_DA` object contains the results for 10 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
+`Plaque_16_DA` object contains the results for the methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
 
 In the *direction* argument, which is set to `NULL` by default, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's `statInfo` matrix must be supplied.
 
@@ -1348,15 +1349,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = "fitFeatureModel",
     expand = TRUE)
 
-my_corncob <- set_corncob(
-    pseudo_count = FALSE,
-    formula = ~ colData.Group,
-    formula_null = ~ 1,
-    phi.formula = ~ colData.Group,
-    phi.formula_null = ~ colData.Group,
-    test = c("Wald", "LRT"),
-    boot = FALSE, 
-    coefficient = "colData.GroupSupragingival Plaque")
+# my_corncob <- set_corncob(
+#     pseudo_count = FALSE,
+#     formula = ~ colData.Group,
+#     formula_null = ~ 1,
+#     phi.formula = ~ colData.Group,
+#     phi.formula_null = ~ colData.Group,
+#     test = c("Wald", "LRT"),
+#     boot = FALSE, 
+#     coefficient = "colData.GroupSupragingival Plaque")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -1400,7 +1401,8 @@ my_NOISeq <- set_NOISeq(
     expand = TRUE)
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, my_limma, my_metagenomeSeq,
-    my_corncob, my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq, my_NOISeq)
+    # my_corncob, 
+    my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq, my_NOISeq)
 ```
 
 We run the methods:
@@ -1435,7 +1437,7 @@ To summarize enrichment analysis for all the methods simultaneously, the `plotEn
 plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Reality")
 ```
 
-From this example, only 9 out of 25 methods are able to find an enriched amount of truly DA features without any false discovery: `ANCOM.counts.BC` and `dearseq.counts.permutation.1000` in the first position.
+From this example, only **8** out of **23** methods are able to find an enriched amount of truly DA features without any false discovery: `ANCOM.counts.BC` and `dearseq.counts.permutation.1000` in the first position.
 
 To further assess methods' power, the `createPositives()` function can be used specifying as True Positives the resulting DA features created as real DA features and as False Positives the resulting DA features created as not DA features (figure \@ref(fig:plotPositivessim)).
 
@@ -1471,7 +1473,7 @@ plotPositives(positives = positives_nodir) +
     ylim(NA, 21)
 ```
 
-From figure \@ref(fig:plotPositivessim) it is clearly visible that `ANCOM.counts.BC` and `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of False Positives. On the contrary, if their lines are below the zero line, it means that the number of False Positives is greater (*e.g.* `edgeR.counts.TMM.weighted` has negative values, maybe due to poor weight estimates).
+From figure \@ref(fig:plotPositivessim) it is clearly visible that `ANCOM.counts.BC` and `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic` reach the highest values of the difference, followed by `corncob.counts.Wald` (temporarily removed) and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of False Positives. On the contrary, if their lines are below the zero line, it means that the number of False Positives is greater (*e.g.* `edgeR.counts.TMM.weighted` has negative values, maybe due to poor weight estimates).
 
 # Session Info
 
