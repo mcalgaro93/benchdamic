@@ -323,7 +323,7 @@ Differential abundance analysis is the core of `benchdamic`. DA analysis steps c
 
 This framework grants a higher flexibility allowing users to set up the instructions for many DA methods only at the beginning of the analysis. If some modifications are needed, the users can re-set the methods or modify the list of instructions directly.
 
-A list of the available methods is presented below (Table \@ref(tab:availableMethodsTable)). Some basic information are reported for each DA method, for more details please refer to functions' manual.
+A list of the available methods is presented below (Table \@ref(tab:availableMethodsTable)). They are native to different application fields such as RNA-Seq, single-cell RNA-Seq, or Microbiome data analysis. Some basic information are reported for each DA method, for more details please refer to functions' manual.
 
 ```{r availableMethodsTable, echo=FALSE}
 available_methods <- read.csv(file = "./benchdamic_methods.csv", sep = ";")
