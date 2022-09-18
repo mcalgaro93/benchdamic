@@ -331,7 +331,7 @@ kable(x = available_methods,
     caption = "DA methods available in benchdamic.",
     col.names = c("Method (package)", "Short description", "Test",
         "Normalization / Transformation", "Suggested input", 
-        "Output"), booktabs = TRUE) %>%
+        "Output", "Application"), booktabs = TRUE) %>%
     kable_styling(latex_options = "scale_down") %>%
     row_spec(0, bold = TRUE, color = "black") %>%
     column_spec(c(1,5,6), width = "3cm", color = "black") %>% 
