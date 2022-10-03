@@ -536,7 +536,7 @@ For each row of the `mock_df` data frame a bunch of DA methods is run. In this d
 
 -   `metagenomeSeq` with *CSS* normalization factors using both the *fitFeatureModel* (for a zero-inflated log-normal distribution, mixture model, as suggested in the package vignette) and the *fitZig* (for a zero-inflated gaussian distribution, mixture model) algorithms [@zig];
 
--   `corncob` (temporary unavailable) with a focus on average differences (not dispersion, regulated by *phi.formula* and *phi.formula_null* parameters) using both *Wald* and *LRT* tests [@corncob];
+-   `corncob` with a focus on average differences (not dispersion, regulated by *phi.formula* and *phi.formula_null* parameters) using both *Wald* and *LRT* tests [@corncob];
 
 -   `MAST` with both rescalings, *default* (*i.e.* $10^6$, for CPMs) and *median* [@mast];
 
@@ -600,15 +600,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = c("fitFeatureModel", "fitZig"),
     expand = TRUE)
 
-# my_corncob <- set_corncob(
-#     pseudo_count = FALSE,
-#     formula = ~ group,
-#     formula_null = ~ 1,
-#     phi.formula = ~ group,
-#     phi.formula_null = ~ group,
-#     test = c("Wald", "LRT"),
-#     boot = FALSE, 
-#     coefficient = "groupgrp2")
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ group,
+    formula_null = ~ 1,
+    phi.formula = ~ group,
+    phi.formula_null = ~ group,
+    test = c("Wald", "LRT"),
+    boot = FALSE,
+    coefficient = "groupgrp2")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -642,7 +642,7 @@ my_dearseq <- set_dearseq(
     expand = TRUE)
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
-    my_limma, my_metagenomeSeq, # my_corncob, 
+    my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq)
 ```
 
@@ -1495,15 +1495,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = "fitFeatureModel",
     expand = TRUE)
 
-# my_corncob <- set_corncob(
-#     pseudo_count = FALSE,
-#     formula = ~ colData.Group,
-#     formula_null = ~ 1,
-#     phi.formula = ~ colData.Group,
-#     phi.formula_null = ~ colData.Group,
-#     test = c("Wald", "LRT"),
-#     boot = FALSE, 
-#     coefficient = "colData.GroupSupragingival Plaque")
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ colData.Group,
+    formula_null = ~ 1,
+    phi.formula = ~ colData.Group,
+    phi.formula_null = ~ colData.Group,
+    test = c("Wald", "LRT"),
+    boot = FALSE,
+    coefficient = "colData.GroupSupragingival Plaque")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -1547,7 +1547,7 @@ my_NOISeq <- set_NOISeq(
     expand = TRUE)
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
-    my_limma, my_metagenomeSeq, # my_corncob, 
+    my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, 
     my_dearseq, my_NOISeq)
 ```
@@ -1574,7 +1574,7 @@ enrichment_nodir <- createEnrichment(
     colName = "adjP", 
     type = "pvalue",
     threshold_pvalue = c(
-        rep(0.1,17), # adjP thresholds 
+        rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
         rep(0.1,5)), # adjP thresholds for other methods
     threshold_logfc = 0,
@@ -1590,7 +1590,7 @@ To summarize enrichment analysis for all the methods simultaneously, the `plotEn
 plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Reality")
 ```
 
-From this example, only 9 out of 23 methods are able to find an enriched amount of truly DA features without any false discovery: `ANCOM.counts.BC` and `dearseq.counts.permutation.1000` in the first position. On the contrary, `basic.t.counts`, `DESeq2.counts.poscounts.weighted`, `limma.counts.TMM.weighted`, `metagenomeSeq.counts.CSS.fitFeatureModel`, `ALDEx2.counts.iqlr.wilcox.unpaired`, `MAST.counts.default`, `MAST.counts.median`, `ANCOM.counts`, and `NOISeq.counts.tmm` methods do not find any DA feature. This could be strongly related to the template taxa chosen to simulate the DA features.
+From this example, only 9 out of 25 methods are able to find an enriched amount of truly DA features without any false discovery: `ANCOM.counts.BC` and `dearseq.counts.permutation.1000` in the first position. On the contrary, `basic.t.counts`, `DESeq2.counts.poscounts.weighted`, `limma.counts.TMM.weighted`, `metagenomeSeq.counts.CSS.fitFeatureModel`, `ALDEx2.counts.iqlr.wilcox.unpaired`, `MAST.counts.default`, `MAST.counts.median`, `ANCOM.counts`, and `NOISeq.counts.tmm` methods do not find any DA feature. This could be strongly related to the template taxa chosen to simulate the DA features.
 
 To further assess methods' power, the `createPositives()` function can be used specifying as TPs the resulting DA features created as real DA features and as FPs the resulting DA features created as not DA features (Figure \@ref(fig:plotPositivessim)).
 
@@ -1606,7 +1606,7 @@ positives_nodir <- createPositives(
     colName = "adjP", 
     type = "pvalue",
     threshold_pvalue = c(
-        rep(0.1,17), # adjP thresholds 
+        rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
         rep(0.1,5)), # adjP thresholds for other methods
     threshold_logfc = 0,
