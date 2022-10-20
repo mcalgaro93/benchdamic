@@ -2,6 +2,7 @@
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
 #' @importFrom ALDEx2 aldex
+#' @importFrom stats p.adjust
 #' @export
 #' @description
 #' Fast run for the ALDEx2's differential abundance detection method.
@@ -227,13 +228,12 @@ DA_ALDEx2 <- function(object, assay_name = "counts", pseudo_count = FALSE,
     } else if(test == "kw_glm"){
         pValMat <- data.frame(statInfo[, c("glm.ep", "glm.eBH")])
     } else if(test == "glm"){
-        p_val_col <- paste0("model.", contrast[1], contrast[2], ".Pr...t..")
-        p_val_adj_col <- paste0("model.", contrast[1], contrast[2], 
-            ".Pr...t...BH")
+        p_val_col <- paste0(contrast[1], contrast[2], ".pval")
         if(verbose){
             message("Extracting p-values using the '", p_val_col, "' column.")
         }
-        pValMat <- data.frame(statInfo[, c(p_val_col, p_val_adj_col)])
+        pValMat <- data.frame(statInfo[, c(p_val_col, p_val_col)])
+        pValMat[, 2] <- stats::p.adjust(pValMat[, 2], method = "BH")
     }
     colnames(pValMat) <- c("rawP", "adjP")
     return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
