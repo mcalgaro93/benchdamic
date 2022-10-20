@@ -1,3 +1,8 @@
+Changes in Version 1.3.10 (2022-10-20)
+=====================================
+
+* Re-adapted p-values extraction from DA_ALDEx2() with test = "glm"
+
 Changes in Version 1.3.9 (2022-09-18)
 =====================================
 
