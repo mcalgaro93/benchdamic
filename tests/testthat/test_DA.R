@@ -62,7 +62,7 @@ test_that("DA methods produce pValMat and statInfo", code = {
         test = "wilcox", contrast = c("group", "grp2", "grp1"), verbose = FALSE)
     expectations(da, name = "Seurat.LogNormalize.SF10000.wilcox")
     # DA_ANCOM
-    da <- DA_ANCOM(object = ps, formula = "group", 
+    da <- DA_ANCOM(object = ps, fix_formula = "group", 
         contrast = c("group", "grp2", "grp1"), BC = TRUE, verbose = FALSE)
     expectations(da, name = "ANCOM.BC")
     # DA_NOISeq
