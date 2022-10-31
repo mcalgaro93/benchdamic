@@ -7,7 +7,7 @@
 set_ANCOM(
   assay_name = "counts",
   pseudo_count = FALSE,
-  formula = NULL,
+  fix_formula = NULL,
   adj_formula = NULL,
   rand_formula = NULL,
   lme_control = NULL,
@@ -26,19 +26,22 @@ used if the input object is a phyloseq.}
 \item{pseudo_count}{add 1 to all counts if TRUE (default
 \code{pseudo_count = FALSE}).}
 
-\item{formula}{Used when \code{BC = TRUE}, the character string expresses 
-how the microbial absolute abundances for each taxon depend on the variables 
-in metadata.}
+\item{fix_formula}{Used when \code{BC = TRUE} (ANCOM-BC2). The character 
+string expresses how the microbial absolute abundances for each taxon depend 
+on the fixed effects in metadata.}
 
-\item{adj_formula}{Used when \code{BC = FALSE}. Character string 
-representing the formula for covariate adjustment. Default is NULL.}
+\item{adj_formula}{Used when \code{BC = FALSE} (ANCOM). The character string 
+represents the formula for covariate adjustment. Default is NULL.}
 
-\item{rand_formula}{Used when \code{BC = FALSE}. Character string 
-representing the formula for random effects. For details, see ?nlme::lme. 
-Default is NULL.}
+\item{rand_formula}{Optionally used when \code{BC = TRUE} or 
+\code{BC = FALSE}. The character string expresses how the microbial absolute 
+abundances for each taxon depend on the random effects in metadata. 
+ANCOMB and ANCOM-BC2 follows the \code{lmerTest} package in formulating the 
+random effects. See \code{?lmerTest::lmer} for more details. Default is 
+\code{rand_formula = NULL}.}
 
-\item{lme_control}{Used when \code{BC = FALSE} A list specifying control 
-values for lme fit. For details, see ?nlme::lmeControl. Default is NULL.}
+\item{lme_control}{a list of control parameters for mixed model fitting.
+See \code{?lme4::lmerControl} for details.}
 
 \item{contrast}{character vector with exactly, three elements: a string 
 indicating the name of factor whose levels are the conditions to be 
@@ -49,11 +52,12 @@ level.}
 Options include "holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
 "fdr", "none". See \code{?stats::p.adjust} for more details.}
 
-\item{struc_zero}{logical. whether to detect structural zeros based on
-\code{group}. Default is FALSE.}
+\item{struc_zero}{logical. Whether to detect structural zeros based on
+\code{group}. Default is FALSE. See \code{Details} for
+a more comprehensive discussion on structural zeros.}
 
 \item{BC}{boolean for ANCOM method to use. If TRUE the bias correction 
-(ANCOM-BC) is computed (default \code{BC = TRUE}). When \code{BC = FALSE} 
+(ANCOM-BC2) is computed (default \code{BC = TRUE}). When \code{BC = FALSE} 
 computational time may increase and p-values are not computed.}
 
 \item{expand}{logical, if TRUE create all combinations of input parameters
@@ -68,11 +72,11 @@ Set the parameters for ANCOM differential abundance detection method.
 }
 \examples{
 # Set some basic combinations of parameters for ANCOM with bias correction
-base_ANCOMBC <- set_ANCOM(pseudo_count = FALSE, formula = "group", 
-contrast = c("group", "B", "A"), BC = TRUE, expand = FALSE)
-many_ANCOMs <- set_ANCOM(pseudo_count = c(TRUE, FALSE), formula = "group",
-   contrast = c("group", "B", "A"), struc_zero = c(TRUE, FALSE),
-   BC = c(TRUE, FALSE))
+base_ANCOMBC <- set_ANCOM(pseudo_count = FALSE, fix_formula = "group", 
+    contrast = c("group", "B", "A"), BC = TRUE, expand = FALSE)
+many_ANCOMs <- set_ANCOM(pseudo_count = c(TRUE, FALSE), 
+    fix_formula = "group", contrast = c("group", "B", "A"), 
+    struc_zero = c(TRUE, FALSE), BC = c(TRUE, FALSE))
 }
 \seealso{
 \code{\link{DA_ANCOM}}

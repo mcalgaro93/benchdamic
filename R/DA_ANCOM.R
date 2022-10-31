@@ -1,31 +1,32 @@
 #' @title DA_ANCOM
 #'
-#' @importFrom ANCOMBC ancom ancombc
+#' @importFrom ANCOMBC ancom ancombc2
 #' @importFrom SummarizedExperiment assays
 #' @importFrom phyloseq otu_table sample_data phyloseq taxa_are_rows
 #' @export
 #' @description
-#' Fast run for ANCOM and ANCOM-BC differential abundance detection methods.
+#' Fast run for ANCOM and ANCOM-BC2 differential abundance detection methods.
 #'
 #' @inheritParams DA_edgeR
-#' @param formula Used when \code{BC = TRUE}, the character string expresses 
-#' how the microbial absolute abundances for each taxon depend on the variables 
-#' in metadata.
-#' @param adj_formula Used when \code{BC = FALSE}. Character string 
-#' representing the formula for covariate adjustment. Default is NULL.
-#' @param rand_formula Used when \code{BC = FALSE}. Character string 
-#' representing the formula for random effects. For details, see ?nlme::lme. 
-#' Default is NULL.
-#' @param lme_control Used when \code{BC = FALSE} A list specifying control 
-#' values for lme fit. For details, see ?nlme::lmeControl. Default is NULL.
+#' @param fix_formula Used when \code{BC = TRUE} (ANCOM-BC2). The character 
+#' string expresses how the microbial absolute abundances for each taxon depend 
+#' on the fixed effects in metadata.
+#' @param adj_formula Used when \code{BC = FALSE} (ANCOM). The character string 
+#' represents the formula for covariate adjustment. Default is NULL.
+#' @param rand_formula Optionally used when \code{BC = TRUE} or 
+#' \code{BC = FALSE}. The character string expresses how the microbial absolute 
+#' abundances for each taxon depend on the random effects in metadata. 
+#' ANCOMB and ANCOM-BC2 follows the \code{lmerTest} package in formulating the 
+#' random effects. See \code{?lmerTest::lmer} for more details. Default is 
+#' \code{rand_formula = NULL}.
 #' @param contrast character vector with exactly, three elements: a string 
 #' indicating the name of factor whose levels are the conditions to be 
 #' compared, the name of the level of interest, and the name of the other 
 #' level. 
 #' @param BC boolean for ANCOM method to use. If TRUE the bias correction 
-#' (ANCOM-BC) is computed (default \code{BC = TRUE}). When \code{BC = FALSE} 
+#' (ANCOM-BC2) is computed (default \code{BC = TRUE}). When \code{BC = FALSE} 
 #' computational time may increase and p-values are not computed.
-#' @inheritParams ANCOMBC::ancombc
+#' @inheritParams ANCOMBC::ancombc2
 #'
 #' @return A list object containing the matrix of p-values `pValMat`,
 #' a matrix of summary statistics for each tag `statInfo`, and a suggested 
@@ -48,11 +49,11 @@
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 #'                          phyloseq::sample_data(metadata))
 #' # Differential abundance
-#' DA_ANCOM(object = ps, pseudo_count = FALSE, formula = "group", contrast =
+#' DA_ANCOM(object = ps, pseudo_count = FALSE, fix_formula = "group", contrast =
 #'    c("group", "B", "A"), verbose = FALSE)
 
 DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE, 
-    formula = NULL, adj_formula = NULL, rand_formula = NULL, 
+    fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
     lme_control = NULL, contrast = NULL, p_adj_method = "BH", 
     struc_zero = FALSE, BC = TRUE, verbose = TRUE){
     counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
@@ -74,13 +75,13 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
             message("Using the ", assay_name, " assay.")
         name <- paste(name, ".", assay_name, sep = "")
     } 
-    # If ANCOM_BC is used
+    # If ANCOM_BC2 is used
     if(BC){
         name <- paste(name, ".", "BC", sep = "")
-        # Check if the formula is a character
-        if (!is.character(formula)) {
+        # Check if the fix_formula is a character
+        if (!is.character(fix_formula)) {
             stop(method, "\n", 
-                 "Please specify 'formula' as a character object.")
+                 "Please specify 'fix_formula' as a character object.")
         }
     } # If BC is FALSE there is no need to check formulas, they are optional
     if(!is.character(contrast) | length(contrast) != 3)
@@ -120,9 +121,11 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
     neg_lb <- ifelse(min(table(metadata[, contrast[1]])) > 30, TRUE, FALSE)
     if(verbose){
         if(BC){
-            res <- ancombc(phyloseq = phyloseq_obj, formula = formula, 
-                p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
-                group = contrast[1], struc_zero = struc_zero, neg_lb = neg_lb)
+            res <- ancombc2(data = phyloseq_obj, fix_formula = fix_formula, 
+                rand_formula = rand_formula, p_adj_method = p_adj_method, 
+                verbose = verbose, lme_control = lme_control, 
+                struc_zero = struc_zero, neg_lb = neg_lb, group = contrast[1], 
+                prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE)
         } else {
             res <- ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                 rand_formula = rand_formula, lme_control = lme_control,
@@ -132,23 +135,26 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
         }
     } else {
         if(BC){
-            res <- suppressWarnings(ancombc(
-                phyloseq = phyloseq_obj, formula = formula, 
-                p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
-                group = contrast[1], struc_zero = struc_zero, neg_lb = neg_lb))
+            res <- suppressMessages(suppressWarnings(
+                ancombc2(data = phyloseq_obj, fix_formula = fix_formula, 
+                    rand_formula = rand_formula, p_adj_method = p_adj_method, 
+                    verbose = verbose, lme_control = lme_control, 
+                    struc_zero = struc_zero, neg_lb = neg_lb, 
+                    group = contrast[1], prv_cut = 0, lib_cut = 0, 
+                    pseudo_sens = FALSE)))
         } else {
-            res <- suppressWarnings(
+            res <- suppressMessages(suppressWarnings(
                 ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                     rand_formula = rand_formula, lme_control = lme_control,
                     p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
                     main_var = contrast[1], struc_zero = struc_zero, 
-                    neg_lb = neg_lb))
+                    neg_lb = neg_lb)))
         }
     }
     statInfo <- as.data.frame(res[["res"]])
     colnames(statInfo) <- names(res[["res"]])
     if(BC){
-        pValMat <- statInfo[,c("p_val", "q_val")]
+        pValMat <- statInfo[, paste0(c("p_","q_"), contrast[1], contrast[2])]
     } else {
         pValMat <- 1 - (statInfo[, c("W", "W")] / (nrow(statInfo) - 1))
     }
@@ -174,13 +180,13 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
 #'
 #' @examples
 #' # Set some basic combinations of parameters for ANCOM with bias correction
-#' base_ANCOMBC <- set_ANCOM(pseudo_count = FALSE, formula = "group", 
-#' contrast = c("group", "B", "A"), BC = TRUE, expand = FALSE)
-#' many_ANCOMs <- set_ANCOM(pseudo_count = c(TRUE, FALSE), formula = "group",
-#'    contrast = c("group", "B", "A"), struc_zero = c(TRUE, FALSE),
-#'    BC = c(TRUE, FALSE))
+#' base_ANCOMBC <- set_ANCOM(pseudo_count = FALSE, fix_formula = "group", 
+#'     contrast = c("group", "B", "A"), BC = TRUE, expand = FALSE)
+#' many_ANCOMs <- set_ANCOM(pseudo_count = c(TRUE, FALSE), 
+#'     fix_formula = "group", contrast = c("group", "B", "A"), 
+#'     struc_zero = c(TRUE, FALSE), BC = c(TRUE, FALSE))
 set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE, 
-    formula = NULL, adj_formula = NULL, rand_formula = NULL, 
+    fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
     lme_control = NULL, contrast = NULL, p_adj_method = "BH", 
     struc_zero = FALSE, BC = TRUE, expand = TRUE) {
     method <- "DA_ANCOM"
@@ -192,9 +198,9 @@ set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE,
         stop(method, "\n", 
             "'pseudo_count', 'struc_zero', and 'BC' must be logical.")
     }
-    if(!is.null(formula)){
-        if (!is.character(formula)){
-            stop(method, "\n", "'formula' should be a character.")
+    if(!is.null(fix_formula)){
+        if (!is.character(fix_formula)){
+            stop(method, "\n", "'fix_formula' should be a character.")
         }
     }
     if(!is.null(adj_formula)){
@@ -232,7 +238,8 @@ set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE,
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
     out <- lapply(X = out, FUN = function(x){
         if(x[["BC"]]){
-            x <- append(x = x, values = list("formula" = formula, 
+            x <- append(x = x, values = list("fix_formula" = fix_formula, 
+                "rand_formula" = rand_formula, "lme_control" = lme_control,
                 "contrast" = contrast), after = 3)
         } else {
             x <- append(x = x, values = list("adj_formula" = adj_formula, 
