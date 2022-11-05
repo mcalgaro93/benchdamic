@@ -111,8 +111,12 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #'     Method, variable (containing the feature names), pval, and padj;}
 #'     \item{\code{df_FPR}}{ 5 columns per methods x comparisons rows 
 #'     data.frame. For each set of method and comparison, the proportion of 
-#'     false discoveries, considering 3 threshold (0.01, 0.05, 0.1) are 
+#'     false positives, considering 3 thresholds (0.01, 0.05, 0.1) are 
 #'     reported;}
+#'     \item{\code{df_FDR}}{ 4 columns per methods rows data.frame. For each 
+#'     method, the average proportion of mock comparisons where false positives
+#'     are found, considering 3 thresholds (0.01, 0.05, 0.1), are reported. 
+#'     Each value is an estimate of the nominal False Discovery Rate (FDR);}
 #'     \item{\code{df_QQ}}{ contains the coordinates to draw the QQ-plot to
 #'     compare the mean observed p-value distribution across comparisons, with
 #'     the theoretical uniform distribution;}
@@ -151,6 +155,7 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
 #'
 #' # Plot the results
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
 #' plotLogP(df_QQ = TIEC_summary$df_QQ)
@@ -182,22 +187,38 @@ createTIEC <- function(object) {
     ### FPR ###
     message("2. Counting p-values lower than some thresholds")
     # Count the p-values which are lower than a selected threshold
-    df_pval_FPR <- plyr::ddply(.data = df_pval, .variables = ~ Comparison +
+    df_FPR <- plyr::ddply(.data = df_pval, .variables = ~ Comparison +
         Method, .fun = function(x) {
         # index for not NA p-values
         k_pval <- !is.na(x[, "pval"])
-        x$FPR_obs001 <- sum(x[, "pval"] < 0.01, na.rm = TRUE) / sum(k_pval)
-        x$FPR_obs005 <- sum(x[, "pval"] < 0.05, na.rm = TRUE) / sum(k_pval)
-        x$FPR_obs01 <- sum(x[, "pval"] < 0.1, na.rm = TRUE) / sum(k_pval)
-        return(x)
+        FPR_obs001 <- sum(x[, "pval"] < 0.01, na.rm = TRUE) / sum(k_pval)
+        FPR_obs005 <- sum(x[, "pval"] < 0.05, na.rm = TRUE) / sum(k_pval)
+        FPR_obs01 <- sum(x[, "pval"] < 0.1, na.rm = TRUE) / sum(k_pval)
+        return(data.frame(FPR_obs001, FPR_obs005, FPR_obs01))
     })
-    # Compute the mean for each FPR threshold
-    df_FPR <- plyr::ddply(.data = df_pval_FPR, .variables = ~ Comparison +
+    ### FDR ###
+    # Check if a Method is able to find 0 DA feature after p-value correction
+    # When the #DA is 0, the FDR will be 0 by construction
+    # When the #DA is >0, the FDR will be 1
+    # FDR = FP / (FP + TP), TP is always 0 by construction
+    message("3. Counting adjusted p-values lower than some thresholds")
+    # Count the adjusted p-values which are lower than a selected threshold
+    df_pval_FDR <- plyr::ddply(.data = df_pval, .variables = ~ Comparison +
         Method, .fun = function(x) {
-        colMeans(x[, c("FPR_obs001", "FPR_obs005", "FPR_obs01")])
+        # index for not NA p-values
+        k_pval <- !is.na(x[, "padj"])
+        FDR_obs001 <- sum(x[, "padj"] < 0.01, na.rm = TRUE) / sum(k_pval)
+        FDR_obs005 <- sum(x[, "padj"] < 0.05, na.rm = TRUE) / sum(k_pval)
+        FDR_obs01 <- sum(x[, "padj"] < 0.1, na.rm = TRUE) / sum(k_pval)
+        return(data.frame(FDR_obs001, FDR_obs005, FDR_obs01))
     })
+    # Compute the mean for each threshold
+    df_FDR <- plyr::ddply(.data = df_pval_FDR, .variables = ~ Method, 
+        .fun = function(x) {
+            colMeans(x[, c("FDR_obs001", "FDR_obs005", "FDR_obs01")] > 0)
+        })
     ### QQ and KS ###
-    message("3. Computing KS statistics")
+    message("4. Computing KS statistics")
     # Create data frame for empirical and theoretical p-values
     # Kolmogorov-Smirnov test
     df_QQ_KS <- plyr::ddply(.data = df_pval, .variables = ~ Comparison + Method,
@@ -216,7 +237,7 @@ createTIEC <- function(object) {
         return(x)
     })
     ### QQ ###
-    message("4. Ordering quantiles")
+    message("5. Ordering quantiles")
     # For each theoretical p-value, the mean of observed one is computed
     df_QQ <- plyr::ddply(.data = df_QQ_KS, .variables = ~ Method +
         pval_theoretical_rounded, .fun = function(x) {
@@ -233,7 +254,7 @@ createTIEC <- function(object) {
         }
     )
     return(list(
-        df_pval = df_pval, df_FPR = df_FPR, df_QQ = df_QQ, df_KS =
-            df_KS
+        df_pval = df_pval, df_FPR = df_FPR, df_FDR = df_FDR, df_QQ = df_QQ, 
+        df_KS = df_KS
     ))
 } # END - function: createTIEC

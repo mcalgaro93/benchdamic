@@ -19,8 +19,12 @@ A \code{list} of \code{data.frame}s:
     Method, variable (containing the feature names), pval, and padj;}
     \item{\code{df_FPR}}{ 5 columns per methods x comparisons rows 
     data.frame. For each set of method and comparison, the proportion of 
-    false discoveries, considering 3 threshold (0.01, 0.05, 0.1) are 
+    false positives, considering 3 thresholds (0.01, 0.05, 0.1) are 
     reported;}
+    \item{\code{df_FDR}}{ 4 columns per methods rows data.frame. For each 
+    method, the average proportion of mock comparisons where false positives
+    are found, considering 3 thresholds (0.01, 0.05, 0.1), are reported. 
+    Each value is an estimate of the nominal False Discovery Rate (FDR);}
     \item{\code{df_QQ}}{ contains the coordinates to draw the QQ-plot to
     compare the mean observed p-value distribution across comparisons, with
     the theoretical uniform distribution;}
@@ -62,6 +66,7 @@ TIEC_summary <- createTIEC(results)
 
 # Plot the results
 plotFPR(df_FPR = TIEC_summary$df_FPR)
+plotFDR(df_FDR = TIEC_summary$df_FDR)
 plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
 plotLogP(df_QQ = TIEC_summary$df_QQ)
