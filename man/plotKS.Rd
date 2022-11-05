@@ -47,6 +47,7 @@ TIEC_summary <- createTIEC(results)
 
 # Plot the results
 plotFPR(df_FPR = TIEC_summary$df_FPR)
+plotFDR(df_FDR = TIEC_summary$df_FDR)
 plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 plotKS(df_KS = TIEC_summary$df_KS)
 plotLogP(df_QQ = TIEC_summary$df_QQ)

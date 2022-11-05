@@ -43,6 +43,7 @@
 #'
 #' # Plot the results
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
 #' plotLogP(df_QQ = TIEC_summary$df_QQ)
@@ -80,6 +81,89 @@ plotFPR <- function(df_FPR, cols = NULL) {
             angle = 90, hjust = 1, vjust = 0.5))
     return(g)
 } # END - function: plotFPR
+
+#' @title plotFDR
+#'
+#' @export
+#' @importFrom plyr ddply
+#' @importFrom reshape2 melt
+#' @importFrom tidytext reorder_within scale_x_reordered
+#' @import ggplot2
+#' @description
+#' Draw the nominal false discovery rates for the 0.01, 0.05, and 0.1 levels.
+#'
+#' @param df_FDR a \code{data.frame} produced by the \code{\link{createTIEC}}
+#' function, containing the FDR values.
+#' @param cols named vector of colors.
+#'
+#' @return A ggplot object.
+#'
+#' @examples
+#' # Load some data
+#' data(ps_stool_16S)
+#'
+#' # Generate the patterns for 10 mock comparison for an experiment
+#' # (N = 1000 is suggested)
+#' mocks <- createMocks(nsamples = phyloseq::nsamples(ps_stool_16S), N = 10)
+#' head(mocks)
+#'
+#' # Add some normalization/scaling factors to the phyloseq object
+#' my_norm <- setNormalizations(fun = c("norm_edgeR", "norm_CSS"),
+#'     method = c("TMM", "CSS"))
+#' ps_stool_16S <- runNormalizations(normalization_list = my_norm,
+#'     object = ps_stool_16S)
+#'
+#' # Initialize some limma based methods
+#' my_limma <- set_limma(design = ~ group, coef = 2,
+#'     norm = c("TMM", "CSS"))
+#'
+#' # Run methods on mock datasets
+#' results <- runMocks(mocks = mocks, method_list = my_limma,
+#'     object = ps_stool_16S)
+#'
+#' # Prepare results for Type I Error Control
+#' TIEC_summary <- createTIEC(results)
+#'
+#' # Plot the results
+#' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
+#' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
+#' plotKS(df_KS = TIEC_summary$df_KS)
+#' plotLogP(df_QQ = TIEC_summary$df_QQ)
+plotFDR <- function(df_FDR, cols = NULL) {
+    # Create the vector of colors
+    if (is.null(cols)) {
+        cols <- createColors(variable = df_FDR$Method)
+    }
+    if (is.null(names(cols))) {
+        stop("'cols' vector is not a named vector of colors.")
+    }
+    colnames(df_FDR) <- c("Method", "FDR 0.01", "FDR 0.05", "FDR 0.1")
+    df_FDR_melted <- reshape2::melt(df_FDR)
+    ### Plot ###
+    # to avoid notes during the check
+    Method <- value <- variable <- y <- NULL
+    data_segm <- data.frame("y" = c(0.01, 0.05, 0.1), 
+        "variable" = c("FDR 0.01", "FDR 0.05", "FDR 0.1"))
+    g <- ggplot(data = df_FDR_melted, aes(color = Method, 
+            x = tidytext::reorder_within(Method, value, variable, 
+                fun = stats::median), 
+            y = value)) +
+        geom_point() +
+        facet_grid(~ variable, scales = "free_x") +
+        tidytext::scale_x_reordered() +
+        geom_hline(data = data_segm, 
+                   aes(yintercept = y), 
+                   color = "red", lty = 2) +
+        xlab("Method") +
+        ylab("Average FDR") +
+        ggtitle(label = "False Discovery Rate", 
+            subtitle = "by significance thresholds") +
+        scale_color_manual(values = cols) + 
+        theme(legend.position = "none", axis.text.x = element_text(
+            angle = 90, hjust = 1, vjust = 0.5))
+    return(g)
+} # END - function: plotFDR
 
 #' @title plotQQ
 #'
@@ -130,6 +214,7 @@ plotFPR <- function(df_FPR, cols = NULL) {
 #'
 #' # Plot the results
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
 #' plotLogP(df_QQ = TIEC_summary$df_QQ)
@@ -226,10 +311,10 @@ plotQQ <- function(df_QQ, cols = NULL, zoom = c(0, 0.1), split = FALSE) {
 #'
 #' # Plot the results
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
 #' plotLogP(df_QQ = TIEC_summary$df_QQ)
-
 plotLogP <- function(df_pval = NULL, df_QQ = NULL, cols = NULL) {
     if(is.null(df_pval) & is.null(df_QQ)){
         stop("Please supply 'df_pval' for all p-values analysis or ", 
@@ -360,6 +445,7 @@ plotLogP <- function(df_pval = NULL, df_QQ = NULL, cols = NULL) {
 #'
 #' # Plot the results
 #' plotFPR(df_FPR = TIEC_summary$df_FPR)
+#' plotFDR(df_FDR = TIEC_summary$df_FDR)
 #' plotQQ(df_QQ = TIEC_summary$df_QQ, zoom = c(0, 0.1))
 #' plotKS(df_KS = TIEC_summary$df_KS)
 #' plotLogP(df_QQ = TIEC_summary$df_QQ)
