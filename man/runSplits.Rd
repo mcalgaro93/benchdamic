@@ -12,7 +12,8 @@ runSplits(
   assay_name = "counts",
   min_counts = 0,
   min_samples = 0,
-  verbose = TRUE
+  verbose = TRUE,
+  BPPARAM = BiocParallel::SerialParam()
 )
 }
 \arguments{
@@ -40,6 +41,10 @@ samples (default \code{min_samples = 0}).}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
+
+\item{BPPARAM}{An optional \code{\link[BiocParallel]{BiocParallelParam}} instance
+    defining the parallel back-end to be used during evaluation.
+  }
 }
 \value{
 A named list containing the results for each method.

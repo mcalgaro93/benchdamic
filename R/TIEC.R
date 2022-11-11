@@ -34,6 +34,7 @@ createMocks <- function(nsamples, N = 1000) {
 #' @title runMocks
 #'
 #' @export
+#' @import BiocParallel
 #' @importFrom phyloseq sample_data
 #' @description
 #' Run the differential abundance detection methods on mock datasets.
@@ -44,6 +45,7 @@ createMocks <- function(nsamples, N = 1000) {
 #' \code{\link{createMocks}} function.
 #' @inheritParams get_counts_metadata
 #' @inheritParams runDA
+#' @inheritParams BiocParallel::bpmapply
 #'
 #' @return A named list containing the results for each method.
 #'
@@ -69,13 +71,12 @@ createMocks <- function(nsamples, N = 1000) {
 #' results <- runMocks(mocks = mocks, method_list = my_limma,
 #'     object = ps_stool_16S)
 runMocks <- function(mocks, method_list, object, weights = NULL, 
-    verbose = TRUE){
+    verbose = TRUE, BPPARAM = BiocParallel::SerialParam()){
     is_phyloseq <- ifelse(is(object, "phyloseq"), TRUE, FALSE)
     index <- seq_len(nrow(mocks))
-    out <- apply(X = cbind(index, mocks), MARGIN = 1, FUN = function(x) {
-        # Group assignment
-        i <- x[1]
-        x <- x[-1]
+    mocks_list <- as.list(as.data.frame(t(mocks)))
+    out <- BiocParallel::bpmapply(mocks_list, index, 
+        FUN = function(x, i) {
         if(is_phyloseq){
             phyloseq::sample_data(object)[, "group"] <- factor(x)
         } else {
@@ -84,8 +85,8 @@ runMocks <- function(mocks, method_list, object, weights = NULL,
         if(verbose)
             message("  - Comparison", i, "\n")
         runDA(method_list = method_list, object = object,
-            weights = weights, verbose = verbose)
-    })
+              weights = weights, verbose = verbose)
+        }, SIMPLIFY = FALSE, BPPARAM = BPPARAM)
     return(out)
 }
 

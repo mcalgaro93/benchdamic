@@ -220,6 +220,7 @@ createSplits <- function(object, assay_name = "counts", varName = NULL,
 #' @title runSplits
 #'
 #' @export
+#' @import BiocParallel
 #' @importFrom phyloseq prune_samples sample_names filter_taxa
 #' @importFrom phyloseq filter_taxa prune_samples sample_data
 #' @description
@@ -231,6 +232,7 @@ createSplits <- function(object, assay_name = "counts", varName = NULL,
 #' @param normalization_list a list object containing the normalization method
 #' names and their parameters produced by \code{\link{setNormalizations}}.
 #' @inheritParams get_counts_metadata
+#' @inheritParams BiocParallel::bpmapply
 #'
 #' @return A named list containing the results for each method.
 #'
@@ -261,7 +263,8 @@ createSplits <- function(object, assay_name = "counts", varName = NULL,
 #'     normalization_list = my_norm, object = ps_plaque_16S)
 
 runSplits <- function(split_list, method_list, normalization_list, object,
-    assay_name = "counts", min_counts = 0, min_samples = 0, verbose = TRUE){
+    assay_name = "counts", min_counts = 0, min_samples = 0, verbose = TRUE,
+    BPPARAM = BiocParallel::SerialParam()){
     # Create a list with element 1 and 2 corresponding to each subset
     subsets <- seq_along(split_list)
     # Name the elements
@@ -272,9 +275,8 @@ runSplits <- function(split_list, method_list, normalization_list, object,
             message("- Subset", subset_number, "\n")
         # apply -> Comparison1, Comparison2, ..., ComparisonN
         index <- seq_len(nrow(subset))
-        apply(X = cbind(index,subset), MARGIN = 1, FUN = function(splits) {
-            i <- splits[1]
-            splits <- splits[-1]
+        subset_list <- as.list(as.data.frame(t(subset)))
+        BiocParallel::bpmapply(subset_list, index, FUN = function(splits, i) {
             if(verbose)
                 message("  - Comparison", i, "\n")
             # Splitting
@@ -331,7 +333,7 @@ runSplits <- function(split_list, method_list, normalization_list, object,
                 message("    Differential abundance:")
             runDA(method_list = method_list, object = pfo, weights = weights,
                 verbose = verbose)
-        })
+        }, SIMPLIFY = FALSE, BPPARAM = BPPARAM)
     })
     return(out)
 }

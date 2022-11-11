@@ -4,7 +4,14 @@
 \alias{runMocks}
 \title{runMocks}
 \usage{
-runMocks(mocks, method_list, object, weights = NULL, verbose = TRUE)
+runMocks(
+  mocks,
+  method_list,
+  object,
+  weights = NULL,
+  verbose = TRUE,
+  BPPARAM = BiocParallel::SerialParam()
+)
 }
 \arguments{
 \item{mocks}{a \code{data.frame} containing \code{N} rows and \code{nsamples}
@@ -20,6 +27,10 @@ characters which represent the mock groups pattern. Produced by the
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
+
+\item{BPPARAM}{An optional \code{\link[BiocParallel]{BiocParallelParam}} instance
+    defining the parallel back-end to be used during evaluation.
+  }
 }
 \value{
 A named list containing the results for each method.
