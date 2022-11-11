@@ -1,6 +1,7 @@
 #' @title DA_ANCOM
 #'
 #' @importFrom ANCOMBC ancom ancombc2
+#' @importFrom lme4 lmerControl
 #' @importFrom SummarizedExperiment assays
 #' @importFrom phyloseq otu_table sample_data phyloseq taxa_are_rows
 #' @export
@@ -54,8 +55,8 @@
 
 DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE, 
     fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
-    lme_control = NULL, contrast = NULL, p_adj_method = "BH", 
-    struc_zero = FALSE, BC = TRUE, verbose = TRUE){
+    lme_control = lme4::lmerControl(), contrast = NULL, p_adj_method = "BH", 
+    struc_zero = FALSE, BC = TRUE, n_cl = 1, verbose = TRUE){
     counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
     counts <- counts_and_metadata[[1]]
     metadata <- counts_and_metadata[[2]]
@@ -125,13 +126,13 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 rand_formula = rand_formula, p_adj_method = p_adj_method, 
                 verbose = verbose, lme_control = lme_control, 
                 struc_zero = struc_zero, neg_lb = neg_lb, group = contrast[1], 
-                prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE)
+                prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE, n_cl = n_cl)
         } else {
             res <- ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                 rand_formula = rand_formula, lme_control = lme_control,
                 p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
                 main_var = contrast[1], struc_zero = struc_zero, 
-                neg_lb = neg_lb)
+                neg_lb = neg_lb, n_cl = n_cl)
         }
     } else {
         if(BC){
@@ -141,14 +142,14 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                     verbose = verbose, lme_control = lme_control, 
                     struc_zero = struc_zero, neg_lb = neg_lb, 
                     group = contrast[1], prv_cut = 0, lib_cut = 0, 
-                    pseudo_sens = FALSE)))
+                    pseudo_sens = FALSE, n_cl = n_cl)))
         } else {
             res <- suppressMessages(suppressWarnings(
                 ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                     rand_formula = rand_formula, lme_control = lme_control,
                     p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
                     main_var = contrast[1], struc_zero = struc_zero, 
-                    neg_lb = neg_lb)))
+                    neg_lb = neg_lb, n_cl = n_cl)))
         }
     }
     statInfo <- as.data.frame(res[["res"]])
@@ -166,6 +167,7 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
 #' @title set_ANCOM
 #'
 #' @export
+#' @importFrom lme4 lmerControl
 #' @description
 #' Set the parameters for ANCOM differential abundance detection method.
 #'
@@ -187,8 +189,8 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
 #'     struc_zero = c(TRUE, FALSE), BC = c(TRUE, FALSE))
 set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE, 
     fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
-    lme_control = NULL, contrast = NULL, p_adj_method = "BH", 
-    struc_zero = FALSE, BC = TRUE, expand = TRUE) {
+    lme_control = lme4::lmerControl(), contrast = NULL, p_adj_method = "BH", 
+    struc_zero = FALSE, BC = TRUE, n_cl = 1, expand = TRUE) {
     method <- "DA_ANCOM"
     if (is.null(assay_name)) {
         stop(method, "\n", "'assay_name' is required (default = 'counts').")
@@ -240,11 +242,11 @@ set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE,
         if(x[["BC"]]){
             x <- append(x = x, values = list("fix_formula" = fix_formula, 
                 "rand_formula" = rand_formula, "lme_control" = lme_control,
-                "contrast" = contrast), after = 3)
+                "contrast" = contrast, "n_cl" = n_cl), after = 3)
         } else {
             x <- append(x = x, values = list("adj_formula" = adj_formula, 
                 "rand_formula" = rand_formula, "lme_control" = lme_control,
-                "contrast" = contrast), after = 3)
+                "contrast" = contrast, "n_cl" = n_cl), after = 3)
         }
     })
     names(out) <- paste0(method, ".", seq_along(out))

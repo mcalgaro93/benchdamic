@@ -11,11 +11,12 @@ DA_ANCOM(
   fix_formula = NULL,
   adj_formula = NULL,
   rand_formula = NULL,
-  lme_control = NULL,
+  lme_control = lme4::lmerControl(),
   contrast = NULL,
   p_adj_method = "BH",
   struc_zero = FALSE,
   BC = TRUE,
+  n_cl = 1,
   verbose = TRUE
 )
 }
@@ -62,6 +63,9 @@ a more comprehensive discussion on structural zeros.}
 \item{BC}{boolean for ANCOM method to use. If TRUE the bias correction 
 (ANCOM-BC2) is computed (default \code{BC = TRUE}). When \code{BC = FALSE} 
 computational time may increase and p-values are not computed.}
+
+\item{n_cl}{numeric. The number of nodes to be forked. For details, see
+\code{?parallel::makeCluster}. Default is 1 (no parallel computing).}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
