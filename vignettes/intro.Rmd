@@ -678,7 +678,7 @@ The structure of the output in this example is the following:
 
         -   *name* which contains the complete name of the used method.
         
-The list of methods can be run in parallel leveraging the `BiocParallel` package. In details, parallelization is supported in Linux/Mac OS through the `MulticoreParam()` function as long as `ANCOM` functions are not included in the list of method due to a different implementation of parallelization in the package. 
+The list of methods can be run in parallel leveraging the `BiocParallel` package. In details, parallelization is supported in Linux/Mac OS through the `MulticoreParam()` function as long as `ANCOM` functions are not included in the list of methods due to a different parallelization management of those functions. 
 
 ```{r, eval=FALSE}
 bpparam = BiocParallel::MulticoreParam()
