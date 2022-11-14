@@ -1,9 +1,9 @@
 #' @title DA_ANCOM
 #'
 #' @importFrom ANCOMBC ancom ancombc2
-#' @importFrom lme4 lmerControl
 #' @importFrom SummarizedExperiment assays
 #' @importFrom phyloseq otu_table sample_data phyloseq taxa_are_rows
+#' @importFrom lme4 lmerControl
 #' @export
 #' @description
 #' Fast run for ANCOM and ANCOM-BC2 differential abundance detection methods.
