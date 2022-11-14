@@ -56,6 +56,8 @@ Then, load some packages for basic functions and data:
 
 ```{r load_packs}
 library(benchdamic)
+# Parallel computation
+library(BiocParallel)
 # Generate simulated data
 library(SPsimSeq)
 # Data management
@@ -649,13 +651,15 @@ my_methods <- c(my_basic, my_edgeR, my_DESeq2,
 After concatenating all the DA instructions, they are run on the mock comparisons using the `runMocks()` function:
 
 ```{r runMocks}
+bpparam <- BiocParallel::SerialParam()
 # Random grouping each time
 Stool_16S_mockDA <- runMocks(
     mocks = my_mocks, 
     method_list = my_methods, 
     object = ps_stool_16S, 
     weights = zinbweights, 
-    verbose = FALSE)
+    verbose = FALSE, 
+    BPPARAM = bpparam)
 ```
 
 If some warnings are reported, *verbose = TRUE* can be used to obtain the method name and the mock comparison where the warnings occured.
@@ -673,6 +677,20 @@ The structure of the output in this example is the following:
         -   *dispEsts* which contains the dispersion estimates for methods like `edgeR` and `DESeq2`;
 
         -   *name* which contains the complete name of the used method.
+        
+The list of methods can be run in parallel leveraging the `BiocParallel` package. In details, parallelization is supported in Linux/Mac OS through the `MulticoreParam()` function as long as `ANCOM` functions are not included in the list of method due to a different implementation of parallelization in the package. 
+
+```{r, eval=FALSE}
+bpparam = BiocParallel::MulticoreParam()
+Stool_16S_mockDA <- runMocks(
+    mocks = my_mocks, 
+    method_list = my_methods[-21], 
+    object = ps_stool_16S, 
+    weights = zinbweights, 
+    verbose = FALSE, 
+    BPPARAM = bpparam)
+```
+
 
 ### Add a new DA method later in the analysis
 
@@ -696,7 +714,7 @@ Stool_16S_mockDA_new_limma <- runMocks(
     mocks = my_mocks, 
     method_list = my_new_limma, 
     object = ps_stool_16S, 
-    verbose = FALSE)
+    verbose = FALSE, BPPARAM = bpparam)
 ```
 
 To put everything together a `mapply()` function is used to exploit the output structures:
@@ -743,13 +761,11 @@ plotFPR(df_FPR = TIEC_summary$df_FPR, cols = cols)
 
 ### False Discovery Rate
 
-The false discovery rate $FDR = \frac{FP}{FP+TP}$ is the ratio between the false positives and all the positives. By construction, mock comparisons should not contain any TPs. Hence, for each set of method and comparison, the FDR is set to 1 (if at least 1 DA feature is found) or 0 (if no DA features are found). A feature is considered DA when its adjusted p-value is below a specified threshold. As the number of mock comparisons increases, the more precise the estimated nominal FDR will be. FDR values should match the nominal values represented by the red dashed lines. In this example, the number of mock comparisons is set to 10, so the estimates are unprecise. ALDEx2 based methods, `basic_t`, and `Seurat.CLR.SF1e+05.t` methods are able to control the FDR for all the considered thresholds (Figure \@ref(fig:FDRplot)).
+The false discovery rate $FDR = \frac{FP}{FP+TP}$. By construction, mock comparisons should not contain any TPs. Hence, for each set of method and comparison, the FDR is set to 1 (if at least 1 DA feature is found) or 0 (if no DA features are found). A feature is considered DA when its adjusted p-value is below a specified threshold. As the number of mock comparisons increases, the more precise the estimated nominal FDR will be. FDR values should match the nominal values represented by the red dashed lines. Moreover, since all the hypotheses are null in this scenario, the FDR corresponds to the Family Wise Error Rate (FWER). In this example, the number of mock comparisons is set to 10, so the estimates are unprecise. ALDEx2 based methods, `basic_t`, and `Seurat.CLR.SF1e+05.t` methods are able to control the FDR for all the considered thresholds (Figure \@ref(fig:FDRplot)).
 
 ```{r FDRplot, fig.cap="FDR plot. Average nominal False Discovery Rate values for several commonly used thresholds for each DA method.", fig.width=8, fig.height=5}
 plotFDR(df_FDR = TIEC_summary$df_FDR, cols = cols)
 ```
-
-
 
 ### QQ-Plot
 
@@ -900,7 +916,7 @@ my_ANCOM <- set_ANCOM(
     pseudo_count = FALSE,
     adj_formula = NULL,
     rand_formula = "(1|RSID)",
-    lme_control = list(maxIter = 100, msMaxIter = 100, opt = "optim"),
+    lme_control = lme4::lmerControl(),
     contrast = c("HMP_BODY_SUBSITE",
     "Supragingival Plaque", "Subgingival Plaque"),
     BC = FALSE)
@@ -924,6 +940,10 @@ str(my_normalizations)
 The `runSplits()` function generates the subsets and performs DA analysis on the features with at least 1 (*min_counts \> 0*) count in more than 2 samples (*min_samples \> 2*):
 
 ```{r runSplits}
+# Set the parallel framework
+# Remember that ANCOMBC based methods are not compatible
+bpparam <- BiocParallel::SerialParam()
+
 # Make sure the subject ID variable is a factor
 phyloseq::sample_data(ps_plaque_16S)[, "RSID"] <- as.factor(
     phyloseq::sample_data(ps_plaque_16S)[["RSID"]])
@@ -934,7 +954,8 @@ Plaque_16S_splitsDA <- runSplits(
     normalization_list = my_normalizations, 
     object = ps_plaque_16S, 
     min_counts = 0, min_samples = 2, 
-    verbose = FALSE)
+    verbose = FALSE,
+    BPPARAM = bpparam)
 ```
 
 The structure of the output in this example is the following:
