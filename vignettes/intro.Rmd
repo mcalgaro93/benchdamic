@@ -964,7 +964,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison10* output lists on the second level:
 
-        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction (since it only allows for cross-sectional data). Their outputs are organized as always:
+        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, and `ANCOM` without bias correction. Their outputs are organized as always:
 
             -   *pValMat* which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1093,13 +1093,13 @@ cowplot::plot_grid(plotlist = pC, ncol = 2, align = "h", axis = "tb",
     rel_widths = c(1, 3))
 ```
 
-The WMC and BMC from rank 1 to rank 30 are reported in the plot above. More than 40 (use `table(concordance$rank)` to find out) is the maximum rank obtained by all split comparisons, *i.e.* the number of taxa for which all methods have been able to calculate p-values (in all comparisons). However, a custom threshold of 30 was supplied .
+The WMC and BMC from rank 1 to rank 30 are reported in the plot above. More than 40 (use `table(concordance$rank)` to find out) is the maximum rank obtained by all split comparisons, *i.e.* the number of taxa for which all methods have been able to calculate p-values (in all comparisons). However, a custom threshold of 30 was supplied.
 
 It is common that WMC values (in red rectangles) are lower than BMC ones. Indeed, BMC is computed between different methods on the same data, while WMC is computed for a single method, run in different datasets (some taxa are dataset-specific).
 
 `limma.TMM` and `edgeR.TMM` methods show the highest BMC values but they are also concordant with `dearseq.repeated.asymptotic` and `basic.wilcox.paired`. Differently, `DESeq2.poscounts` and `MAST.median` are not concordant with the other methods. `ANCOM` shows a completely random pattern (the lines are always close to the dashed line) because all the chosen statistics are equal to 1 and they can't be ordered.
 
-Regarding the WMC, `ALDEx2.all.wilcox.paired` has the highest value while `MAST.median` has the lowest values, maybe because it has not been implemented properly for repeated measure designs. Also `ANCOM` shows low values, maybe because for this method the statistic chosen as p-value (in the *pValMat* slot) is computed as $1-\frac{W}{ntaxa-1}$ which is not a p-value. Other methods have comparable WMC values.
+Regarding the WMC, `ALDEx2.all.wilcox.paired` has the highest value while `MAST.median` has the lowest values, maybe because it has not been implemented properly for repeated measure designs. Other methods have comparable WMC values.
 
 ## Discussion about Concordance
 
