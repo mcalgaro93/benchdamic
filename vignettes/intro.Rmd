@@ -74,7 +74,7 @@ library(kableExtra)
 
 All datasets used in `benchdamic` are downloaded using the `HMP16SData` Bioconductor package [@HMP16SData].
 
-For GOF and TIEC analyses a homogeneous group of samples (e.g. only samples from a specific experimental condition, phenotype, treatment, body site, etc.) *ps_stool_16S* is used (use `help("ps_stool_16S")` for details). It contains 16S data from:
+For GOF and TIEC analyses a homogeneous group of samples (*e.g.*, only samples from a specific experimental condition, phenotype, treatment, body site, etc.) *ps_stool_16S* is used (use `help("ps_stool_16S")` for details). It contains 16S data from:
 
 -   32 stool samples from participants of the Human Microbiome Project;
 
@@ -154,7 +154,7 @@ The original field of application of this method was the single-cell RNAseq data
 
 The taxon presence rate is modeled using logistic regression and, conditioning on a sample with the taxon, the transformed abundance level is modeled as Gaussian.
 
-Given normalized, possibly thresholded, abundance $y_{ij}$, the rate of presence and the level of abundance for the samples were the taxon is present, are modeled conditionally independent for each gene $i$. Define the indicator $z_{ij}$, indicating whether taxon $i$ is expressed in sample $j$ (i.e., $z_{ij} = 0$ if $y_{ij} = 0$ and $z_{ij} = 1$ if $y_{ij} > 0$). We fit logistic regression models for the discrete variable $Z$ and a Gaussian linear model for the continuous variable $(Y|Z=1)$ independently, as follows:
+Given normalized, possibly thresholded, abundance $y_{ij}$, the rate of presence and the level of abundance for the samples were the taxon is present, are modeled conditionally independent for each gene $i$. Define the indicator $z_{ij}$, indicating whether taxon $i$ is expressed in sample $j$ (*i.e.*, $z_{ij} = 0$ if $y_{ij} = 0$ and $z_{ij} = 1$ if $y_{ij} > 0$). We fit logistic regression models for the discrete variable $Z$ and a Gaussian linear model for the continuous variable $(Y|Z=1)$ independently, as follows:
 
 $$ logit(Pr(Z_{ij}=1))=X_j\beta_i^D $$
 
@@ -446,7 +446,7 @@ mandatory, while the *verbose* parameter and the *object* are not needed.
 
 The Type I Error is the probability of a statistical test to call a feature DA when it is not, under the null hypothesis. To evaluate the Type I Error rate Control (TIEC) for each differential abundance detection method:
 
-1.  using the `createMocks()` function, homogeneous samples (*e.g.,* only the samples from one experimental group) are randomly assigned to a group ('grp1' or 'grp2');
+1.  using the `createMocks()` function, homogeneous samples (*e.g.*, only the samples from one experimental group) are randomly assigned to a group ('grp1' or 'grp2');
 
 2.  DA methods are run to find differences between the two mock groups using `runMocks()`;
 
@@ -761,7 +761,7 @@ plotFPR(df_FPR = TIEC_summary$df_FPR, cols = cols)
 
 ### False Discovery Rate
 
-The false discovery rate $FDR = \frac{FP}{FP+TP}$. By construction, mock comparisons should not contain any TPs. Hence, for each set of method and comparison, the FDR is set to 1 (if at least 1 DA feature is found) or 0 (if no DA features are found). A feature is considered DA when its adjusted p-value is below a specified threshold. As the number of mock comparisons increases, the more precise the estimated nominal FDR will be. FDR values should match the nominal values represented by the red dashed lines. Moreover, since all the hypotheses are null in this scenario, the FDR corresponds to the Family Wise Error Rate (FWER). In this example, the number of mock comparisons is set to 10, so the estimates are unprecise. ALDEx2 based methods, `basic_t`, and `Seurat.CLR.SF1e+05.t` methods are able to control the FDR for all the considered thresholds (Figure \@ref(fig:FDRplot)).
+The false discovery rate $FDR = \frac{FP}{FP+TP}$ is the ratio between the false positives and all the positives. By construction, mock comparisons should not contain any TPs. Hence, for each set of method and comparison, the FDR is set to 1 (if at least 1 DA feature is found) or 0 (if no DA features are found). Just as alpha is set as a threshold for the p-value to control the FPR, a threshold for the adjusted p-value, which is the FDR analog of the p-value, can be set. As the number of mock comparisons increases, the more precise the estimated nominal FDR will be. FDR values should match the nominal values represented by the red dashed lines. Moreover, since all the hypotheses are null in this scenario, the FDR corresponds to the Family Wise Error Rate (FWER). In this example, the number of mock comparisons is set to 10, so the estimates are unprecise. ALDEx2 based methods, `basic_t`, and `Seurat.CLR.SF1e+05.t` methods are able to control the FDR for all the considered thresholds (Figure \@ref(fig:FDRplot)).
 
 ```{r FDRplot, fig.cap="FDR plot. Average nominal False Discovery Rate values for several commonly used thresholds for each DA method.", fig.width=8, fig.height=5}
 plotFDR(df_FDR = TIEC_summary$df_FDR, cols = cols)
@@ -810,7 +810,7 @@ Similarly, figure \@ref(fig:AveLogPplot) exploits the structure of the `df_QQ` d
 plotLogP(df_QQ = TIEC_summary$df_QQ, cols = cols)
 ```
 
-In the figure \@ref(fig:LogPplot) and \@ref(fig:AveLogPplot), the $-\log_{10}(p-value)$ IDEAL distribution is reported in red color as the first method. To highlight tail's behaviors, 3 percentiles (0.9, 0.95, 0.99) are reported using red-shaded vertical segments for each method. If the method's distribution of negative log-transformed p-values or average p-values is still uniform in the 3 selected quantiles of the tail, the 3 red vertical segments will align to the respective dotted line. Methods are ordered using the distances between the observed quantiles and the ideal ones. Usually, when a method has its red segments to the left of the IDEAL's ones is conservative (e.g. `ALDEx2.iqlr.wilcox.unpaired` and `MAST.default`). Indeed, for those methods, little p-values are fewer than expected. On the contrary, methods with red segments to the right of the IDEAL's ones are liberal (e.g. `edgeR.TMM`). Mixed results could be present: a method that has a lower quantile for one threshold and higher quantiles for the others (e.g. `limma.TMM`).
+In the figure \@ref(fig:LogPplot) and \@ref(fig:AveLogPplot), the $-\log_{10}(p-value)$ IDEAL distribution is reported in red color as the first method. To highlight tail's behaviors, 3 percentiles (0.9, 0.95, 0.99) are reported using red-shaded vertical segments for each method. If the method's distribution of negative log-transformed p-values or average p-values is still uniform in the 3 selected quantiles of the tail, the 3 red vertical segments will align to the respective dotted line. Methods are ordered using the distances between the observed quantiles and the ideal ones. Usually, when a method has its red segments to the left of the IDEAL's ones is conservative (*e.g.*, `ALDEx2.iqlr.wilcox.unpaired` and `MAST.default`). Indeed, for those methods, little p-values are fewer than expected. On the contrary, methods with red segments to the right of the IDEAL's ones are liberal (*e.g.*, `edgeR.TMM`). Mixed results could be present: a method that has a lower quantile for one threshold and higher quantiles for the others (*e.g.*, `limma.TMM`).
 
 ## Discussion about TIEC
 
@@ -866,7 +866,7 @@ The structure produced by `createSplits()` function consists in a list of two ma
 
 ## Set up normalizations and DA methods
 
-For some of the methods implemented in this package it is possible to perform differential abundance testings for the repeated measurements experimental designs (e.g. by adding the subject ID in the model formula of `DESeq2`).
+For some of the methods implemented in this package it is possible to perform differential abundance testings for the repeated measurements experimental designs (*e.g.*, by adding the subject ID in the model formula of `DESeq2`).
 
 Once again, to set the differential abundance methods to use, the `set_<name_of_the_method>()` methods can be exploited. For a faster demonstration, differential abundance methods without weighting are used:
 
@@ -941,7 +941,7 @@ The `runSplits()` function generates the subsets and performs DA analysis on the
 
 ```{r runSplits}
 # Set the parallel framework
-# Remember that ANCOMBC based methods are not compatible
+# Remember that ANCOMBC based methods are compatible only with SerialParam()
 bpparam <- BiocParallel::SerialParam()
 
 # Make sure the subject ID variable is a factor
@@ -1020,7 +1020,7 @@ For each pair of methods the concordance is computed by the `createConcordance()
 -   name of *method1*;
 -   name of *method2*;
 -   *rank*;
--   *concordance* which is defined as the cardinality of the intersection of the top *rank* elements of each list, divided by *rank*, i.e., $\frac{L_{1:rank} \bigcap M_{1:rank}}{rank}$, where *L* and *M* represent the lists of p-values of *method1* and *method2* respectively. A noise value ($<10^{-10}$) is added to each p-value (or statistic) in order to avoid duplicated values which could not be ordered.
+-   *concordance* which is defined as the cardinality of the intersection of the top *rank* elements of each list, divided by *rank*, *i.e.*, $\frac{L_{1:rank} \bigcap M_{1:rank}}{rank}$, where *L* and *M* represent the lists of p-values of *method1* and *method2* respectively. A noise value ($<10^{-10}$) is added to each p-value (or statistic) in order to avoid duplicated values which could not be ordered.
 
 ```{r createConcordance}
 concordance <- createConcordance(
@@ -1180,7 +1180,7 @@ ps_plaque_16S <- phyloseq::filter_taxa(physeq = ps_plaque_16S,
 ps_plaque_16S
 ```
 
-Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` or `TreeSummarizedExperiment` object (no mocks, no splits, no comparisons). For this reason many methods can be assessed without computational trade-offs (e.g. `ANCOM` without sampling fraction bias correction and methods which use *ZINB* weights).
+Differently from the Type I Error Control and Concordance analyses, the enrichment analysis rely on a single `phyloseq` or `TreeSummarizedExperiment` object (no mocks, no splits, no comparisons). For this reason many methods can be assessed without computational trade-offs (*e.g.*, `ANCOM` without sampling fraction bias correction and methods which use *ZINB* weights).
 
 The observational weights are computed:
 
@@ -1226,7 +1226,7 @@ Plaque_16S_DA <- runDA(method_list = my_methods,
 
 `Plaque_16_DA` object contains the results for 10 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
 
-In the *direction* argument, which is set to *NULL* by default, the column name containing the direction (e.g. *logfc*, *logFC*, *logFoldChange*...) of each method's *statInfo* matrix can be supplied.
+In the *direction* argument, which is set to *NULL* by default, the column name containing the direction (*e.g.*, *logfc*, *logFC*, *logFoldChange*...) of each method's *statInfo* matrix can be supplied.
 
 Firstly, the order of methods is investigated:
 
@@ -1357,7 +1357,7 @@ plotPositives(positives)
 
 ## Enrichment without direction
 
-When the user have a custom method where the direction of the differential abundance is not returned (*e.g.,* NOISeq), or when the direction of DA is not of interest, the sole information about DA and not DA feature can be used. The `createEnrichment()` function is used without the direction parameter for all methods:
+When the user have a custom method where the direction of the differential abundance is not returned (*e.g.*, NOISeq), or when the direction of DA is not of interest, the sole information about DA and not DA feature can be used. The `createEnrichment()` function is used without the direction parameter for all methods:
 
 ```{r createEnrichment_nodir}
 enrichment_nodir <- createEnrichment(
@@ -1398,7 +1398,7 @@ In this example (Figure \@ref(fig:plotMutualFindingsnodir)), only a *Prevotella*
 
 ## Enrichment analysis for simulated data
 
-To enlarge the scope of the enrichment analysis, simulations could be used, *e.g.* by using the user's dataset as a template to generate simulated data, in which to know the DA features and provide this information as prior knowledge.
+To enlarge the scope of the enrichment analysis, simulations could be used, *e.g.*, by using the user's dataset as a template to generate simulated data, in which to know the DA features and provide this information as prior knowledge.
 
 As an example, the `SPsimSeq` package is used (the tool to use is up to the user) to simulate only a single dataset (*n.sim = 1*) from the *ps_plaque_16S* dataset where two body sub sites are available (without considering the paired design). The data are simulated with the following properties - 100 features (*n.genes = 100*) - 50 samples (*tot.samples = 50*) - the samples are equally divided into 2 groups each with 25 samples (*group.config = c(0.5, 0.5)*) - all samples are from a single batch (*batch.config = 1*) - 20% DA features (*pDE = 0.2*) - the DA features have a log-fold-change of at least 0.5.
 
@@ -1662,7 +1662,7 @@ plotPositives(positives = positives_nodir) +
     ylim(NA, 21)
 ```
 
-From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000` and `dearseq.counts.asymptotic` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.* `edgeR.counts.TMM.weighted` has negative values, maybe due to poor weight estimates since all methods with observational weights perform poorly).
+From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000` and `dearseq.counts.asymptotic` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.*, `edgeR.counts.TMM.weighted` has negative values, maybe due to poor weight estimates since all methods with observational weights perform poorly).
 
 ## Discussion about Enrichment
 
@@ -1670,7 +1670,7 @@ The enrichment analysis toolbox provides many methods to study DA in a dataset.
 
 Firstly, when some prior knowledge is available, it allows to evaluate methods' power. Among the possible applications, it is especially useful to investigate conservative methods: are they calling only the most obvious taxa (also found by the other methods) or are they finding something new? The main drawback is that the availability of the prior knowledge is limited, especially for new datasets. For this reason, enrichment analysis could also be used in addition to simulation tools. Indeed, through parametric, semi-parametric, or non parametric assumptions it is possible to obtain an emulation of the prior knowledge.
 
-Secondly, thanks to methods like `plotMutualFindings()` and `plotEnrichment()`, which produce graphical results like Figure \@ref(fig:plotEnrichmentnodir) and Figure \@ref(fig:plotMutualFindingsnodir), it is also possible to use the enrichment analysis to study the distribution of the findings across class of taxa (e.g. by using as prior knowledge the phylum of the features, it would be possible to study if a phylum is characterized by an increased number of DA compared to another phylum), or more simply, drawing biological conclusions based only on taxa found as DA by the majority of the methods.
+Secondly, thanks to methods like `plotMutualFindings()` and `plotEnrichment()`, which produce graphical results like Figure \@ref(fig:plotEnrichmentnodir) and Figure \@ref(fig:plotMutualFindingsnodir), it is also possible to use the enrichment analysis to study the distribution of the findings across class of taxa (*e.g.*, by using as prior knowledge the phylum of the features, it would be possible to study if a phylum is characterized by an increased number of DA compared to another phylum), or more simply, drawing biological conclusions based only on taxa found as DA by the majority of the methods.
 
 # Session Info
 
