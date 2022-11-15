@@ -705,7 +705,7 @@ my_ANCOM_parallel <- set_ANCOM(
 )
 
 bpparam = BiocParallel::SerialParam()
-Stool_16S_mockDA <- runMocks(
+Stool_16S_mockDA_ANCOM <- runMocks(
     mocks = my_mocks,
     method_list = my_ANCOM_parallel, # Only ANCOM
     object = ps_stool_16S,
