@@ -691,6 +691,28 @@ Stool_16S_mockDA <- runMocks(
     BPPARAM = bpparam)
 ```
 
+`ANCOM` based methods are usually the most time consuming. Parallel computing is still possible as long as it is directly managed by those methods (`n_cl` parameter). In the following example, each mock dataset is analyzed in serial mode but `ANCOM` is run in more than one core.
+
+```{r, eval=FALSE}
+# Modify the n_cl parameter
+my_ANCOM_parallel <- set_ANCOM(
+    pseudo_count = FALSE,
+    fix_formula = "group", 
+    contrast = c("group", "grp2", "grp1"),
+    BC = TRUE, 
+    n_cl = 2, # Set this number according to your machine
+    expand = TRUE   
+)
+
+bpparam = BiocParallel::SerialParam()
+Stool_16S_mockDA <- runMocks(
+    mocks = my_mocks,
+    method_list = my_ANCOM_parallel, # Only ANCOM
+    object = ps_stool_16S,
+    weights = zinbweights,
+    verbose = FALSE,
+    BPPARAM = bpparam)
+```
 
 ### Add a new DA method later in the analysis
 
