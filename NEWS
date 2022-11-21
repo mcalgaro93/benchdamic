@@ -1,3 +1,10 @@
+Changes in Version 1.5.2 (2022-11-21)
+=====================================
+
+* Correct FDR description in vignette
+* Add BiocParallel support for runMocks() and runSplits() functions
+* Add example for ANCOMBC based methods in parallel
+
 Changes in Version 1.5.1 (2022-11-14)
 =====================================
 
