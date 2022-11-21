@@ -1,7 +1,7 @@
 Package: benchdamic
 Type: Package
 Title: Benchmark of differential abundance methods on microbiome data
-Version: 1.5.1
+Version: 1.5.2
 Authors@R: 
     c(person(given = "Matteo", 
              family = "Calgaro", 
