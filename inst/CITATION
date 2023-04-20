@@ -1,0 +1,29 @@
+bibentry(
+    bibtype = "Article",
+    title = "benchdamic: benchmarking of differential abundance
+methods for microbiome data",
+    author = c(person("Matteo", "Calgaro"),
+               person("Chiara", "Romualdi"),
+               person("Davide", "Risso"),
+               person("Nicola", "Vitulo")),
+    volume = 39,
+    number = 1,
+    year = 2022,
+    month = 12,
+    journal = "Bioinformatics",
+    url = "https://doi.org/10.1093/bioinformatics/btac778")
+bibentry(
+    bibtype = "Article",
+    title = "Assessment of statistical methods from single cell, bulk RNA-seq, and metagenomics applied to microbiome data",
+    author = c(person("Matteo", "Calgaro"),
+               person("Chiara", "Romualdi"),
+               person("Levi", "Waldron"),
+               person("Davide", "Risso"),
+               person("Nicola", "Vitulo")),
+    volume = 21,
+    number = 1,
+    pages = 191,
+    year = 2020,
+    month = 08,
+    journal = "Genome Biology",
+    url = "https://doi.org/10.1186/s13059-020-02104-1")
