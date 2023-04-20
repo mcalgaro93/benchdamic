@@ -43,7 +43,8 @@ data and computes the mean difference (MD) and zero probability difference
 }
 \examples{
 # Generate some random counts
-counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
+counts <- matrix(rnbinom(n = 600, size = 3, prob = 0.5), 
+                 nrow = 100, ncol = 6)
 # Estimate the counts assuming several distributions
 GOF <- fitModels(
     object = counts, models = c(

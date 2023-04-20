@@ -28,7 +28,8 @@
 #' @examples
 #' set.seed(1)
 #' # Create a very simple phyloseq object
-#' counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
+#' counts <- matrix(rnbinom(n = 600, size = 3, prob = 0.5), 
+#'                  nrow = 100, ncol = 6)
 #' metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
 #'                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 #' ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),

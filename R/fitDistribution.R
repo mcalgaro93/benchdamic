@@ -136,7 +136,7 @@ fitZINB <- function(object, assay_name = "counts", verbose = TRUE) {
 #' column.
 #' @examples
 #' # Generate some random counts
-#' counts = matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
+#' counts = matrix(rnbinom(n = 600, size = 3, prob = 0.5), nrow = 100, ncol = 6)
 #'
 #' # Fit model on the counts matrix
 #' HURDLE <- fitHURDLE(counts, scale = "median")
