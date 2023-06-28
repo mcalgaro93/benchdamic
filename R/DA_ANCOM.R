@@ -55,8 +55,9 @@
 
 DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE, 
     fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
-    lme_control = lme4::lmerControl(), contrast = NULL, p_adj_method = "BH", 
-    struc_zero = FALSE, BC = TRUE, n_cl = 1, verbose = TRUE){
+    lme_control = lme4::lmerControl(), contrast = NULL, alpha = 0.05,
+    p_adj_method = "BH", struc_zero = FALSE, BC = TRUE, n_cl = 1, 
+    verbose = TRUE){
     counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
     counts <- counts_and_metadata[[1]]
     metadata <- counts_and_metadata[[2]]
@@ -124,7 +125,7 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
         if(BC){
             res <- ancombc2(data = phyloseq_obj, fix_formula = fix_formula, 
                 rand_formula = rand_formula, p_adj_method = p_adj_method, 
-                verbose = verbose, lme_control = lme_control, 
+                verbose = verbose, lme_control = lme_control, alpha = alpha,
                 struc_zero = struc_zero, neg_lb = neg_lb, group = contrast[1], 
                 prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE, n_cl = n_cl)
         } else {
@@ -132,7 +133,7 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 rand_formula = rand_formula, lme_control = lme_control,
                 p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
                 main_var = contrast[1], struc_zero = struc_zero, 
-                neg_lb = neg_lb, n_cl = n_cl)
+                neg_lb = neg_lb, alpha = alpha, n_cl = n_cl)
         }
     } else {
         if(BC){
@@ -142,14 +143,14 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                     verbose = verbose, lme_control = lme_control, 
                     struc_zero = struc_zero, neg_lb = neg_lb, 
                     group = contrast[1], prv_cut = 0, lib_cut = 0, 
-                    pseudo_sens = FALSE, n_cl = n_cl)))
+                    pseudo_sens = FALSE, alpha = alpha, n_cl = n_cl)))
         } else {
             res <- suppressMessages(suppressWarnings(
                 ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                     rand_formula = rand_formula, lme_control = lme_control,
                     p_adj_method = p_adj_method, prv_cut = 0, lib_cut = 0, 
                     main_var = contrast[1], struc_zero = struc_zero, 
-                    neg_lb = neg_lb, n_cl = n_cl)))
+                    neg_lb = neg_lb, alpha = alpha, n_cl = n_cl)))
         }
     }
     statInfo <- as.data.frame(res[["res"]])
@@ -189,8 +190,9 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
 #'     struc_zero = c(TRUE, FALSE), BC = c(TRUE, FALSE))
 set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE, 
     fix_formula = NULL, adj_formula = NULL, rand_formula = NULL, 
-    lme_control = lme4::lmerControl(), contrast = NULL, p_adj_method = "BH", 
-    struc_zero = FALSE, BC = TRUE, n_cl = 1, expand = TRUE) {
+    lme_control = lme4::lmerControl(), contrast = NULL, alpha = 0.05,
+    p_adj_method = "BH", struc_zero = FALSE, BC = TRUE, n_cl = 1, 
+    expand = TRUE) {
     method <- "DA_ANCOM"
     if (is.null(assay_name)) {
         stop(method, "\n", "'assay_name' is required (default = 'counts').")
@@ -228,13 +230,14 @@ set_ANCOM <- function(assay_name = "counts", pseudo_count = FALSE,
     }
     if (expand) {
         parameters <- expand.grid(method = method, assay_name = assay_name, 
-            pseudo_count = pseudo_count, p_adj_method = p_adj_method, 
-            struc_zero = struc_zero, BC = BC, stringsAsFactors = FALSE)
+            pseudo_count = pseudo_count, alpha = alpha, 
+            p_adj_method = p_adj_method, struc_zero = struc_zero, BC = BC, 
+            stringsAsFactors = FALSE)
     } else {
         message("Some parameters may be duplicated to fill the matrix.")
         parameters <- data.frame(method = method, assay_name = assay_name, 
-            pseudo_count = pseudo_count, p_adj_method = p_adj_method, 
-            struc_zero = struc_zero, BC = BC)
+            pseudo_count = pseudo_count, alpha = alpha, 
+            p_adj_method = p_adj_method, struc_zero = struc_zero, BC = BC)
     }
     # data.frame to list
     out <- plyr::dlply(.data = parameters, .variables = colnames(parameters))
