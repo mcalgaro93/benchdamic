@@ -13,6 +13,7 @@ DA_ANCOM(
   rand_formula = NULL,
   lme_control = lme4::lmerControl(),
   contrast = NULL,
+  alpha = 0.05,
   p_adj_method = "BH",
   struc_zero = FALSE,
   BC = TRUE,
@@ -51,6 +52,8 @@ See \code{?lme4::lmerControl} for details.}
 indicating the name of factor whose levels are the conditions to be 
 compared, the name of the level of interest, and the name of the other 
 level.}
+
+\item{alpha}{numeric. Level of significance. Default is 0.05.}
 
 \item{p_adj_method}{character. method to adjust p-values. Default is "holm".
 Options include "holm", "hochberg", "hommel", "bonferroni", "BH", "BY",
