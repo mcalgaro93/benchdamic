@@ -73,4 +73,9 @@ test_that("DA methods produce pValMat and statInfo", code = {
     da <- DA_dearseq(object = ps, variables2test = "group", 
         test = "permutation", preprocessed = FALSE, verbose = FALSE)
     expectations(da, name = "dearseq.permutation.1000")
+    # DA_linda
+    da <- DA_linda(object = ps, formula = "~ group", 
+        contrast = c("group", "grp2", "grp1"), zero.handling = "pseudo-count",
+        verbose = FALSE)
+    expectations(da, name = "linda.win0.03.pc0.5")
 })
