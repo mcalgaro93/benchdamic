@@ -1071,5 +1071,58 @@
 				]
 			]
 		}
+	},
+	{
+		"id": "linda",
+		"type": "article-journal",
+		"abstract": "Differential abundance analysis is at the core of statistical analysis of microbiome data. The compositional nature of microbiome sequencing data makes false positive control challenging. Here, we show that the compositional effects can be addressed by a simple, yet highly flexible and scalable, approach. The proposed method, LinDA, only requires fitting linear regression models on the centered log-ratio transformed data, and correcting the bias due to compositional effects. We show that LinDA enjoys asymptotic FDR control and can be extended to mixed-effect models for correlated microbiome data. Using simulations and real examples, we demonstrate the effectiveness of LinDA.",
+		"container-title": "Genome Biology",
+		"DOI": "10.1186/s13059-022-02655-5",
+		"ISSN": "1474-760X",
+		"issue": "1",
+		"journalAbbreviation": "Genome Biology",
+		"page": "95",
+		"source": "BioMed Central",
+		"title": "LinDA: linear models for differential abundance analysis of microbiome compositional data",
+		"title-short": "LinDA",
+		"URL": "https://doi.org/10.1186/s13059-022-02655-5",
+		"volume": "23",
+		"author": [
+			{
+				"family": "Zhou",
+				"given": "Huijuan"
+			},
+			{
+				"family": "He",
+				"given": "Kejun"
+			},
+			{
+				"family": "Chen",
+				"given": "Jun"
+			},
+			{
+				"family": "Zhang",
+				"given": "Xianyang"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2023",
+					1,
+					16
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2022",
+					4,
+					14
+				]
+			]
+		}
 	}
 ]
+
