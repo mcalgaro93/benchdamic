@@ -1123,6 +1123,123 @@
 				]
 			]
 		}
+	},
+	{
+		"id": "maaslin2",
+		"type": "article-journal",
+		"abstract": "It is challenging to associate features such as human health outcomes, diet, environmental conditions, or other metadata to microbial community measurements, due in part to their quantitative properties. Microbiome multi-omics are typically noisy, sparse (zero-inflated), high-dimensional, extremely non-normal, and often in the form of count or compositional measurements. Here we introduce an optimized combination of novel and established methodology to assess multivariable association of microbial community features with complex metadata in population-scale observational studies. Our approach, MaAsLin 2 (Microbiome Multivariable Associations with Linear Models), uses generalized linear and mixed models to accommodate a wide variety of modern epidemiological studies, including cross-sectional and longitudinal designs, as well as a variety of data types (e.g., counts and relative abundances) with or without covariates and repeated measurements. To construct this method, we conducted a large-scale evaluation of a broad range of scenarios under which straightforward identification of meta-omics associations can be challenging. These simulation studies reveal that MaAsLin 2’s linear model preserves statistical power in the presence of repeated measures and multiple covariates, while accounting for the nuances of meta-omics features and controlling false discovery. We also applied MaAsLin 2 to a microbial multi-omics dataset from the Integrative Human Microbiome (HMP2) project which, in addition to reproducing established results, revealed a unique, integrated landscape of inflammatory bowel diseases (IBD) across multiple time points and omics profiles.",
+		"container-title": "PLOS Computational Biology",
+		"DOI": "10.1371/journal.pcbi.1009442",
+		"ISSN": "1553-7358",
+		"issue": "11",
+		"journalAbbreviation": "PLOS Computational Biology",
+		"language": "en",
+		"note": "publisher: Public Library of Science",
+		"page": "e1009442",
+		"source": "PLoS Journals",
+		"title": "Multivariable association discovery in population-scale meta-omics studies",
+		"URL": "https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1009442",
+		"volume": "17",
+		"author": [
+			{
+				"family": "Mallick",
+				"given": "Himel"
+			},
+			{
+				"family": "Rahnavard",
+				"given": "Ali"
+			},
+			{
+				"family": "McIver",
+				"given": "Lauren J."
+			},
+			{
+				"family": "Ma",
+				"given": "Siyuan"
+			},
+			{
+				"family": "Zhang",
+				"given": "Yancong"
+			},
+			{
+				"family": "Nguyen",
+				"given": "Long H."
+			},
+			{
+				"family": "Tickle",
+				"given": "Timothy L."
+			},
+			{
+				"family": "Weingart",
+				"given": "George"
+			},
+			{
+				"family": "Ren",
+				"given": "Boyu"
+			},
+			{
+				"family": "Schwager",
+				"given": "Emma H."
+			},
+			{
+				"family": "Chatterjee",
+				"given": "Suvo"
+			},
+			{
+				"family": "Thompson",
+				"given": "Kelsey N."
+			},
+			{
+				"family": "Wilkinson",
+				"given": "Jeremy E."
+			},
+			{
+				"family": "Subramanian",
+				"given": "Ayshwarya"
+			},
+			{
+				"family": "Lu",
+				"given": "Yiren"
+			},
+			{
+				"family": "Waldron",
+				"given": "Levi"
+			},
+			{
+				"family": "Paulson",
+				"given": "Joseph N."
+			},
+			{
+				"family": "Franzosa",
+				"given": "Eric A."
+			},
+			{
+				"family": "Bravo",
+				"given": "Hector Corrada"
+			},
+			{
+				"family": "Huttenhower",
+				"given": "Curtis"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2022",
+					12,
+					1
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2021",
+					11,
+					16
+				]
+			]
+		}
 	}
 ]
 
