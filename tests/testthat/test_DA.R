@@ -78,4 +78,9 @@ test_that("DA methods produce pValMat and statInfo", code = {
         contrast = c("group", "grp2", "grp1"), zero.handling = "pseudo-count",
         verbose = FALSE)
     expectations(da, name = "linda.win0.03.pc0.5")
+    # DA_Maaslin2
+    da <- DA_Maaslin2(object = ps, normalization = "TSS", transform = "LOG",
+        analysis_method = "LM", fixed_effects = "group", contrast = c("group", 
+        "grp2", "grp1"), verbose = FALSE)
+    expectations(da, name = "Maaslin2.TSSnorm.LOGtrans.LM")
 })
