@@ -547,7 +547,7 @@ For each row of the `mock_df` data frame a bunch of DA methods is run. In this d
 
 -   `dearseq` with *permutation* and *asymptotic* tests [@dearseq];
 
--   `linda` with winsorization for the outliers and pseudo-count addition to handle zeros.
+-   `linda` with winsorization for the outliers and pseudo-count addition to handle zeros [@linda].
 
 Among the available methods, `NOISeq` [@noiseq] has not been used since it does not return p-values but only adjusted ones. Many combination of parameters are still possible for all the methods.
 
