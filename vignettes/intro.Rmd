@@ -551,7 +551,7 @@ For each row of the `mock_df` data frame a bunch of DA methods is run. In this d
 
 -   `Maaslin2` with *TSS* normalization, *LOG* transformation, and *LM* analysis method [@maaslin2];
 
-Among the available methods, `NOISeq` [@noiseq] has not been used since it does not return p-values but only adjusted ones. Many combination of parameters are still possible for all the methods.
+Among the available methods, `NOISeq` [@noiseq] has not been used since it does not return p-values but only adjusted ones. Similarly, `mixMC` [@mixMC] has not been used since it does not return p-values. Many combination of parameters are still possible for all the methods.
 
 ```{r set_Methods}
 my_basic <- set_basic(pseudo_count = FALSE,
@@ -978,8 +978,13 @@ my_Maaslin2 <- set_Maaslin2(
     fixed_effects = "HMP_BODY_SUBSITE",
     random_effects = "RSID",
     contrast = c("HMP_BODY_SUBSITE",
-    "Supragingival Plaque", "Subgingival Plaque"),
-    )
+    "Supragingival Plaque", "Subgingival Plaque"))
+
+my_mixMC <- set_mixMC(
+    pseudo_count = 1,
+    ID_variable = "RSID",
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"))
 
 my_methods_noWeights <- c(
     my_edgeR_noWeights, 
@@ -990,7 +995,8 @@ my_methods_noWeights <- c(
     my_dearseq,
     my_ANCOM,
     my_linda,
-    my_Maaslin2)
+    my_Maaslin2,
+    my_mixMC)
 ```
 
 Similarly, to set the normalization methods, the `setNormalizations()` function can be used. In this case it has already been set up for the TIEC analysis:
@@ -1026,7 +1032,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison10* output lists on the second level:
 
-        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` without bias correction, `linDA` with winsorization and pseudo-count addition, and `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method. Their outputs are organized as always:
+        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` without bias correction, `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, and `mixMC`. Their outputs are organized as always:
 
             -   *pValMat* which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1130,7 +1136,7 @@ cat("basic.wilcox.paired", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$basic.wilcox.paired$statInfo)
 ```
 
-All methods, except for `DESeq2`, `ALDEx2`, `dearseq`, and `ANCOM`, contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the alternative concordance data frame can be built using:
+All methods, except for `DESeq2`, `ALDEx2`, `dearseq`, `ANCOM`, and `mixMC` contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the alternative concordance data frame can be built using:
 
 ```{r alternativeConcordance, eval=FALSE}
 concordance_alternative <- createConcordance(
@@ -1138,9 +1144,9 @@ concordance_alternative <- createConcordance(
     slot = "statInfo",
     colName = c("logFC", "log2FoldChange", "logFC", 
         "effect", "logFC", "rawP", "W", "log2FoldChange", 
-        "coef", "logFC"),
+        "coef", "logFC", "importance"),
     type = c("logfc", "logfc", "logfc", "logfc", 
-        "logfc", "pvalue", "logfc", "logfc", "logfc", "logfc")
+        "logfc", "pvalue", "logfc", "logfc", "logfc", "logfc", "logfc")
 )
 ```
 
@@ -1328,6 +1334,7 @@ enrichment <- createEnrichment(
         "logFC", # MAST
         "log2FoldChange", # linda
         "coef", # Maaslin2
+        "importance", # mixMC
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
@@ -1370,7 +1377,7 @@ plotEnrichment(enrichment = enrichment, enrichmentCol = "Type",
     levels_to_plot = c("Aerobic", "Anaerobic"))
 ```
 
-Since *Subgingival Plaque* is the reference level for each method, the coefficients extracted from the methods are referred to the *Supragingival Plaque* class. Six out of ten methods identify, as expected, a statistically significant ($0.001 < p \le 0.05$) amount of DOWN Abundant Anaerobic features in Supragingival Plaque (Figure \ref{fig:plotEnrichment}). Moreover, 9 of them find an enriched amount of UP Abundant Aerobic genera in Supragingival Plaque. Unexpectedly, both `DESeq2.poscounts` and `DESeq2.poscounts.weighted` find many Anaerobic genera as UP Abundant, they could be FPs.
+Since *Subgingival Plaque* is the reference level for each method, the coefficients extracted from the methods are referred to the *Supragingival Plaque* class. Seven out of eleven methods identify, as expected, a statistically significant ($0.001 < p \le 0.05$) amount of DOWN Abundant Anaerobic features in Supragingival Plaque (Figure \ref{fig:plotEnrichment}). Moreover, 9 of them find an enriched amount of UP Abundant Aerobic genera in Supragingival Plaque. Unexpectedly, both `DESeq2.poscounts` and `DESeq2.poscounts.weighted` find many Anaerobic genera as UP Abundant, they could be FPs.
 
 ### Mutual Findings
 
@@ -1404,6 +1411,7 @@ positives <- createPositives(
         "logFC", # MAST
         "log2FoldChange", # linda
         "coef", # Maaslin2
+        "importance",
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
@@ -1424,7 +1432,7 @@ The `plotPositives()` function can be used to summarize the methods' performance
 plotPositives(positives)
 ```
 
-`MAST.median` and `ALDEx2.all.wilcox.paired` methods are very conservative and are located on the lower part of the Figure \@ref(fig:plotPositives). The highest performances are of `limma.TMM.weighted` and `edgeR.TMM.weighted`. This means that their findings are in line with the *a priori* knowledge supplied by the user.
+`MAST.median` and `ALDEx2.all.wilcox.paired` methods are very conservative and are located on the lower part of the Figure \@ref(fig:plotPositives). `mixMC` is also in the lower part of the figure probably because its aim is to find the minimum amount of features that have a discriminant power (sparse PLS-DA), so the findings depends on the dataset (sometimes few features are sufficient for perfectly separating the groups). The highest performances are of `limma.TMM.weighted` and `edgeR.TMM.weighted`. This means that their findings are in line with the *a priori* knowledge supplied by the user.
 
 ## Enrichment without direction
 
@@ -1442,7 +1450,7 @@ enrichment_nodir <- createEnrichment(
     threshold_pvalue = c(
         0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # thresholds for methods
         0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
-        0.1, 0.1, 0.1, 0.1, 0.1), # thresholds for other methods
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # thresholds for other methods
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1668,10 +1676,17 @@ my_Maaslin2 <- set_Maaslin2(
         "Subgingival Plaque"),
     expand = TRUE)
 
+my_mixMC <- set_mixMC(
+    pseudo_count = 1,
+    contrast = c("colData.Group", "Supragingival Plaque", 
+        "Subgingival Plaque"),
+    expand = TRUE
+)
+
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
     my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, 
-    my_dearseq, my_NOISeq, my_linda, my_Maaslin2)
+    my_dearseq, my_NOISeq, my_linda, my_Maaslin2, my_mixMC)
 ```
 
 DA methods are run using the `runDA()` function:
@@ -1698,7 +1713,8 @@ enrichment_nodir <- createEnrichment(
     threshold_pvalue = c(
         rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
-        rep(0.1,7)), # adjP thresholds for other methods
+        rep(0.1,7), # adjP thresholds for other methods
+        0.9), # adjP threshold for mixMC 1 - stability 
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1712,7 +1728,7 @@ To summarize enrichment analysis for all the methods simultaneously, the `plotEn
 plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Reality")
 ```
 
-From this example, only 10 out of 26 methods are able to find an enriched amount of truly DA features without any false discovery: `dearseq.counts.permutation.1000` in the first position. On the contrary, `basic.t.counts`, `DESeq2.counts.poscounts.weighted`, `limma.counts.TMM.weighted`, `metagenomeSeq.counts.CSS.fitFeatureModel`, `ALDEx2.counts.iqlr.wilcox.unpaired`, `MAST.counts.default`, `MAST.counts.median`, `ANCOM.counts`, and `NOISeq.counts.tmm` methods do not find any DA feature. This could be strongly related to the template taxa chosen to simulate the DA features.
+From this example, only 11 out of 27 methods are able to find an enriched amount of truly DA features without any false discovery: `dearseq.counts.permutation.1000` in the first position. On the contrary, `basic.t.counts`, `DESeq2.counts.poscounts.weighted`, `limma.counts.TMM.weighted`, `metagenomeSeq.counts.CSS.fitFeatureModel`, `ALDEx2.counts.iqlr.wilcox.unpaired`, `MAST.counts.default`, `MAST.counts.median`, `ANCOM.counts`, and `NOISeq.counts.tmm` methods do not find any DA feature. This could be strongly related to the template taxa chosen to simulate the DA features.
 
 To further assess methods' power, the `createPositives()` function can be used specifying as TPs the resulting DA features created as real DA features and as FPs the resulting DA features created as not DA features (Figure \@ref(fig:plotPositivessim)).
 
@@ -1730,7 +1746,8 @@ positives_nodir <- createPositives(
     threshold_pvalue = c(
         rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
-        rep(0.1,7)), # adjP thresholds for other methods
+        rep(0.1,7), # adjP thresholds for other methods
+        0.9), # adjP threshold for mixMC 1 - stability 
     threshold_logfc = 0,
     top = seq(5, 30, by = 5),
     alternative = "greater",

@@ -1240,6 +1240,54 @@
 				]
 			]
 		}
+	},
+	{
+		"id": "mixMC",
+		"type": "article-journal",
+		"abstract": "Culture independent techniques, such as shotgun metagenomics and 16S rRNA amplicon sequencing have dramatically changed the way we can examine microbial communities. Recently, changes in microbial community structure and dynamics have been associated with a growing list of human diseases. The identification and comparison of bacteria driving those changes requires the development of sound statistical tools, especially if microbial biomarkers are to be used in a clinical setting. We present mixMC, a novel multivariate data analysis framework for metagenomic biomarker discovery. mixMC accounts for the compositional nature of 16S data and enables detection of subtle differences when high inter-subject variability is present due to microbial sampling performed repeatedly on the same subjects, but in multiple habitats. Through data dimension reduction the multivariate methods provide insightful graphical visualisations to characterise each type of environment in a detailed manner. We applied mixMC to 16S microbiome studies focusing on multiple body sites in healthy individuals, compared our results with existing statistical tools and illustrated added value of using multivariate methodologies to fully characterise and compare microbial communities.",
+		"container-title": "PLoS ONE",
+		"issue": "8",
+		"journalAbbreviation": "PLoS One",
+		"title": "MixMC: A Multivariate Statistical Framework to Gain Insight into Microbial Communities",
+		"title-short": "MixMC",
+		"volume": "11",
+		"author": [
+			{
+				"family": "Lê Cao",
+				"given": "Kim-Anh"
+			},
+			{
+				"family": "Costello",
+				"given": "Mary-Ellen"
+			},
+			{
+				"family": "Lakis",
+				"given": "Vanessa Anne"
+			},
+			{
+				"family": "Bartolo",
+				"given": "François"
+			},
+			{
+				"family": "Chua",
+				"given": "Xin-Yi"
+			},
+			{
+				"family": "Brazeilles",
+				"given": "Rémi"
+			},
+			{
+				"family": "Rondeau",
+				"given": "Pascale"
+			}
+		],
+		"issued": {
+			"date-parts": [
+				[
+					"2016"
+				]
+			]
+		}
 	}
 ]
 
