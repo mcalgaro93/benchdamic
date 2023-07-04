@@ -9,6 +9,8 @@ test_that("DA methods produce pValMat and statInfo", code = {
     ps <- norm_DESeq2(ps, method = "poscounts")
     ps <- norm_CSS(ps, method = "CSS")
     ps <- norm_edgeR(ps, method = "none")
+    ps <- phyloseq::filter_taxa(physeq = ps, 
+        flist = function(x) sum(x > 0) >= 3, prune = TRUE)
     # Setting a random grouping
     set.seed(123)
     group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(ps),
@@ -87,4 +89,13 @@ test_that("DA methods produce pValMat and statInfo", code = {
     da <- DA_mixMC(object = ps, contrast = c("group", "grp2", "grp1"), 
         verbose = FALSE)
     expectations(da, name = "mixMC.pc1")
+    # DA_ZicoSeq
+    da <- DA_ZicoSeq(object = ps, contrast = c("group", "grp2", "grp1"), 
+        feature.dat.type = "count", is.winsor = TRUE, outlier.pct = 0.03, 
+        winsor.end = "top", verbose = FALSE)
+    expectations(da, name = "ZicoSeq.winsor0.03top.post25.ref0.5.excl0.2")
+    # da <- DA_ZicoSeq(object = ps, contrast = c("group", "grp2", "grp1"), 
+    #     feature.dat.type = "count", is.winsor = TRUE, outlier.pct = 0.03, 
+    #     is.post.sample = FALSE, winsor.end = "top", verbose = FALSE)
+    # expectations(da, name = "ZicoSeq.winsor0.03top.ref0.5.excl0.2")
 })

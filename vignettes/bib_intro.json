@@ -1288,6 +1288,50 @@
 				]
 			]
 		}
+	},
+	{
+		"id": "ZicoSeq",
+		"type": "article-journal",
+		"abstract": "Differential abundance analysis (DAA) is one central statistical task in microbiome data analysis. A robust and powerful DAA tool can help identify highly confident microbial candidates for further biological validation. Numerous DAA tools have been proposed in the past decade addressing the special characteristics of microbiome data such as zero inflation and compositional effects. Disturbingly, different DAA tools could sometimes produce quite discordant results, opening to the possibility of cherry-picking the tool in favor of one’s own hypothesis. To recommend the best DAA tool or practice to the field, a comprehensive evaluation, which covers as many biologically relevant scenarios as possible, is critically needed.",
+		"container-title": "Microbiome",
+		"DOI": "10.1186/s40168-022-01320-0",
+		"ISSN": "2049-2618",
+		"issue": "1",
+		"journalAbbreviation": "Microbiome",
+		"page": "130",
+		"source": "BioMed Central",
+		"title": "A comprehensive evaluation of microbial differential abundance analysis methods: current status and potential solutions",
+		"title-short": "A comprehensive evaluation of microbial differential abundance analysis methods",
+		"URL": "https://doi.org/10.1186/s40168-022-01320-0",
+		"volume": "10",
+		"author": [
+			{
+				"family": "Yang",
+				"given": "Lu"
+			},
+			{
+				"family": "Chen",
+				"given": "Jun"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2023",
+					1,
+					13
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2022",
+					8,
+					19
+				]
+			]
+		}
 	}
 ]
 
