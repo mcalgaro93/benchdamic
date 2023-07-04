@@ -86,16 +86,16 @@ Fast run for ZicoSeq differential abundance detection method.
 \examples{
 set.seed(1)
 # Create a very simple phyloseq object
-counts <- matrix(rnbinom(n = 60, size = 3, prob = 0.5), nrow = 10, ncol = 6)
+counts <- matrix(rnbinom(n = 600, size = 3, prob = 0.5), nrow = 100, 
+    ncol = 6)
 metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
                        "group" = as.factor(c("A", "A", "A", "B", "B", "B")))
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
 # Differential abundance
-DA_ZicoSeq(object = ps, normalization = "CLR", transform = "NONE",
-    analysis_method = "LM", correction = "BH", random_effects = NULL,
-    fixed_effects = "group", contrast = c("group", "B", "A"),
-    verbose = FALSE)
+DA_ZicoSeq(object = ps, feature.dat.type = "count", 
+    contrast = c("group", "B", "A"), is.winsor = TRUE, winsor.end = "top", 
+    is.post.sample = FALSE, verbose = FALSE)
 }
 \seealso{
 \code{\link[GUniFrac]{ZicoSeq}}.
