@@ -1,3 +1,20 @@
+Changes in Version 1.7.1 (2023-07-07)
+=====================================
+
+* New methods: linDA, Maaslin2, ZicoSeq
+* New method: mixMC (temporarily unavailable)
+* Add 'alpha' parameter in DA_ANCOM()
+
+Changes in Version 1.7.0 (2023-04-25)
+=====================================
+
+* Bump x.y.z version to odd y following creation of RELEASE_3_18 branch
+
+Changes in Version 1.6.0 (2023-04-25)
+=====================================
+
+* Published in Bioconductor release 3.17
+
 Changes in Version 1.5.3 (2023-04-20)
 =====================================
 
