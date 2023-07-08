@@ -127,7 +127,7 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 rand_formula = rand_formula, p_adj_method = p_adj_method, 
                 verbose = verbose, lme_control = lme_control, alpha = alpha,
                 struc_zero = struc_zero, neg_lb = neg_lb, group = contrast[1], 
-                prv_cut = 0, lib_cut = 0, pseudo_sens = FALSE, n_cl = n_cl)
+                prv_cut = 0, lib_cut = 0, n_cl = n_cl)
         } else {
             res <- ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
                 rand_formula = rand_formula, lme_control = lme_control,
@@ -143,7 +143,7 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
                     verbose = verbose, lme_control = lme_control, 
                     struc_zero = struc_zero, neg_lb = neg_lb, 
                     group = contrast[1], prv_cut = 0, lib_cut = 0, 
-                    pseudo_sens = FALSE, alpha = alpha, n_cl = n_cl)))
+                    alpha = alpha, n_cl = n_cl)))
         } else {
             res <- suppressMessages(suppressWarnings(
                 ancom(phyloseq = phyloseq_obj, adj_formula = adj_formula, 
