@@ -34,7 +34,7 @@ Description: Starting from a microbiome dataset (16S or WMS with absolute count
     visualization.
 License: Artistic-2.0
 Encoding: UTF-8
-Depends: R (>= 4.2.0)
+Depends: R (>= 4.3.0)
 Imports: stats,
     stats4,
     utils,
