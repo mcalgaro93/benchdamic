@@ -124,6 +124,8 @@ DA_Maaslin2 <- function(object, assay_name = "counts",
         metadata[, contrast[1]] <- stats::relevel(metadata[, contrast[1]], 
             ref = contrast[3])
     }
+    taxa_names <- data.frame("name" = colnames(t(counts)),
+        "new_name" = make.names(colnames(t(counts))))
     if(verbose){
         res <- Maaslin2(input_data = t(counts), input_metadata = metadata, 
             output = tempdir(), min_abundance = 0, min_prevalence = 0, 
@@ -146,7 +148,7 @@ DA_Maaslin2 <- function(object, assay_name = "counts",
     results <- as.data.frame(res[["results"]])
     statInfo <- results[results[, "metadata"] == contrast[1] &
         results[, "value"] == contrast[2], ]
-    ord <- match(rownames(counts), statInfo[, "feature"])
+    ord <- match(taxa_names[, "new_name"], statInfo[, "feature"])
     statInfo <- statInfo[ord, ]
     pValMat <- statInfo[, c("pval", "qval")] 
     colnames(pValMat) <- c("rawP", "adjP")
