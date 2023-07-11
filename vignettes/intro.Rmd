@@ -1563,11 +1563,11 @@ sim_obj <- runNormalizations(
     verbose = TRUE)
 ```
 
-Rare taxa are filtered:
+Rare and low variance taxa are filtered:
 
 ```{r simulated_filter}
 taxa_to_keep <- apply(assays(sim_obj)[["counts"]], 1, 
-    function(x) sum(x > 0) >= 3)
+    function(x) sum(x > 0) >= 3 & sd(x) > 1)
 sim_obj <- sim_obj[taxa_to_keep, ]
 priorInfo <- priorInfo[taxa_to_keep, ]
 ```
@@ -1608,7 +1608,7 @@ my_DESeq2 <- set_DESeq2(
         "Subgingival Plaque"),
     norm = "poscounts",
     weights_logical = c(TRUE, FALSE),
-    alpha = 0.05,
+    alpha = 0.1,
     expand = TRUE)
 
 my_limma <- set_limma(
@@ -1671,6 +1671,7 @@ my_ANCOM <- set_ANCOM(
     contrast = c("colData.Group", "Supragingival Plaque", 
         "Subgingival Plaque"),
     BC = c(TRUE, FALSE), 
+    alpha = 0.1,
     expand = TRUE   
 )
 
@@ -1695,7 +1696,7 @@ my_linda <- set_linda(
         "Subgingival Plaque"),
     is.winsor = TRUE,
     zero.handling = "pseudo-count",
-    alpha = 0.05,
+    alpha = 0.1,
     expand = TRUE)
 
 my_Maaslin2 <- set_Maaslin2(
@@ -1811,7 +1812,7 @@ plotPositives(positives = positives_nodir) +
     ylim(NA, 21)
 ```
 
-From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic`, and `linda.win0.03.pc0.5` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.*, `edgeR.counts.TMM.weighted` and `ZicoSeq.winsor0.03top.post25.ref0.5.excl0.2` have negative values. Maybe, for edgeR it is due to poor weight estimates since all methods with observational weights perform poorly).
+From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic`, and `linda.win0.03.pc0.5` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.*, `edgeR.counts.TMM.weighted` and `ANCOM.counts.BC` have negative values. Maybe, it is due to poor weight estimates for weight-based methods and/or specific characteristics of this template).
 
 ## Discussion about Enrichment
 
