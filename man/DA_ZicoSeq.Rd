@@ -36,8 +36,7 @@ indicating the name of factor whose levels are the conditions to be
 compared, the name of the level of interest, and the name of the other 
 level.}
 
-\item{strata}{a factor such as subject IDs indicating the permutation strata. Permutation will be confined to each stratum. This can be used for 
-paired or some longitudinal designs.}
+\item{strata}{a factor such as subject IDs indicating the permutation strata or characters indicating the strata variable in \code{meta.dat}. Permutation will be confined to each stratum. This can be used for paired or some longitudinal designs.}
 
 \item{adj.name}{the name(s) for the variable(s) to be adjusted. Multiple variables are allowed.
        They could be numeric or categorical; should be in \code{meta.dat}.}

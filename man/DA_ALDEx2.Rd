@@ -43,26 +43,24 @@ generalized linear model.}
 \item{paired.test}{A boolean. Toggles whether to do paired-sample tests.
 Applies to \code{effect = TRUE} and \code{test = "t"}.}
 
-\item{denom}{
-          An \code{any} variable (all, iqlr, zero, lvha, median, user) indicating
-          features to use as the denominator for the Geometric Mean calculation
-          The default "all" uses the geometric mean abundance of all features.
-          Using "median" returns the median abundance of all features.
-          Using "iqlr" uses the features that are between the first and third
-          quartile of the variance of the clr values across all samples.
-          Using "zero" uses the non-zero features in each grop
-          as the denominator. This approach is an extreme case where there are
-          many nonzero features in one condition but many zeros in another. Using
-          "lvha" uses features that have low variance (bottom quartile) and high
-          relative abundance (top quartile in every sample). It is also
-          possible to supply a vector of row indices to use as the denominator.
-          Here, the experimentalist is determining a-priori which rows are thought
-          to be invariant. In the case of RNA-seq, this could include ribosomal
-          protein genes and and other house-keeping genes. This should be used
-          with caution because the offsets may be different in the original data
-          and in the data used by the function because features that are 0 in all
-          samples are removed by \code{aldex.clr}.
-      }
+\item{denom}{An \code{any} variable (all, iqlr, zero, lvha, median, user) indicating
+features to use as the denominator for the Geometric Mean calculation
+The default "all" uses the geometric mean abundance of all features.
+Using "median" returns the median abundance of all features.
+Using "iqlr" uses the features that are between the first and third
+quartile of the variance of the clr values across all samples.
+Using "zero" uses the non-zero features in each grop
+as the denominator. This approach is an extreme case where there are
+many nonzero features in one condition but many zeros in another. Using
+"lvha" uses features that have low variance (bottom quartile) and high
+relative abundance (top quartile in every sample). It is also
+possible to supply a vector of row indices to use as the denominator.
+Here, the experimentalist is determining a-priori which rows are thought
+to be invariant. In the case of RNA-seq, this could include ribosomal
+protein genes and and other house-keeping genes. This should be used
+with caution because the offsets may be different in the original data
+and in the data used by the function because features that are 0 in all
+samples are removed by \code{aldex.clr}.}
 
 \item{contrast}{character vector with exactly three elements: the name of a
 variable used in "design", the name of the level of interest, and the 
