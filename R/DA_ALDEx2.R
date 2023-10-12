@@ -150,7 +150,7 @@ DA_ALDEx2 <- function(object, assay_name = "counts", pseudo_count = FALSE,
                         " the ", contrast[1], " variable. They should match.")
                 }
             }
-            conds <- unlist(metadata[, design])
+            conds <- as.vector(metadata[, design])
         }
     } 
     if (is(design, "formula")) {
