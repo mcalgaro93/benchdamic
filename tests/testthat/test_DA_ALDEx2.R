@@ -1,7 +1,7 @@
 # Unit tests for DA ALDEx2 variants 
 
 test_that("DA_ALDEx2: pValMat and statInfo for all tests", code = {
-    data("ps_stool_16S")
+    data("ps_plaque_16S")
     ps <- ps_plaque_16S
     set.seed(543)
     group <- sample(x = c("grp1","grp2"), size = phyloseq::nsamples(ps),
