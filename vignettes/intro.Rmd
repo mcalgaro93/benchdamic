@@ -990,7 +990,7 @@ my_Maaslin2 <- set_Maaslin2(
     contrast = c("HMP_BODY_SUBSITE",
     "Supragingival Plaque", "Subgingival Plaque"))
 
-# Temporarily removed
+# Temporarily removed due to issues with ID_variables
 # my_mixMC <- set_mixMC(
 #     pseudo_count = 1,
 #     ID_variable = "RSID",
@@ -1714,12 +1714,12 @@ my_Maaslin2 <- set_Maaslin2(
         "Subgingival Plaque"),
     expand = TRUE)
 
-# my_mixMC <- set_mixMC(
-#     pseudo_count = 1,
-#     contrast = c("colData.Group", "Supragingival Plaque", 
-#         "Subgingival Plaque"),
-#     expand = TRUE
-# )
+my_mixMC <- set_mixMC(
+    pseudo_count = 1,
+    contrast = c("colData.Group", "Supragingival Plaque",
+        "Subgingival Plaque"),
+    expand = TRUE
+)
 
 my_ZicoSeq <- set_ZicoSeq(
     contrast = c("colData.Group", "Supragingival Plaque", 
@@ -1733,7 +1733,7 @@ my_ZicoSeq <- set_ZicoSeq(
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
     my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, 
-    my_dearseq, my_NOISeq, my_linda, my_Maaslin2, # my_mixMC, 
+    my_dearseq, my_NOISeq, my_linda, my_Maaslin2, my_mixMC, 
     my_ZicoSeq)
 ```
 
@@ -1762,7 +1762,7 @@ enrichment_nodir <- createEnrichment(
         rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
         rep(0.1,7), # adjP thresholds for other methods
-        # 0.9, # adjP threshold for mixMC 1 - stability 
+        0.9, # adjP threshold for mixMC 1 - stability 
         0.1), # ZicoSeq
     threshold_logfc = 0,
     top = NULL,
@@ -1796,7 +1796,7 @@ positives_nodir <- createPositives(
         rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
         rep(0.1,7), # adjP thresholds for other methods
-        # 0.9, # adjP threshold for mixMC 1 - stability 
+        0.9, # adjP threshold for mixMC 1 - stability 
         0.1), # ZicoSeq
     threshold_logfc = 0,
     top = seq(5, 30, by = 5),
