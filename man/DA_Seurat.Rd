@@ -11,7 +11,7 @@ DA_Seurat(
   norm = "LogNormalize",
   scale.factor = 10000,
   test = "wilcox",
-  contrast,
+  contrast = NULL,
   verbose = TRUE
 )
 }

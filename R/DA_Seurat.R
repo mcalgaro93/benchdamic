@@ -84,8 +84,8 @@
 #'     test = "wilcox")
 
 DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE, 
-    norm = "LogNormalize", scale.factor = 10000, test = "wilcox", contrast, 
-    verbose = TRUE){
+    norm = "LogNormalize", scale.factor = 10000, test = "wilcox", 
+    contrast = NULL, verbose = TRUE){
     counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
     counts <- counts_and_metadata[[1]]
     metadata <- counts_and_metadata[[2]]
@@ -115,29 +115,34 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
         sobj <- suppressWarnings(Seurat::CreateSeuratObject(counts = counts, 
             min.cells = 1, min.features = 1))
     }  
-    sobj <- Seurat::AddMetaData(object = sobj, metadata = data.frame(metadata),
-        col.name = colnames(metadata))
-    if(missing(contrast) | (!is.character(contrast) & length(contrast) != 3)){
+    if(!is.character(contrast) | length(contrast) != 3)
         stop(method, "\n", 
-            "contrast: please supply a character vector with exactly three",
-            " elements: the name of a factor in the design formula, the name",
-            " of the numerator level for the fold change, and the name of the",
-            " denominator level for the fold change.")
-    } else {
-        if(!is(unlist(sobj[[contrast[1]]]), "factor")){
-            stop(method, "\n", "contrast: ", contrast[1],
-                " variable is not a factor. Please supply a factor.")
-        } else {
-            if(!is.element(contrast[2], levels(unlist(sobj[[contrast[1]]]))))
-                stop(method, "\n", 
-                    "contrast: ", contrast[2], "is not a level of the ", 
-                    contrast[1], " variable. Please supply a present category.")
-            if(!is.element(contrast[3], levels(unlist(sobj[[contrast[1]]]))))
-                stop(method, "\n", 
-                    "contrast: ", contrast[3], " is not a level of the", 
-                    contrast[1], " variable. Please supply a present category.")
+             "contrast: please supply a character vector with exactly", 
+             " three elements: the name of a variable used in",  
+             " 'design', the name of the level of interest, and the", 
+             " name of the reference level.")
+    if(is.element(contrast[1], colnames(metadata))){
+        if(!is.factor(metadata[, contrast[1]])){
+            if(verbose){
+                message("Converting variable ", contrast[1], " to factor.")
+            }
+            metadata[, contrast[1]] <- as.factor(metadata[, contrast[1]])
         }
+        if(!is.element(contrast[2], levels(metadata[, contrast[1]])) | 
+           !is.element(contrast[3], levels(metadata[, contrast[1]]))){
+            stop(method, "\n", 
+                 "contrast: ", contrast[2], " and/or ", contrast[3], 
+                 " are not levels of ", contrast[1], " variable.")
+        }
+        if(verbose){
+            message("Setting ", contrast[3], " the reference level for ", 
+                    contrast[1], " variable.")
+        }
+        metadata[, contrast[1]] <- stats::relevel(metadata[, contrast[1]], 
+                                                  ref = contrast[3])
     }
+    sobj <- Seurat::AddMetaData(object = sobj, metadata = metadata,
+        col.name = colnames(metadata))
     if(verbose)
         message("Extracting results for ", contrast[1]," variable, ",
             contrast[2], " / ", contrast[3])
@@ -147,6 +152,7 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
         stop(method, "\n", 
             "test: ", test, " is not one of the allowed tests.")
     }
+    slot_name <- "data" # Setting the default slot of Seurat object
     # If these tests are used, normalization
     if(is.element(test, c("wilcox", "bimod", "roc", "t", "LR", "MAST"))){
         # Check norm and scale.factor
@@ -166,7 +172,7 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 verbose = verbose)
             name <- paste(name, ".", norm, sep = "")
             name <- paste(name, ".SF", scale.factor, sep = "")
-        }
+        } else slot_name <- "counts" # Change the default slot into "counts"
     } else {
         if(verbose & (!is.null(norm) | !is.null(scale.factor))){
             warning(method, "\n", 
@@ -175,13 +181,14 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
         }
     }
     if(verbose){ # FindMarkers: If we set verbose = FALSE we'll get an error
-        statInfo_ <- Seurat::FindMarkers(sobj, test.use = test, group.by =
-            contrast[1], ident.1 = contrast[2], ident.2 = contrast[3],
-            logfc.threshold = 0, min.pct = 0)
+        statInfo_ <- Seurat::FindMarkers(sobj, slot = slot_name, 
+            test.use = test, group.by = contrast[1], ident.1 = contrast[2], 
+            ident.2 = contrast[3], logfc.threshold = 0, min.pct = 0)
     } else {
         invisible(utils::capture.output(statInfo_ <- Seurat::FindMarkers(sobj,
-            test.use = test, group.by = contrast[1], ident.1 = contrast[2],
-            ident.2 = contrast[3], logfc.threshold = 0, min.pct = 0)))
+            slot = slot_name, test.use = test, group.by = contrast[1], 
+            ident.1 = contrast[2], ident.2 = contrast[3], logfc.threshold = 0, 
+            min.pct = 0)))
     }
     computed_features <- match(gsub(pattern = "_", x = rownames(counts),
         replacement = "-"), rownames(statInfo_))
