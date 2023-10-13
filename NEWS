@@ -1,6 +1,9 @@
-Changes in Version 1.7.5 (2023-10-12)
+Changes in Version 1.7.5 (2023-10-13)
 =====================================
 
+* Updated DA_Seurat() for the new version
+* Waiting for bug-fix: DA_ANCOM() (random effects not working)
+* Waiting for bug-fix: DA_mixMC() (multilevel analysis not working)
 * Bug-fix: correct dataset name in unit tests
 * Bug-fix: in DA_ALDEx2() replaced unlist() with as.vector()
 * Minor documentation updates related to dependencies
