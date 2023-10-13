@@ -1,7 +1,7 @@
 # Unit tests for DA outputs
 
 test_that("DA methods produce pValMat and statInfo", code = {
-    data("ps_stool_16S")
+    data("ps_plaque_16S")
     # Rename
     ps <- ps_plaque_16S
     # Add some normalization/scaling factors
@@ -85,10 +85,10 @@ test_that("DA methods produce pValMat and statInfo", code = {
         analysis_method = "LM", fixed_effects = "group", contrast = c("group", 
         "grp2", "grp1"), verbose = FALSE)
     expectations(da, name = "Maaslin2.TSSnorm.LOGtrans.LM")
-    # # DA_mixMC
-    # da <- DA_mixMC(object = ps, contrast = c("group", "grp2", "grp1"), 
-    #     verbose = FALSE)
-    # expectations(da, name = "mixMC.pc1")
+    # DA_mixMC
+    da <- DA_mixMC(object = ps, contrast = c("group", "grp2", "grp1"),
+        verbose = FALSE)
+    expectations(da, name = "mixMC.pc1")
     # DA_ZicoSeq
     da <- DA_ZicoSeq(object = ps, contrast = c("group", "grp2", "grp1"), 
         feature.dat.type = "count", is.winsor = TRUE, outlier.pct = 0.03, 
