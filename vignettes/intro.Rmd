@@ -962,15 +962,16 @@ my_dearseq <- set_dearseq(
     test = "asymptotic", 
     preprocessed = FALSE)
 
-# Very time consuming
-my_ANCOM <- set_ANCOM(
-    pseudo_count = FALSE,
-    adj_formula = NULL,
-    rand_formula = "(1|RSID)",
-    lme_control = lme4::lmerControl(),
-    contrast = c("HMP_BODY_SUBSITE",
-    "Supragingival Plaque", "Subgingival Plaque"),
-    BC = FALSE)
+# Temporarily removed (v2.3.2 crashes R)
+# # Very time consuming
+# my_ANCOM <- set_ANCOM(
+#     pseudo_count = FALSE,
+#     adj_formula = NULL,
+#     rand_formula = "(1|RSID)",
+#     lme_control = lme4::lmerControl(),
+#     contrast = c("HMP_BODY_SUBSITE",
+#     "Supragingival Plaque", "Subgingival Plaque"),
+#     BC = FALSE)
 
 my_linda <- set_linda(
     formula = "~ HMP_BODY_SUBSITE + (1|RSID)",
@@ -1013,7 +1014,7 @@ my_methods_noWeights <- c(
     my_ALDEx2,
     my_MAST,
     my_dearseq,
-    my_ANCOM,
+    # my_ANCOM, # Temporary bug with random effects
     my_linda,
     my_Maaslin2,
     # my_mixMC, # Temporary bug with multilevel
@@ -1055,7 +1056,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison2* output lists on the second level:
 
-        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` without bias correction, `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `mixMC` (temporarily removed), and `ZicoSeq` with default parameters. Their outputs are organized as always:
+        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` without bias correction (temporarily removed), `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `mixMC` (temporarily removed), and `ZicoSeq` with default parameters. Their outputs are organized as always:
 
             -   *pValMat* which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1149,8 +1150,8 @@ names(Plaque_16S_splitsDA_all$Subset1$Comparison1$MAST.median$statInfo)
 cat("dearseq.repeated.asymptotic", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$dearseq.repeated.asymptotic$
     statInfo)
-cat("ANCOM", "\n")
-names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM$statInfo)
+# cat("ANCOM", "\n")
+# names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM$statInfo)
 cat("linda", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$linda.win0.03.pc0.5$statInfo)
 cat("Maaslin2", "\n")
@@ -1170,11 +1171,15 @@ concordance_alternative <- createConcordance(
     object = Plaque_16S_splitsDA_all,
     slot = "statInfo",
     colName = c("logFC", "log2FoldChange", "logFC", 
-        "effect", "logFC", "rawP", "W", "log2FoldChange", 
+        "effect", "logFC", "rawP", 
+        # "W", # ANCOM
+        "log2FoldChange", 
         "coef", # "importance", # mixMC
         "effect", "logFC"),
     type = c("logfc", "logfc", "logfc", "logfc", 
-        "logfc", "pvalue", "logfc", "logfc", "logfc", 
+        "logfc", "pvalue", 
+        # "logfc", # ANCOM
+        "logfc", "logfc", 
         #"logfc", # mixMC
         "logfc", "logfc")
 )
@@ -1349,7 +1354,7 @@ The `createEnrichment()` function, with the direction parameter for all method e
 
 ```{r createEnrichment}
 enrichment <- createEnrichment(
-    object = Plaque_16S_DA[-c(6:7)], 
+    object = Plaque_16S_DA[-c(6)], 
     priorKnowledge = priorInfo, 
     enrichmentCol = "Type",
     namesCol = "newNames", 
@@ -1427,7 +1432,7 @@ To evaluate the overall performances a statistic based on the difference between
 
 ```{r createPositives}
 positives <- createPositives(
-    object = Plaque_16S_DA[-c(6,7)], 
+    object = Plaque_16S_DA[-c(6)], 
     priorKnowledge = priorInfo, 
     enrichmentCol = "Type",
     namesCol = "newNames", 
@@ -1481,7 +1486,7 @@ enrichment_nodir <- createEnrichment(
     type = "pvalue",
     threshold_pvalue = c(
         0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # thresholds for methods
-        0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
+        # 0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
         0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
     threshold_logfc = 0,
     top = NULL,
