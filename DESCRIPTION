@@ -69,6 +69,7 @@ Imports: stats,
     ggridges,
     graphics,
     cowplot,
+    grDevices,
     tidytext
 Suggests: knitr, 
     rmarkdown,
