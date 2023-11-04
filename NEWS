@@ -1,3 +1,23 @@
+Changes in Version 1.8.1 (2023-11-04)
+=====================================
+
+* Porting the changes of devel version 1.9.1 to release
+
+Changes in Version 1.9.1 (2023-11-04)
+=====================================
+
+* Temporarily removed corncob (due to its removal from CRAN)
+
+Changes in Version 1.9.0 (2023-10-24)
+=====================================
+
+* Bump x.y.z version to odd y following creation of RELEASE_3_18 branch
+
+Changes in Version 1.8.0 (2023-10-24)
+=====================================
+
+* Published in Bioconductor release 3.18
+
 Changes in Version 1.7.5 (2023-10-13)
 =====================================
 
@@ -53,7 +73,7 @@ Changes in Version 1.7.1 (2023-07-07)
 Changes in Version 1.7.0 (2023-04-25)
 =====================================
 
-* Bump x.y.z version to odd y following creation of RELEASE_3_18 branch
+* Bump x.y.z version to odd y following creation of RELEASE_3_17 branch
 
 Changes in Version 1.6.0 (2023-04-25)
 =====================================
