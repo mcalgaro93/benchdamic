@@ -537,7 +537,7 @@ For each row of the `mock_df` data frame a bunch of DA methods is run. In this d
 
 -   `metagenomeSeq` with *CSS* normalization factors using both the *fitFeatureModel* (for a zero-inflated log-normal distribution, mixture model, as suggested in the package vignette) and the *fitZig* (for a zero-inflated gaussian distribution, mixture model) algorithms [@zig];
 
--   `corncob` (temporarily removed from CRAN) with a focus on average differences (not dispersion, regulated by *phi.formula* and *phi.formula_null* parameters) using both *Wald* and *LRT* tests [@corncob];
+-   `corncob` with a focus on average differences (not dispersion, regulated by *phi.formula* and *phi.formula_null* parameters) using both *Wald* and *LRT* tests [@corncob];
 
 -   `MAST` with both rescalings, *default* (*i.e.* $10^6$, for CPMs) and *median* [@mast];
 
@@ -607,16 +607,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = c("fitFeatureModel", "fitZig"),
     expand = TRUE)
 
-# Temporarily removed from CRAN
-# my_corncob <- set_corncob(
-#     pseudo_count = FALSE,
-#     formula = ~ group,
-#     formula_null = ~ 1,
-#     phi.formula = ~ group,
-#     phi.formula_null = ~ group,
-#     test = c("Wald", "LRT"),
-#     boot = FALSE,
-#     coefficient = "groupgrp2")
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ group,
+    formula_null = ~ 1,
+    phi.formula = ~ group,
+    phi.formula_null = ~ group,
+    test = c("Wald", "LRT"),
+    boot = FALSE,
+    coefficient = "groupgrp2")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -673,7 +672,7 @@ my_ZicoSeq <- set_ZicoSeq(contrast = c("group", "grp2", "grp1"),
     link.func = list(function(x) sign(x) * (abs(x))^0.5))
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
-    my_limma, my_metagenomeSeq, # my_corncob, 
+    my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, my_dearseq,
     my_linda, my_Maaslin2, my_ZicoSeq)
 ```
@@ -1647,16 +1646,15 @@ my_metagenomeSeq <- set_metagenomeSeq(
     model = "fitFeatureModel",
     expand = TRUE)
 
-# Temporarily removed from CRAN
-# my_corncob <- set_corncob(
-#     pseudo_count = FALSE,
-#     formula = ~ colData.Group,
-#     formula_null = ~ 1,
-#     phi.formula = ~ colData.Group,
-#     phi.formula_null = ~ colData.Group,
-#     test = c("Wald", "LRT"),
-#     boot = FALSE,
-#     coefficient = "colData.GroupSupragingival Plaque")
+my_corncob <- set_corncob(
+    pseudo_count = FALSE,
+    formula = ~ colData.Group,
+    formula_null = ~ 1,
+    phi.formula = ~ colData.Group,
+    phi.formula_null = ~ colData.Group,
+    test = c("Wald", "LRT"),
+    boot = FALSE,
+    coefficient = "colData.GroupSupragingival Plaque")
 
 my_MAST <- set_MAST(
     pseudo_count = FALSE,
@@ -1735,7 +1733,7 @@ my_ZicoSeq <- set_ZicoSeq(
     link.func = list(function(x) sign(x) * (abs(x))^0.5))
 
 my_methods <- c(my_basic, my_edgeR, my_DESeq2, 
-    my_limma, my_metagenomeSeq, #my_corncob, 
+    my_limma, my_metagenomeSeq, my_corncob, 
     my_ALDEx2, my_MAST, my_Seurat, my_ANCOM, 
     my_dearseq, my_NOISeq, my_linda, my_Maaslin2, my_mixMC, 
     my_ZicoSeq)
@@ -1763,7 +1761,7 @@ enrichment_nodir <- createEnrichment(
     colName = "adjP", 
     type = "pvalue",
     threshold_pvalue = c(
-        rep(0.1,17), # adjP thresholds 
+        rep(0.1,19), # adjP thresholds 
         0.4, # adjP threshold for ANCOM on 1-W/(ntaxa-1)
         rep(0.1,7), # adjP thresholds for other methods
         0.9, # adjP threshold for mixMC 1 - stability 
@@ -1822,7 +1820,7 @@ plotPositives(positives = positives_nodir) +
     ylim(NA, 21)
 ```
 
-From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic`, and `linda.win0.03.pc0.5` reach the highest values of the difference, followed by `corncob.counts.Wald` (temporarily removed) and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.*, `edgeR.counts.TMM.weighted` and `ANCOM.counts.BC` have negative values. Maybe, it is due to poor weight estimates for weight-based methods and/or specific characteristics of this template).
+From figure \@ref(fig:plotPositivessim) it is clearly visible that `dearseq.counts.permutation.1000`, `dearseq.counts.asymptotic`, and `linda.win0.03.pc0.5` reach the highest values of the difference, followed by `corncob.counts.Wald` and `DESeq2.counts.poscounts`. As already mentioned the desired level of power which a methods should be able to reach is represented by the red dotted line, *i.e.* the total number of DA simulated features (20 in our case). These methods, in this specific example, have the highest power. Differently, methods characterized by flat lines have a fixed number of features with an adjusted p-value lower than the threshold. If their lines are above the zero line, it means that the number of True Positives is greater than the number of FPs. On the contrary, if their lines are below the zero line, it means that the number of FPs is greater (*e.g.*, `edgeR.counts.TMM.weighted` and `ANCOM.counts.BC` have negative values. Maybe, it is due to poor weight estimates for weight-based methods and/or specific characteristics of this template).
 
 ## Discussion about Enrichment
 
