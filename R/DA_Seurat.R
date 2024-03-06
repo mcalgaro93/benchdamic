@@ -1,7 +1,8 @@
 #' @title DA_Seurat
 #'
 #' @importFrom phyloseq taxa_are_rows otu_table sample_data
-#' @importFrom Seurat CreateSeuratObject AddMetaData NormalizeData
+#' @importFrom Seurat CreateSeuratObject AddMetaData NormalizeData SetAssayData
+#' GetAssayData
 #' @importFrom Seurat FindVariableFeatures ScaleData FindMarkers
 #' @importFrom utils capture.output
 #' @export
@@ -152,7 +153,6 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
         stop(method, "\n", 
             "test: ", test, " is not one of the allowed tests.")
     }
-    slot_name <- "data" # Setting the default slot of Seurat object
     # If these tests are used, normalization
     if(is.element(test, c("wilcox", "bimod", "roc", "t", "LR", "MAST"))){
         # Check norm and scale.factor
@@ -172,7 +172,10 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
                 verbose = verbose)
             name <- paste(name, ".", norm, sep = "")
             name <- paste(name, ".SF", scale.factor, sep = "")
-        } else slot_name <- "counts" # Change the default slot into "counts"
+        } else {
+            sobj <- Seurat::SetAssayData(object = sobj, layer = "data", 
+                new.data = Seurat::GetAssayData(sobj, layer = "counts"))
+        }
     } else {
         if(verbose & (!is.null(norm) | !is.null(scale.factor))){
             warning(method, "\n", 
@@ -181,12 +184,12 @@ DA_Seurat <- function(object, assay_name = "counts", pseudo_count = FALSE,
         }
     }
     if(verbose){ # FindMarkers: If we set verbose = FALSE we'll get an error
-        statInfo_ <- Seurat::FindMarkers(sobj, slot = slot_name, 
+        statInfo_ <- Seurat::FindMarkers(object = sobj, 
             test.use = test, group.by = contrast[1], ident.1 = contrast[2], 
             ident.2 = contrast[3], logfc.threshold = 0, min.pct = 0)
     } else {
         invisible(utils::capture.output(statInfo_ <- Seurat::FindMarkers(sobj,
-            slot = slot_name, test.use = test, group.by = contrast[1], 
+            test.use = test, group.by = contrast[1], 
             ident.1 = contrast[2], ident.2 = contrast[3], logfc.threshold = 0, 
             min.pct = 0)))
     }
