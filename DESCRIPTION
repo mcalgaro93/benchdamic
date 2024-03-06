@@ -1,7 +1,7 @@
 Package: benchdamic
 Type: Package
 Title: Benchmark of differential abundance methods on microbiome data
-Version: 1.9.1
+Version: 1.9.2
 Authors@R: 
     c(person(given = "Matteo", 
              family = "Calgaro", 
@@ -79,7 +79,7 @@ Suggests: knitr,
     testthat
 VignetteBuilder: knitr
 LazyData: TRUE
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 biocViews: Metagenomics, 
   Microbiome,
   DifferentialExpression,
