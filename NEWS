@@ -1,8 +1,9 @@
-Changes in Version 1.9.3 (2024-03-06)
+Changes in Version 1.9.4 (2024-03-07)
 =====================================
 
 * Re-added corncob (due to its previous removal from CRAN)
 * Bug-fix: correct DA_Seurat() due to changes of Seurat::FindMarkers()
+* Computed DA direction for ANCOM method
 
 Changes in Version 1.8.1 (2023-11-04)
 =====================================
