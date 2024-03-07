@@ -502,7 +502,7 @@ ps_stool_16S <- runNormalizations(normalization_list = my_normalizations,
     object = ps_stool_16S, verbose = TRUE)
 ```
 
-Some messages "Found more than one"phylo" class in cache..." could be shown after running the previous functions. They are caused by duplicated class names between `phyloseq` and `tidytree` packages and can be ignored.
+Some messages "Found more than one "phylo" class in cache..." could be shown after running the previous functions. They are caused by duplicated class names between `phyloseq` and `tidytree` packages and can be ignored.
 
 After the normalization/size factors have been added to the `phyloseq` or `TreeSummarizedExperiment` object, the user could decide to filter rare taxa which do not carry much information. In this example vignette a simple filter is applied to keep only features with a count in at least 3 samples:
 
@@ -543,7 +543,7 @@ For each row of the `mock_df` data frame a bunch of DA methods is run. In this d
 
 -   `Seurat` with *LogNormalize* and *CLR* normalization/transformations, *t* and *wilcox* tests, and $10^5$ as scaling factor [@seurat];
 
--   `ANCOM` based on ANCOM-II algorithm with sampling fraction bias correction (*BC* parameter) [@ancom-bc; @ancom-ii];
+-   `ANCOMBC2` based on ANCOM-II preprocessing of zero counts but with the addition of a linear regression framework and sampling fraction bias correction (*BC* parameter) [@ancom-bc; @ancom-ii];
 
 -   `dearseq` with *asymptotic* test [@dearseq];
 
@@ -707,9 +707,10 @@ The structure of the output in this example is the following:
 
         -   *name* which contains the complete name of the used method.
 
-The list of methods can be run in parallel leveraging the `BiocParallel` package. In details, parallelization is supported in Linux/Mac OS through the `MulticoreParam()` function as long as `ANCOM` functions are not included in the list of methods due to a different parallelization management of those functions.
+The list of methods can be run in parallel leveraging the `BiocParallel` package. In details, parallelization is supported through the `MulticoreParam()` function as long as `ANCOM`-based functions are run on a single core (`n_cl = 1` parameter) due to a different parallelization management of those functions.
 
 ```{r, eval=FALSE}
+# Example of a run without ancom-based methods
 ancom_index <- which(grepl(pattern = "ANCOM", 
     names(my_methods)))
 bpparam = BiocParallel::MulticoreParam()
@@ -964,16 +965,14 @@ my_dearseq <- set_dearseq(
     test = "asymptotic", 
     preprocessed = FALSE)
 
-# Temporarily removed (v2.3.2 crashes R)
-# # Very time consuming
-# my_ANCOM <- set_ANCOM(
-#     pseudo_count = FALSE,
-#     adj_formula = NULL,
-#     rand_formula = "(1|RSID)",
-#     lme_control = lme4::lmerControl(),
-#     contrast = c("HMP_BODY_SUBSITE",
-#     "Supragingival Plaque", "Subgingival Plaque"),
-#     BC = FALSE)
+my_ANCOM <- set_ANCOM(
+    pseudo_count = FALSE,
+    fix_formula = "HMP_BODY_SUBSITE",
+    rand_formula = "(1|RSID)",
+    lme_control = lme4::lmerControl(),
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"),
+    BC = c(TRUE, FALSE))
 
 my_linda <- set_linda(
     formula = "~ HMP_BODY_SUBSITE + (1|RSID)",
@@ -1016,7 +1015,7 @@ my_methods_noWeights <- c(
     my_ALDEx2,
     my_MAST,
     my_dearseq,
-    # my_ANCOM, # Temporary bug with random effects
+    my_ANCOM,
     my_linda,
     my_Maaslin2,
     # my_mixMC, # Temporary bug with multilevel
@@ -1058,7 +1057,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison2* output lists on the second level:
 
-        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` without bias correction (temporarily removed), `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `mixMC` (temporarily removed), and `ZicoSeq` with default parameters. Their outputs are organized as always:
+        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` with and without bias correction, `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `mixMC` (temporarily removed), and `ZicoSeq` with default parameters. Their outputs are organized as always:
 
             -   *pValMat* which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1152,8 +1151,10 @@ names(Plaque_16S_splitsDA_all$Subset1$Comparison1$MAST.median$statInfo)
 cat("dearseq.repeated.asymptotic", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$dearseq.repeated.asymptotic$
     statInfo)
-# cat("ANCOM", "\n")
-# names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM$statInfo)
+cat("ANCOM", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM$statInfo)
+cat("ANCOMBC2", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ANCOM.BC$statInfo)
 cat("linda", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$linda.win0.03.pc0.5$statInfo)
 cat("Maaslin2", "\n")
@@ -1166,22 +1167,21 @@ cat("basic.wilcox.paired", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$basic.wilcox.paired$statInfo)
 ```
 
-All methods, except for `DESeq2`, `ALDEx2`, `dearseq`, `ANCOM`, `mixMC`, and `ZicoSeq` contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the alternative concordance data frame can be built using:
+All methods, except for `DESeq2`, `ALDEx2`, `dearseq`, `ANCOM`, `ANCOMBC2`, `mixMC`, and `ZicoSeq` contain the log fold change values in the *logFC* column of `statInfo` matrix. Knowing this, the alternative concordance data frame can be built using:
 
 ```{r alternativeConcordance, eval=FALSE}
 concordance_alternative <- createConcordance(
     object = Plaque_16S_splitsDA_all,
     slot = "statInfo",
     colName = c("logFC", "log2FoldChange", "logFC", 
-        "effect", "logFC", "rawP", 
-        # "W", # ANCOM
-        "log2FoldChange", 
-        "coef", # "importance", # mixMC
+        "effect", "logFC", "rawP", "W", 
+        "lfc_HMP_BODY_SUBSITESupragingival Plaque", 
+        "log2FoldChange", "coef", 
+        # "importance", # mixMC
         "effect", "logFC"),
     type = c("logfc", "logfc", "logfc", "logfc", 
-        "logfc", "pvalue", 
-        # "logfc", # ANCOM
-        "logfc", "logfc", 
+        "logfc", "pvalue", "logfc",
+        "logfc", "logfc", "logfc",
         #"logfc", # mixMC
         "logfc", "logfc")
 )
@@ -1334,7 +1334,7 @@ Plaque_16S_DA <- runDA(method_list = my_methods,
 
 ## Testing the enrichment
 
-`Plaque_16_DA` object contains the results for 10 methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
+`Plaque_16_DA` object contains the results for the methods. In order to extract p-values, the optional direction of DA (DA vs non-DA, or UP Abundant vs DOWN Abundant), and to add any *a priori* information, the `createEnrichment()` function can be used.
 
 In the *direction* argument, which is set to *NULL* by default, the column name containing the direction (*e.g.*, *logfc*, *logFC*, *logFoldChange*...) of each method's *statInfo* matrix can be supplied.
 
@@ -1352,7 +1352,7 @@ Following the methods' order, the *direction* parameter is supplied together wit
 
 -   *priorKnowledge*, *enrichmentCol*, and *namesCol*, to add enrichment information to DA analysis;
 
-The `createEnrichment()` function, with the direction parameter for all method except `ANCOM` and `dearseq` (the first has the *W* statistic which is only positive, while the second has only p-values), is used:
+The `createEnrichment()` function, with the direction parameter for all method except for `dearseq` (which has only p-values), is used:
 
 ```{r createEnrichment}
 enrichment <- createEnrichment(
@@ -1369,6 +1369,8 @@ enrichment <- createEnrichment(
         "logFC", # limma
         "effect", # ALDEx2
         "logFC", # MAST
+        "direction", # ANCOM
+        "lfc_HMP_BODY_SUBSITESupragingival Plaque", # ANCOMBC2
         "log2FoldChange", # linda
         "coef", # Maaslin2
         # "importance", # mixMC
@@ -1376,7 +1378,9 @@ enrichment <- createEnrichment(
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
-    threshold_pvalue = 0.1,
+    threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1,
+        0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1447,6 +1451,8 @@ positives <- createPositives(
         "logFC", # limma
         "effect", # ALDEx2
         "logFC", # MAST
+        "direction", # ANCOM
+        "lfc_HMP_BODY_SUBSITESupragingival Plaque", # ANCOMBC2
         "log2FoldChange", # linda
         "coef", # Maaslin2
         # "importance", # mixMC
@@ -1454,7 +1460,9 @@ positives <- createPositives(
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
-    threshold_pvalue = 0.1,
+    threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1,
+        0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
     threshold_logfc = 0,
     top = seq.int(from = 0, to = 30, by = 3),
     alternative = "greater",
@@ -1486,10 +1494,9 @@ enrichment_nodir <- createEnrichment(
     slot = "pValMat", 
     colName = "adjP", 
     type = "pvalue",
-    threshold_pvalue = c(
-        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # thresholds for methods
-        # 0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
-        0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
+    threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+        0.4, # ANCOM 
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1503,7 +1510,7 @@ To summarize enrichment analysis for all the methods simultaneously, the `plotEn
 plotEnrichment(enrichment = enrichment_nodir, enrichmentCol = "Type")
 ```
 
-The highest amount of DA features belongs to the *Anaerobic* metabolism, followed by *F_Anaerobic*, and *Aerobic*. The method that finds more DA features is `DESeq2.poscounts`, while `ANCOM` is the most conservative (even if the threshold value based on $1-\frac{W}{ntaxa-1}$ is set at liberal value of 0.4.
+The highest amount of DA features belongs to the *Anaerobic* metabolism, followed by *F_Anaerobic*, and *Aerobic*. The method that finds more DA features is `DESeq2.poscounts`, while `ANCOM` and `ALDEx2` are the most conservative (even if the threshold value based on $1-\frac{W}{ntaxa-1}$ is set at liberal value of 0.4).
 
 As for enrichment analysis with DA direction, the `plotMutualFindings()` function can be used here too (Figure \@ref(fig:plotMutualFindingsnodir)). While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
 
