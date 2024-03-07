@@ -155,6 +155,17 @@ DA_ANCOM <- function(object, assay_name = "counts", pseudo_count = FALSE,
     }
     statInfo <- as.data.frame(res[["res"]])
     colnames(statInfo) <- names(res[["res"]])
+    if(!BC){
+        q_val = res[["q_data"]]
+        beta_val = res[["beta_data"]]
+        # consider the effect sizes with q-value less than alpha
+        beta_val = beta_val * (q_val < alpha) 
+        # Choose the maximum of beta's as the effect size
+        beta_pos = apply(abs(beta_val), 2, which.max) 
+        beta_max = vapply(seq_along(beta_pos), function(i) 
+            beta_val[beta_pos[i], i], FUN.VALUE = double(1))
+        statInfo[, "direction"] <- beta_max
+    }
     if(BC){
         pValMat <- statInfo[, paste0(c("p_","q_"), contrast[1], contrast[2])]
     } else {
