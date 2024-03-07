@@ -41,15 +41,15 @@ test_that("DA methods produce pValMat and statInfo", code = {
         coef = "groupgrp2", norm = "CSS", model = "fitFeatureModel", 
         verbose = FALSE)
     expectations(da, name = "metagenomeSeq.CSS.fitFeatureModel")
-    # da <- DA_metagenomeSeq(object = ps, design = ~ 1 + group, 
-    #     coef = "groupgrp2", norm = "CSS", model = "fitZig", 
-    #     verbose = FALSE)
-    # expectations(da, name = "metagenomeSeq.CSS.fitZig")
-    # # DA_corncob (temporarily removed from CRAN)
-    # da <- DA_corncob(ps, formula = ~ 1 + group, formula_null = ~ 1,
-    #                  phi.formula = ~ 1 + group, phi.formula_null = ~ 1 + group,
-    #                  test = "Wald", coefficient = "groupgrp2")
-    # expectations(da, name = "corncob.Wald")
+    da <- DA_metagenomeSeq(object = ps, design = ~ 1 + group,
+        coef = "groupgrp2", norm = "CSS", model = "fitZig",
+        verbose = FALSE)
+    expectations(da, name = "metagenomeSeq.CSS.fitZig")
+    # DA_corncob (temporarily removed from CRAN)
+    da <- DA_corncob(ps, formula = ~ 1 + group, formula_null = ~ 1,
+                     phi.formula = ~ 1 + group, phi.formula_null = ~ 1 + group,
+                     test = "Wald", coefficient = "groupgrp2")
+    expectations(da, name = "corncob.Wald")
     # DA_ALDEx2
     da <- DA_ALDEx2(ps, design = "group", mc.samples = 128, test = "t", 
         paired.test = FALSE, denom = "iqlr", 
