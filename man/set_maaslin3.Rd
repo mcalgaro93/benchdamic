@@ -7,14 +7,11 @@
 set_maaslin3(
   assay_name = "counts",
   normalization = c("TSS", "CLR", "NONE"),
-  transform = c("LOG", "NONE"),
+  transform = c("LOG", "PLOG", "NONE"),
   median_comparison_abundance = c(TRUE, FALSE),
-  subtract_median = c(TRUE, FALSE),
   correction = "BH",
-  random_effects = NULL,
-  fixed_effects = NULL,
+  formula = NULL,
   contrast = NULL,
-  reference = NULL,
   expand = TRUE
 )
 }
@@ -40,28 +37,23 @@ used if the input object is a phyloseq.}
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
 
-\item{subtract_median}{Subtract the median from the coefficients.}
-
 \item{correction}{The correction to obtain FDR-corrected q-values from
     raw
     p-values. Any valid options for \code{p.adjust} can be used.}
 
-\item{random_effects}{A vector of variable names to be included as
-    random
-    intercepts.}
-
-\item{fixed_effects}{A vector of variable names to be included as fixed
-    effects.}
+\item{formula}{A formula in \code{lme4} format. Random effects,
+    interactions, and functions of the metadata can be included (note that
+    these functions will be applied after standardization if
+    \code{standardize=TRUE}). Group, ordered, and strata variables can be
+    specified as: \code{group(grouping_variable)},
+    \code{ordered(ordered_variable)} and \code{strata(strata_variable)}. The
+    other variable options below will not be considered if a formula is
+    set.}
 
 \item{contrast}{character vector with exactly, three elements: a string 
 indicating the name of factor whose levels are the conditions to be 
 compared, the name of the level of interest, and the name of the other 
 level.}
-
-\item{reference}{For a variable with more than two levels supplied with
-    \code{fixed_effects}, the factor to use as a reference provided as a
-    string
-    of 'variable,reference' semi-colon delimited for multiple variables.}
 
 \item{expand}{logical, if TRUE create all combinations of input parameters
 (default \code{expand = TRUE}).}
@@ -73,18 +65,30 @@ method.
 \description{
 Set the parameters for maaslin3 differential abundance detection method.
 }
+\details{
+Some maaslin3 parameters are not available for customization in this 
+implementation. For this reason they assume default values or are internally
+assigned. The latter case is represented by:
+\itemize{
+\item \code{warn_prevalence} which is internally set to \code{FALSE};
+\item \code{subtract_median} which is internally set to the same 
+\code{median_comparison_abundance} value;
+\item \code{zero_threshold} which is automatically set to -1 when 
+\code{transform = "PLOG"};
+\item \code{evaluate_only} is automatically set to \code{"abundance"} when
+\code{transform = "PLOG"}.
+}
+Please refer to maaslin3's guide to choose proper parameter combinations.
+}
 \examples{
 # Set some basic combinations of parameters for maaslin3
 base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
-    median_comparison_abundance = TRUE, subtract_median = TRUE,
-    fixed_effects = "group",
+    median_comparison_abundance = TRUE, formula = ~ group,
     contrast = c("group", "B", "A"))
 many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR", "NONE"), 
     transform = c("LOG", "NONE"),
     median_comparison_abundance = c(TRUE, FALSE),
-    subtract_median = c(TRUE, FALSE),
-    fixed_effects = "group",
-    contrast = c("group", "B", "A"))
+    formula = ~ group, contrast = c("group", "B", "A"))
 }
 \seealso{
 \code{\link{DA_maaslin3}}
