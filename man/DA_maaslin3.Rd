@@ -7,16 +7,12 @@
 DA_maaslin3(
   object,
   assay_name = "counts",
-  normalization = c("TSS", "CLR", "NONE"),
-  transform = c("LOG", "NONE"),
-  median_comparison_abundance = c(TRUE, FALSE),
-  subtract_median = c(TRUE, FALSE),
-  correction = "BH",
-  random_effects = NULL,
-  fixed_effects = NULL,
-  small_random_effects = FALSE,
+  formula = NULL,
   contrast = NULL,
-  reference = NULL,
+  normalization = c("TSS", "CLR", "NONE"),
+  transform = c("LOG", "PLOG", "NONE"),
+  median_comparison_abundance = TRUE,
+  correction = "BH",
   verbose = TRUE
 )
 }
@@ -26,6 +22,20 @@ DA_maaslin3(
 \item{assay_name}{the name of the assay to extract from the 
 TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
 used if the input object is a phyloseq.}
+
+\item{formula}{A formula in \code{lme4} format. Random effects,
+    interactions, and functions of the metadata can be included (note that
+    these functions will be applied after standardization if
+    \code{standardize=TRUE}). Group, ordered, and strata variables can be
+    specified as: \code{group(grouping_variable)},
+    \code{ordered(ordered_variable)} and \code{strata(strata_variable)}. The
+    other variable options below will not be considered if a formula is
+    set.}
+
+\item{contrast}{character vector with exactly, three elements: a string 
+indicating the name of factor whose levels are the conditions to be 
+compared, the name of the level of interest, and the name of the other 
+level.}
 
 \item{normalization}{The normalization to apply to the features before
     transformation and analysis. The option \code{TSS} (total sum scaling)
@@ -44,44 +54,41 @@ used if the input object is a phyloseq.}
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
 
-\item{subtract_median}{Subtract the median from the coefficients.}
-
 \item{correction}{The correction to obtain FDR-corrected q-values from
     raw
     p-values. Any valid options for \code{p.adjust} can be used.}
-
-\item{random_effects}{A vector of variable names to be included as
-    random
-    intercepts.}
-
-\item{fixed_effects}{A vector of variable names to be included as fixed
-    effects.}
-
-\item{small_random_effects}{Automatically replace random effects with 
-    fixed effects in the logistic prevalence model to handle low numbers
-    of observations per group.}
-
-\item{contrast}{character vector with exactly, three elements: a string 
-indicating the name of factor whose levels are the conditions to be 
-compared, the name of the level of interest, and the name of the other 
-level.}
-
-\item{reference}{For a variable with more than two levels supplied with
-    \code{fixed_effects}, the factor to use as a reference provided as a
-    string
-    of 'variable,reference' semi-colon delimited for multiple variables.}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
-A list object containing the matrix of p-values `pValMat`,
-a matrix of summary statistics for each tag `statInfo`, and a suggested 
-`name` of the final object considering the parameters passed to the 
-function.
+A list object containing the matrix of abundance models related 
+p-values \code{pValMat}, prevalence models related p-values 
+\code{pValMat_prev}, joint abundance and prevalence models p-values 
+\code{pValMat_joint}, a matrix of summary statistics for each tag based on 
+abundance models \code{statInfo} or prevalence models \code{statInfo_prev}, 
+and a suggested \code{name} of the final object considering the parameters 
+passed to the function. 
+In case of \code{transform = "PLOG"} only \code{pValMat}, \code{statInfo}, 
+and \code{name} are returned.
 }
 \description{
 Fast run for maaslin3 differential abundance detection method.
+}
+\details{
+Some maaslin3 parameters are not available for customization in this 
+implementation. For this reason they assume default values or are internally
+assigned. The latter case is represented by:
+\itemize{
+\item \code{warn_prevalence} which is internally set to \code{FALSE};
+\item \code{subtract_median} which is internally set to the same 
+\code{median_comparison_abundance} value;
+\item \code{zero_threshold} which is automatically set to -1 when 
+\code{transform = "PLOG"};
+\item \code{evaluate_only} is automatically set to \code{"abundance"} when
+\code{transform = "PLOG"}.
+}
+Please refer to maaslin3's guide to choose proper parameter combinations.
 }
 \examples{
 set.seed(1)
@@ -92,9 +99,8 @@ metadata <- data.frame("Sample" = c("S1", "S2", "S3", "S4", "S5", "S6"),
 ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
                          phyloseq::sample_data(metadata))
 # Differential abundance
-DA_Maaslin2(object = ps, normalization = "CLR", transform = "NONE",
-    analysis_method = "LM", correction = "BH", random_effects = NULL,
-    fixed_effects = "group", contrast = c("group", "B", "A"),
+DA_maaslin3(object = ps, formula = "~ group", normalization = "CLR", 
+    transform = "NONE", correction = "BH", contrast = c("group", "B", "A"), 
     verbose = FALSE)
 }
 \seealso{

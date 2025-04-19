@@ -87,10 +87,9 @@ test_that("DA methods produce pValMat and statInfo", code = {
     expectations(da, name = "Maaslin2.TSSnorm.LOGtrans.LM")
     # DA_maaslin3
     da <- DA_maaslin3(object = ps, normalization = "TSS", transform = "LOG",
-        median_comparison_abundance = TRUE,
-        subtract_median = TRUE, fixed_effects = "group", contrast = c("group", 
-        "grp2", "grp1"), verbose = FALSE)
-    expectations(da, name = "maaslin3.TSSnorm.LOGtrans.medCompareTRUE")
+        median_comparison_abundance = TRUE, formula = ~ group, 
+        contrast = c("group", "grp2", "grp1"), verbose = FALSE)
+    expectations(da, name = "maaslin3.TSSnorm.LOGtrans.medCompare")
     # DA_mixMC
     da <- DA_mixMC(object = ps, contrast = c("group", "grp2", "grp1"),
         verbose = FALSE)
