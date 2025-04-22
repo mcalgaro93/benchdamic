@@ -18,9 +18,9 @@ test_that("mixMC with multilevel produce pValMat and statInfo", code = {
         expect_true(grepl("name",names(da)[length(names(da))]))
         expect_equal(name, da[["name"]])
     }
-    # # DA_mixMC
-    # da <- DA_mixMC(object = ps, contrast = c("HMP_BODY_SUBSITE", 
-    #     "Supragingival Plaque", "Subgingival Plaque"), ID_variable = "RSID",
-    #     verbose = FALSE)
-    # expectations(da, name = "mixMC.pc1")
+    # DA_mixMC
+    da <- DA_mixMC(object = ps, contrast = c("HMP_BODY_SUBSITE",
+        "Supragingival Plaque", "Subgingival Plaque"), ID_variable = "RSID",
+        verbose = FALSE)
+    expectations(da, name = "mixMC.pc1")
 })
