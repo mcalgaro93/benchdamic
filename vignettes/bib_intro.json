@@ -1242,6 +1242,74 @@
 		}
 	},
 	{
+		"id": "maaslin3",
+		"type": "article",
+		"abstract": "Abstract\n          A key question in microbial community analysis is determining which microbial features are associated with community properties such as environmental or health phenotypes. This statistical task is impeded by characteristics of typical microbial community profiling technologies, including sparsity (which can be either technical or biological) and the compositionality imposed by most nucleotide sequencing approaches. Many models have been proposed that focus on how the relative abundance of a feature (e.g. taxon or pathway) relates to one or more covariates. Few of these, however, simultaneously control false discovery rates, achieve reasonable power, incorporate complex modeling terms such as random effects, and also permit assessment of prevalence (presence/absence) associations and absolute abundance associations (when appropriate measurements are available, e.g. qPCR or spike-ins). Here, we introduce MaAsLin 3 (Microbiome Multivariable Associations with Linear Models), a modeling framework that simultaneously identifies both abundance and prevalence relationships in microbiome studies with modern, potentially complex designs. MaAsLin 3 also newly accounts for compositionality with experimental (spike-ins and total microbial load estimation) or computational techniques, and it expands the space of biological hypotheses that can be tested with inference for new covariate types. On a variety of synthetic and real datasets, MaAsLin 3 outperformed current state-of-the-art differential abundance methods in testing and inferring associations from compositional data. When applied to the Inflammatory Bowel Disease Multi-omics Database, MaAsLin 3 corroborated many previously reported microbial associations with the inflammatory bowel diseases, but notably 77% of associations were with feature prevalence rather than abundance. In summary, MaAsLin 3 enables researchers to identify microbiome associations with higher accuracy and more specific association types, especially in complex datasets with multiple covariates and repeated measures.",
+		"DOI": "10.1101/2024.12.13.628459",
+		"language": "en",
+		"license": "http://creativecommons.org/licenses/by/4.0/",
+		"source": "Microbiology",
+		"title": "MaAsLin 3: Refining and extending generalized multivariable linear models for meta-omic association discovery",
+		"title-short": "MaAsLin 3",
+		"URL": "http://biorxiv.org/lookup/doi/10.1101/2024.12.13.628459",
+		"author": [
+			{
+				"family": "Nickols",
+				"given": "William A."
+			},
+			{
+				"family": "Kuntz",
+				"given": "Thomas"
+			},
+			{
+				"family": "Shen",
+				"given": "Jiaxian"
+			},
+			{
+				"family": "Maharjan",
+				"given": "Sagun"
+			},
+			{
+				"family": "Mallick",
+				"given": "Himel"
+			},
+			{
+				"family": "Franzosa",
+				"given": "Eric A."
+			},
+			{
+				"family": "Thompson",
+				"given": "Kelsey N."
+			},
+			{
+				"family": "Nearing",
+				"given": "Jacob T."
+			},
+			{
+				"family": "Huttenhower",
+				"given": "Curtis"
+			}
+		],
+		"accessed": {
+			"date-parts": [
+				[
+					"2024",
+					12,
+					20
+				]
+			]
+		},
+		"issued": {
+			"date-parts": [
+				[
+					"2024",
+					12,
+					14
+				]
+			]
+		}
+	},
+	{
 		"id": "mixMC",
 		"type": "article-journal",
 		"abstract": "Culture independent techniques, such as shotgun metagenomics and 16S rRNA amplicon sequencing have dramatically changed the way we can examine microbial communities. Recently, changes in microbial community structure and dynamics have been associated with a growing list of human diseases. The identification and comparison of bacteria driving those changes requires the development of sound statistical tools, especially if microbial biomarkers are to be used in a clinical setting. We present mixMC, a novel multivariate data analysis framework for metagenomic biomarker discovery. mixMC accounts for the compositional nature of 16S data and enables detection of subtle differences when high inter-subject variability is present due to microbial sampling performed repeatedly on the same subjects, but in multiple habitats. Through data dimension reduction the multivariate methods provide insightful graphical visualisations to characterise each type of environment in a detailed manner. We applied mixMC to 16S microbiome studies focusing on multiple body sites in healthy individuals, compared our results with existing statistical tools and illustrated added value of using multivariate methodologies to fully characterise and compare microbial communities.",
