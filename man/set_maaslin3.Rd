@@ -9,6 +9,8 @@ set_maaslin3(
   normalization = c("TSS", "CLR", "NONE"),
   transform = c("LOG", "PLOG", "NONE"),
   median_comparison_abundance = c(TRUE, FALSE),
+  stat_type = c("abundance", "prevalence"),
+  pvalue_type = c("abundance", "prevalence", "joint"),
   correction = "BH",
   formula = NULL,
   contrast = NULL,
@@ -36,6 +38,15 @@ used if the input object is a phyloseq.}
     null value corresponding to the median coefficient for a metadata
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
+
+\item{stat_type}{Whether to return statistics based on abundance 
+("abundance") or prevalence ("prevalence") models.}
+
+\item{pvalue_type}{Whether to return p-values based on abundance 
+("abundance") models, prevalence ("prevalence") models, or joint 
+("joint") p-values. Choose "abundance" or "joint" when \code{stat_type} is
+set to "abundance", choose "prevalence" when \code{stat_type} is set to
+"prevalence".}
 
 \item{correction}{The correction to obtain FDR-corrected q-values from
     raw
@@ -78,16 +89,29 @@ assigned. The latter case is represented by:
 \item \code{evaluate_only} is automatically set to \code{"abundance"} when
 \code{transform = "PLOG"}.
 }
+
+MaAsLin 3 produces both abundance and prevalence associations with 
+individual p and adjusted p-values (specific to abundance or prevalence) as 
+well as joint p and adjusted p-values for testing whether a metadatum is 
+associated with either the abundance or prevalence. To avoid issues with 
+having twice as many associations as other tools (from both abundance and 
+prevalence), \code{stat_type} can be set to report the desired abundance or 
+prevalence associations. When the abundance and prevalence associations are 
+expected to go in the same direction, \code{pvalue_type = "joint"} allows to
+return p-values and adjusted p-values taken from the joint p-values and 
+adjusted p-values. 
 Please refer to maaslin3's guide to choose proper parameter combinations.
 }
 \examples{
 # Set some basic combinations of parameters for maaslin3
 base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
-    median_comparison_abundance = TRUE, formula = ~ group,
+    median_comparison_abundance = TRUE, stat_type = "abundance",
+    pvalue_type = "abundance", formula = ~ group,
     contrast = c("group", "B", "A"))
-many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR", "NONE"), 
+many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"), 
     transform = c("LOG", "NONE"),
     median_comparison_abundance = c(TRUE, FALSE),
+    stat_type = "abundance", pvalue_type = c("abundance", "joint"),
     formula = ~ group, contrast = c("group", "B", "A"))
 }
 \seealso{

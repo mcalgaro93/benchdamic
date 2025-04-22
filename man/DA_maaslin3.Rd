@@ -12,6 +12,8 @@ DA_maaslin3(
   normalization = c("TSS", "CLR", "NONE"),
   transform = c("LOG", "PLOG", "NONE"),
   median_comparison_abundance = TRUE,
+  stat_type = c("abundance", "prevalence"),
+  pvalue_type = c("abundance", "prevalence", "joint"),
   correction = "BH",
   verbose = TRUE
 )
@@ -54,6 +56,15 @@ level.}
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
 
+\item{stat_type}{Whether to return statistics based on abundance 
+("abundance") or prevalence ("prevalence") models.}
+
+\item{pvalue_type}{Whether to return p-values based on abundance 
+("abundance") models, prevalence ("prevalence") models, or joint 
+("joint") p-values. Choose "abundance" or "joint" when \code{stat_type} is
+set to "abundance", choose "prevalence" when \code{stat_type} is set to
+"prevalence".}
+
 \item{correction}{The correction to obtain FDR-corrected q-values from
     raw
     p-values. Any valid options for \code{p.adjust} can be used.}
@@ -62,15 +73,10 @@ level.}
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
 }
 \value{
-A list object containing the matrix of abundance models related 
-p-values \code{pValMat}, prevalence models related p-values 
-\code{pValMat_prev}, joint abundance and prevalence models p-values 
-\code{pValMat_joint}, a matrix of summary statistics for each tag based on 
-abundance models \code{statInfo} or prevalence models \code{statInfo_prev}, 
-and a suggested \code{name} of the final object considering the parameters 
-passed to the function. 
-In case of \code{transform = "PLOG"} only \code{pValMat}, \code{statInfo}, 
-and \code{name} are returned.
+A list object containing the matrix of p-values `pValMat`,
+a matrix of summary statistics for each tag `statInfo`, and a suggested 
+`name` of the final object considering the parameters passed to the 
+function.
 }
 \description{
 Fast run for maaslin3 differential abundance detection method.
@@ -88,6 +94,17 @@ assigned. The latter case is represented by:
 \item \code{evaluate_only} is automatically set to \code{"abundance"} when
 \code{transform = "PLOG"}.
 }
+
+MaAsLin 3 produces both abundance and prevalence associations with 
+individual p and adjusted p-values (specific to abundance or prevalence) as 
+well as joint p and adjusted p-values for testing whether a metadatum is 
+associated with either the abundance or prevalence. To avoid issues with 
+having twice as many associations as other tools (from both abundance and 
+prevalence), \code{stat_type} can be set to report the desired abundance or 
+prevalence associations. When the abundance and prevalence associations are 
+expected to go in the same direction, \code{pvalue_type = "joint"} allows to
+return p-values and adjusted p-values taken from the joint p-values and 
+adjusted p-values. 
 Please refer to maaslin3's guide to choose proper parameter combinations.
 }
 \examples{
@@ -101,7 +118,7 @@ ps <- phyloseq::phyloseq(phyloseq::otu_table(counts, taxa_are_rows = TRUE),
 # Differential abundance
 DA_maaslin3(object = ps, formula = "~ group", normalization = "CLR", 
     transform = "NONE", correction = "BH", contrast = c("group", "B", "A"), 
-    verbose = FALSE)
+    verbose = FALSE, stat_type = "abundance", pvalue_type = "joint")
 }
 \seealso{
 \code{\link[maaslin3]{maaslin3}}.
