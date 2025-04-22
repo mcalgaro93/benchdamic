@@ -88,8 +88,9 @@ test_that("DA methods produce pValMat and statInfo", code = {
     # DA_maaslin3
     da <- DA_maaslin3(object = ps, normalization = "TSS", transform = "LOG",
         median_comparison_abundance = TRUE, formula = ~ group, 
+        stat_type = "abundance", pvalue_type = "joint",
         contrast = c("group", "grp2", "grp1"), verbose = FALSE)
-    expectations(da, name = "maaslin3.TSSnorm.LOGtrans.medCompare")
+    expectations(da, name = "maaslin3.TSSnorm.LOGtrans.med.abS.jointP")
     # DA_mixMC
     da <- DA_mixMC(object = ps, contrast = c("group", "grp2", "grp1"),
         verbose = FALSE)

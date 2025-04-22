@@ -1014,12 +1014,11 @@ my_maaslin3 <- set_maaslin3(
         "Supragingival Plaque", "Subgingival Plaque"),
     expand = TRUE)
 
-# Temporarily removed due to issues with ID_variables
-# my_mixMC <- set_mixMC(
-#     pseudo_count = 1,
-#     ID_variable = "RSID",
-#     contrast = c("HMP_BODY_SUBSITE",
-#     "Supragingival Plaque", "Subgingival Plaque"))
+my_mixMC <- set_mixMC(
+    pseudo_count = 1,
+    ID_variable = "RSID",
+    contrast = c("HMP_BODY_SUBSITE",
+    "Supragingival Plaque", "Subgingival Plaque"))
 
 my_ZicoSeq <- set_ZicoSeq(
     contrast = c("HMP_BODY_SUBSITE",
@@ -1042,7 +1041,7 @@ my_methods_noWeights <- c(
     my_linda,
     my_Maaslin2,
     my_maaslin3,
-    # my_mixMC, # Temporary bug with multilevel
+    my_mixMC,
     my_ZicoSeq)
 ```
 
@@ -1081,7 +1080,7 @@ The structure of the output in this example is the following:
 
     -   *Comparison1* to *Comparison2* output lists on the second level:
 
-        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` with and without bias correction, `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `maaslin3` with *TSS* normalization, *LOG* transformation, and *median_comparison_abundance*, `mixMC` (temporarily removed), and `ZicoSeq` with default parameters. Their outputs are organized as always:
+        -   *Methods*' results on the third level: `edgeR` with *TMM* scaling factors, `DESeq2` with *poscounts* normalization factors, `limma-voom` with *TMM* scaling factors (all the 3 previous methods have the Subject identifier in the design formula), `ALDEx2` with paired *wilcox* test and denom equals to *all*, `MAST` with *median* scaling and the subject identifier in the design formula, `dearseq` for repeated measures with *asymptotic* test, `ANCOM` with and without bias correction, `linDA` with winsorization and pseudo-count addition, `Maaslin2` with *TSS* normalization, *LOG* transformation and *LM* analysis method, `maaslin3` with *TSS* normalization, *LOG* transformation, and *median_comparison_abundance*, `mixMC`, and `ZicoSeq` with default parameters. Their outputs are organized as always:
 
             -   *pValMat* which contains the matrix of raw p-values and adjusted p-values in *rawP* and *adjP* columns respectively;
 
@@ -1185,8 +1184,8 @@ cat("Maaslin2", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$Maaslin2.TSSnorm.LOGtrans.LM$statInfo)
 cat("maaslin3", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$maaslin3.TSSnorm.LOGtrans.med.abS.jointP$statInfo)
-# cat("mixMC", "\n")
-# names(Plaque_16S_splitsDA_all$Subset1$Comparison1$mixMC.pc1$statInfo)
+cat("mixMC", "\n")
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$mixMC.pc1$statInfo)
 cat("ZicoSeq", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$ZicoSeq.winsor0.03top.ref0.5.excl0.2$statInfo)
 cat("basic.wilcox.paired", "\n")
@@ -1203,12 +1202,12 @@ concordance_alternative <- createConcordance(
         "effect", "logFC", "rawP", "W", 
         "lfc_HMP_BODY_SUBSITESupragingival Plaque", 
         "log2FoldChange", "coef", "coef",
-        # "importance", # mixMC
+        "importance", 
         "effect", "logFC"),
     type = c("logfc", "logfc", "logfc", "logfc", 
         "logfc", "pvalue", "logfc",
         "logfc", "logfc", "logfc", "logfc",
-        #"logfc", # mixMC
+        "logfc", 
         "logfc", "logfc")
 )
 ```
@@ -1400,14 +1399,15 @@ enrichment <- createEnrichment(
         "log2FoldChange", # linda
         "coef", # Maaslin2
         "coef", # maaslin3
-        # "importance", # mixMC
+        "importance", # mixMC
         "effect", # ZicoSeq
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
     threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1,
         0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
-        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
+        0.1, 0.1, 0.1, 0.1, 0.1, 
+        0.1, 0.1, 0.1, 0.1), # other methods
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1483,14 +1483,15 @@ positives <- createPositives(
         "log2FoldChange", # linda
         "coef", # Maaslin2
         "coef", # maaslin3
-        # "importance", # mixMC
+        "importance", # mixMC
         "effect", # ZicoSeq
         "logFC", # edgeR with weights
         "log2FoldChange", # DESeq2 with weights
         "logFC"), # limma with weights
     threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1,
         0.4, # ANCOM threshold on 1-W/(ntaxa-1) 0.4 = liberal
-        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1), # other methods
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, # other methods
+        0.1), 
     threshold_logfc = 0,
     top = seq.int(from = 0, to = 30, by = 3),
     alternative = "greater",
@@ -1524,7 +1525,7 @@ enrichment_nodir <- createEnrichment(
     type = "pvalue",
     threshold_pvalue = c(0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
         0.4, # ANCOM 
-        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
+        0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
     threshold_logfc = 0,
     top = NULL,
     alternative = "greater",
@@ -1542,7 +1543,7 @@ The highest amount of DA features belongs to the *Anaerobic* metabolism, followe
 
 As for enrichment analysis with DA direction, the `plotMutualFindings()` function can be used here too (Figure \@ref(fig:plotMutualFindingsnodir)). While *levels_to_plot* argument allows to choose which levels of the enrichment variable to plot, *n_methods* argument allows to extract only features which are mutually found as DA by more than 1 method.
 
-```{r plotMutualFindingsnodir, fig.width=5, fig.height=6, fig.cap="Mutual Findings plot. Number of differentially abundant features mutually found by 1 or more methods, separated by aerobic and anaerobic metabolism."}
+```{r plotMutualFindingsnodir, fig.width=5.5, fig.height=6.5, fig.cap="Mutual Findings plot. Number of differentially abundant features mutually found by 1 or more methods, separated by aerobic and anaerobic metabolism."}
 plotMutualFindings(enrichment_nodir, enrichmentCol = "Type", 
     levels_to_plot = c("Aerobic", "Anaerobic"), n_methods = 1)
 ```
