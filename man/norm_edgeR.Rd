@@ -53,7 +53,7 @@ is added to the \code{sample_data} slot of the phyloseq object or the
 }
 \description{
 Calculate normalization factors from a phyloseq or TreeSummarizedExperiment
-object. Inherited from edgeR \code{\link{calcNormFactors}} function.
+object. Inherited from edgeR \code{\link[edgeR]{calcNormFactors}} function.
 }
 \examples{
 set.seed(1)

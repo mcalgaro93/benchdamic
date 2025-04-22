@@ -17,7 +17,7 @@ have a higher number of computed statistics).}
 }
 \value{
 A 2 elements list of \code{ggplot2} class objects:
-\itemize{
+\describe{
     \item{\code{concordanceDendrogram}}{ which contains the
     vertically directioned dendrogram for the methods involved in the
     concordance analysis;}

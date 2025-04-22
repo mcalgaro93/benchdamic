@@ -29,7 +29,7 @@ column.
 }
 \description{
 Fit a truncated gaussian hurdle model for each taxon of the count data. The
-hurdle model estimation procedure is performed by MAST \code{\link{zlm}}
+hurdle model estimation procedure is performed by MAST \code{\link[MAST]{zlm}}
 function without assuming the presence of any group in the samples (design
 matrix equal to a column of ones.)
 }

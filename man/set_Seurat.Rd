@@ -23,7 +23,7 @@ used if the input object is a phyloseq.}
 \code{pseudo_count = FALSE}).}
 
 \item{test}{Denotes which test to use. Available options are:
-\itemize{\item{\code{"wilcox"}}{ Identifies differentially abundant 
+\describe{\item{\code{"wilcox"}}{ Identifies differentially abundant 
 features between two groups of samples using a Wilcoxon Rank Sum test 
 (default).}
 \item{\code{"bimod"}}{ Likelihood-ratio test for the feature abundances, 
@@ -61,7 +61,7 @@ factor in the design formula, the name of the numerator level for the fold
 change, and the name of the denominator level for the fold change.}
 
 \item{norm}{Method for normalization. 
-\itemize{\item{\code{LogNormalize}}{ Feature counts for each sample are 
+\describe{\item{\code{LogNormalize}}{ Feature counts for each sample are 
 divided by the total counts of that sample and multiplied by the 
 scale.factor. This is then natural-log transformed using log1p;}
 \item{\code{CLR}}{ Applies a centered log ratio transformation;}

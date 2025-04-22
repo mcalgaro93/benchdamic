@@ -24,7 +24,7 @@ and the estimated probability to observe a zero in the `Y0` column.
 }
 \description{
 Fit a Negative Binomial (NB) distribution for each taxon of the count data.
-The NB estimation procedure is performed by edgeR \code{\link{glmFit}}
+The NB estimation procedure is performed by edgeR \code{\link[edgeR]{glmFit}}
 function, using \code{TMM} normalized counts, tag-wise dispersion estimation,
 and not assuming the presence of any group in the samples (design matrix
 equal to a column of ones).

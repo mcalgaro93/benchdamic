@@ -7,7 +7,7 @@
 #' @export
 #' @description
 #' Calculate normalization factors from a phyloseq or TreeSummarizedExperiment
-#' object. Inherited from edgeR \code{\link{calcNormFactors}} function.
+#' object. Inherited from edgeR \code{\link[edgeR]{calcNormFactors}} function.
 #'
 #' @inheritParams get_counts_metadata
 #' @param method normalization method to be used. Choose between \code{TMM},

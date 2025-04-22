@@ -259,7 +259,7 @@ extractStatistics <- function(object, slot = "pValMat", colName = "rawP",
 #' (default \code{verbose = FALSE}).
 #'
 #' @return A \code{data.frame} with several columns:
-#' \itemize{
+#' \describe{
 #'     \item{\code{stat}}{ which contains the p-values or the absolute log fold
 #'     change values;}
 #'     \item{\code{direction}}{ which is present if \code{method} was a
@@ -400,7 +400,7 @@ getDA <- function(method, slot = "pValMat", colName = "rawP", type = "pvalue",
 #' (default \code{verbose = FALSE}).
 #'
 #' @return A \code{data.frame} with several columns for each method:
-#' \itemize{
+#' \describe{
 #'     \item{\code{stat}}{ which contains the p-values or the absolute log fold
 #'     change values;}
 #'     \item{\code{direction}}{ which is present if \code{direction} was
@@ -712,7 +712,7 @@ iterative_ordering <- function(df, var_names, i = 1, decreasing = TRUE) {
 #' samples (default \code{min_samples = 0}).
 #'
 #' @return a \code{list} of results:
-#' \itemize{
+#' \describe{
 #'     \item{\code{counts}}{the \code{otu_table} slot or \code{assayName} assay 
 #'     of the phyloseq or TreeSummarizedExperiment object;}
 #'     \item{\code{metadata}}{the \code{sample_data} or \code{colData} slot of

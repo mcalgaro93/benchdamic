@@ -76,7 +76,7 @@ abundant (default \code{top = NULL}).}
 }
 \value{
 a list of objects for each method. Each list contains:
-\itemize{
+\describe{
     \item{\code{data}}{ a \code{data.frame} object with DA directions,
     statistics, and feature names;}
     \item{\code{tables}}{ a list of 2x2 contingency tables;}

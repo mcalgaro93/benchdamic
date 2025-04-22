@@ -6,7 +6,7 @@
 #' @export
 #' @description
 #' Fit a Negative Binomial (NB) distribution for each taxon of the count data.
-#' The NB estimation procedure is performed by edgeR \code{\link{glmFit}}
+#' The NB estimation procedure is performed by edgeR \code{\link[edgeR]{glmFit}}
 #' function, using \code{TMM} normalized counts, tag-wise dispersion estimation,
 #' and not assuming the presence of any group in the samples (design matrix
 #' equal to a column of ones).
@@ -70,7 +70,7 @@ fitNB <- function(object, assay_name = "counts", verbose = TRUE) {
 #' @description
 #' Fit a Zero-Inflated Negative Binomial (ZINB) distribution for each taxon of
 #' the countdata. The ZINB estimation procedure is performed by zinbwave
-#' \code{\link{zinbFit}} function with \code{commondispersion = FALSE},
+#' \code{\link[zinbwave]{zinbFit}} function with \code{commondispersion = FALSE},
 #' regularization parameter \code{epsilon = 1e10}, and not assuming the presence
 #' of any group in the samples (design matrix equal to a column of ones.)
 #'
@@ -121,7 +121,7 @@ fitZINB <- function(object, assay_name = "counts", verbose = TRUE) {
 #' @export
 #' @description
 #' Fit a truncated gaussian hurdle model for each taxon of the count data. The
-#' hurdle model estimation procedure is performed by MAST \code{\link{zlm}}
+#' hurdle model estimation procedure is performed by MAST \code{\link[MAST]{zlm}}
 #' function without assuming the presence of any group in the samples (design
 #' matrix equal to a column of ones.)
 #'
@@ -210,8 +210,8 @@ fitHURDLE <- function(object, assay_name = "counts", scale = "default",
 #' @description
 #' Fit a Zero-Inflated Gaussian (ZIG) distribution for each taxon of the count
 #' data. The model estimation procedure is performed by metagenomeSeq
-#' \code{\link{fitZig}} function without assuming the presence of any group in
-#' the samples (design matrix equal to a column of ones.)
+#' \code{\link[metagenomeSeq]{fitZig}} function without assuming the presence of 
+#' any group in the samples (design matrix equal to a column of ones.)
 #'
 #' @inheritParams fitNB
 #'
@@ -276,7 +276,7 @@ fitZIG <- function(object, assay_name = "counts", verbose = TRUE) {
 #' @description
 #' Fit a Dirichlet-Multinomial (DM) distribution for each taxon of the count
 #' data. The model estimation procedure is performed by MGLM
-#' \code{\link{MGLMreg}} function without assuming the presence of any group in
+#' \code{\link[MGLM]{MGLMreg}} function without assuming the presence of any group in
 #' the samples (design matrix equal to a column of ones.)
 #' @inheritParams fitNB
 #'

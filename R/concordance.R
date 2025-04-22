@@ -351,7 +351,7 @@ runSplits <- function(split_list, method_list, normalization_list, object,
 #' @inheritParams extractStatistics
 #'
 #' @return A long format \code{data.frame} object with several columns:
-#' \itemize{
+#' \describe{
 #'     \item{\code{comparison}}{ which indicates the comparison number;}
 #'     \item{\code{n_features}}{ which indicates the total number of taxa in
 #'     the comparison dataset;}
@@ -529,7 +529,7 @@ CAT <- function (vec1, vec2, maxrank = min(length(vec1), length(vec2)))
 #' @param plotIt Plot the concordance (default \code{plotIt = FALSE}).
 #'
 #' @return A long format \code{data.frame} object with several columns:
-#' \itemize{
+#' \describe{
 #'     \item{\code{comparison}}{ which indicates the comparison number;}
 #'     \item{\code{n_features }}{ which indicates the total number of taxa in
 #'     the comparison dataset;}

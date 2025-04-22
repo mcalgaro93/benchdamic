@@ -103,7 +103,7 @@ addKnowledge <- function(method, priorKnowledge, enrichmentCol, namesCol = NULL)
 #' @inheritParams stats::fisher.test
 #'
 #' @return a list of objects:
-#' \itemize{
+#' \describe{
 #'     \item{\code{data}}{ a \code{data.frame} object with DA directions,
 #'     statistics, and feature names;}
 #'     \item{\code{tables}}{ a list of 2x2 contingency tables;}
@@ -212,7 +212,7 @@ enrichmentTest <- function(method, enrichmentCol, alternative = "greater"){
 #' @inheritParams enrichmentTest
 #'
 #' @return a list of objects for each method. Each list contains:
-#' \itemize{
+#' \describe{
 #'     \item{\code{data}}{ a \code{data.frame} object with DA directions,
 #'     statistics, and feature names;}
 #'     \item{\code{tables}}{ a list of 2x2 contingency tables;}

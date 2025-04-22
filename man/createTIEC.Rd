@@ -13,7 +13,7 @@ p-values, and method's name (See vignette for detailed information).}
 }
 \value{
 A \code{list} of \code{data.frame}s:
-\itemize{
+\describe{
     \item{\code{df_pval}}{ 5 columns per number_of_features x methods x
     comparisons rows data.frame. The four columns are called Comparison,
     Method, variable (containing the feature names), pval, and padj;}

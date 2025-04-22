@@ -26,8 +26,8 @@ column.
 \description{
 Fit a Zero-Inflated Gaussian (ZIG) distribution for each taxon of the count
 data. The model estimation procedure is performed by metagenomeSeq
-\code{\link{fitZig}} function without assuming the presence of any group in
-the samples (design matrix equal to a column of ones.)
+\code{\link[metagenomeSeq]{fitZig}} function without assuming the presence of 
+any group in the samples (design matrix equal to a column of ones.)
 }
 \examples{
 # Generate some random counts
