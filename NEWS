@@ -1,3 +1,24 @@
+Changes in Version 1.14.1 (2025-04-22)
+=====================================
+
+* Porting the changes of devel version 1.15.1 to release
+
+Changes in Version 1.15.1 (2025-04-22)
+=====================================
+
+* New method: maaslin3
+* Re-added mixMC
+
+Changes in Version 1.15.0 (2025-04-15)
+=====================================
+
+* Bump x.y.z version to odd y following creation of RELEASE_3_21 branch
+
+Changes in Version 1.14.0 (2025-04-15)
+=====================================
+
+* Published in Bioconductor release 3.21
+
 Changes in Version 1.12.1 (2024-11-20)
 =====================================
 
