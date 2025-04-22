@@ -21,7 +21,7 @@ analysis.}
 }
 \value{
 a list of objects:
-\itemize{
+\describe{
     \item{\code{data}}{ a \code{data.frame} object with DA directions,
     statistics, and feature names;}
     \item{\code{tables}}{ a list of 2x2 contingency tables;}

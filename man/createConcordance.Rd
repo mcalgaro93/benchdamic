@@ -26,7 +26,7 @@ method. Two values are possible: \code{"pvalue"} or \code{"logfc"}
 }
 \value{
 A long format \code{data.frame} object with several columns:
-\itemize{
+\describe{
     \item{\code{comparison}}{ which indicates the comparison number;}
     \item{\code{n_features}}{ which indicates the total number of taxa in
     the comparison dataset;}

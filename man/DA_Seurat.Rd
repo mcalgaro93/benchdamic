@@ -26,7 +26,7 @@ used if the input object is a phyloseq.}
 \code{pseudo_count = FALSE}).}
 
 \item{norm}{Method for normalization. 
-\itemize{\item{\code{LogNormalize}}{ Feature counts for each sample are 
+\describe{\item{\code{LogNormalize}}{ Feature counts for each sample are 
 divided by the total counts of that sample and multiplied by the 
 scale.factor. This is then natural-log transformed using log1p;}
 \item{\code{CLR}}{ Applies a centered log ratio transformation;}
@@ -39,7 +39,7 @@ scale.factor. No log-transformation is applied. For counts per million
 \item{scale.factor}{Sets the scale factor for cell-level normalization}
 
 \item{test}{Denotes which test to use. Available options are:
-\itemize{\item{\code{"wilcox"}}{ Identifies differentially abundant 
+\describe{\item{\code{"wilcox"}}{ Identifies differentially abundant 
 features between two groups of samples using a Wilcoxon Rank Sum test 
 (default).}
 \item{\code{"bimod"}}{ Likelihood-ratio test for the feature abundances, 

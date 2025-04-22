@@ -26,7 +26,7 @@ column.
 \description{
 Fit a Zero-Inflated Negative Binomial (ZINB) distribution for each taxon of
 the countdata. The ZINB estimation procedure is performed by zinbwave
-\code{\link{zinbFit}} function with \code{commondispersion = FALSE},
+\code{\link[zinbwave]{zinbFit}} function with \code{commondispersion = FALSE},
 regularization parameter \code{epsilon = 1e10}, and not assuming the presence
 of any group in the samples (design matrix equal to a column of ones.)
 }

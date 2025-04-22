@@ -26,7 +26,7 @@ column.
 \description{
 Fit a Dirichlet-Multinomial (DM) distribution for each taxon of the count
 data. The model estimation procedure is performed by MGLM
-\code{\link{MGLMreg}} function without assuming the presence of any group in
+\code{\link[MGLM]{MGLMreg}} function without assuming the presence of any group in
 the samples (design matrix equal to a column of ones.)
 }
 \examples{

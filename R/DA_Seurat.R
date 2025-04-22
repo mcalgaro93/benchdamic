@@ -13,7 +13,7 @@
 #' @inheritParams Seurat::FindMarkers
 #' @inheritParams Seurat::NormalizeData
 #' @param norm Method for normalization. 
-#' \itemize{\item{\code{LogNormalize}}{ Feature counts for each sample are 
+#' \describe{\item{\code{LogNormalize}}{ Feature counts for each sample are 
 #' divided by the total counts of that sample and multiplied by the 
 #' scale.factor. This is then natural-log transformed using log1p;}
 #' \item{\code{CLR}}{ Applies a centered log ratio transformation;}
@@ -23,7 +23,7 @@
 #' (CPM) set scale.factor = 1e6;}
 #' \item{\code{none}}{ No normalization}}
 #' @param test Denotes which test to use. Available options are:
-#' \itemize{\item{\code{"wilcox"}}{ Identifies differentially abundant 
+#' \describe{\item{\code{"wilcox"}}{ Identifies differentially abundant 
 #' features between two groups of samples using a Wilcoxon Rank Sum test 
 #' (default).}
 #' \item{\code{"bimod"}}{ Likelihood-ratio test for the feature abundances, 

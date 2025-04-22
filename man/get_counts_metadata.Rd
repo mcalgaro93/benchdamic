@@ -28,7 +28,7 @@ samples (default \code{min_samples = 0}).}
 }
 \value{
 a \code{list} of results:
-\itemize{
+\describe{
     \item{\code{counts}}{the \code{otu_table} slot or \code{assayName} assay 
     of the phyloseq or TreeSummarizedExperiment object;}
     \item{\code{metadata}}{the \code{sample_data} or \code{colData} slot of

@@ -58,7 +58,7 @@ abundant (default \code{top = NULL}).}
 }
 \value{
 A \code{data.frame} with several columns for each method:
-\itemize{
+\describe{
     \item{\code{stat}}{ which contains the p-values or the absolute log fold
     change values;}
     \item{\code{direction}}{ which is present if \code{direction} was

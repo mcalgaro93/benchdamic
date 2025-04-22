@@ -381,7 +381,7 @@ plotLogP <- function(df_pval = NULL, df_QQ = NULL, cols = NULL) {
         # Add density
         ggridges::geom_density_ridges(aes(vline_color = stat(quantile)), 
             alpha = 0.2, scale = 0.9, na.rm = TRUE, quantile_lines = TRUE, 
-            quantiles = c(0.9, 0.95, 0.99), vline_size = 1, from = 0, 
+            quantiles = c(0.9, 0.95, 0.99), vline_width = 1, from = 0, 
             bandwidth = 0.1,
             position = ggridges::position_raincloud(adjust_vlines = TRUE)) +
         geom_vline(xintercept = -log10(c(0.1, 0.05, 0.01)), lty = 2) +
