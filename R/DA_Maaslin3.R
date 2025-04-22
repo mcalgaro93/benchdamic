@@ -13,6 +13,13 @@
 #' compared, the name of the level of interest, and the name of the other 
 #' level. 
 #' @inheritParams maaslin3::maaslin3
+#' @param stat_type Whether to return statistics based on abundance 
+#' ("abundance") or prevalence ("prevalence") models.
+#' @param pvalue_type Whether to return p-values based on abundance 
+#' ("abundance") models, prevalence ("prevalence") models, or joint 
+#' ("joint") p-values. Choose "abundance" or "joint" when \code{stat_type} is
+#' set to "abundance", choose "prevalence" when \code{stat_type} is set to
+#' "prevalence".
 #' 
 #' @details
 #' Some maaslin3 parameters are not available for customization in this 
@@ -27,17 +34,23 @@
 #' \item \code{evaluate_only} is automatically set to \code{"abundance"} when
 #' \code{transform = "PLOG"}.
 #' }
+#' 
+#' MaAsLin 3 produces both abundance and prevalence associations with 
+#' individual p and adjusted p-values (specific to abundance or prevalence) as 
+#' well as joint p and adjusted p-values for testing whether a metadatum is 
+#' associated with either the abundance or prevalence. To avoid issues with 
+#' having twice as many associations as other tools (from both abundance and 
+#' prevalence), \code{stat_type} can be set to report the desired abundance or 
+#' prevalence associations. When the abundance and prevalence associations are 
+#' expected to go in the same direction, \code{pvalue_type = "joint"} allows to
+#' return p-values and adjusted p-values taken from the joint p-values and 
+#' adjusted p-values. 
 #' Please refer to maaslin3's guide to choose proper parameter combinations.
 #' 
-#' @return A list object containing the matrix of abundance models related 
-#' p-values \code{pValMat}, prevalence models related p-values 
-#' \code{pValMat_prev}, joint abundance and prevalence models p-values 
-#' \code{pValMat_joint}, a matrix of summary statistics for each tag based on 
-#' abundance models \code{statInfo} or prevalence models \code{statInfo_prev}, 
-#' and a suggested \code{name} of the final object considering the parameters 
-#' passed to the function. 
-#' In case of \code{transform = "PLOG"} only \code{pValMat}, \code{statInfo}, 
-#' and \code{name} are returned.
+#' @return A list object containing the matrix of p-values `pValMat`,
+#' a matrix of summary statistics for each tag `statInfo`, and a suggested 
+#' `name` of the final object considering the parameters passed to the 
+#' function.
 #'
 #' @seealso \code{\link[maaslin3]{maaslin3}}.
 #'
@@ -52,13 +65,15 @@
 #' # Differential abundance
 #' DA_maaslin3(object = ps, formula = "~ group", normalization = "CLR", 
 #'     transform = "NONE", correction = "BH", contrast = c("group", "B", "A"), 
-#'     verbose = FALSE)
+#'     verbose = FALSE, stat_type = "abundance", pvalue_type = "joint")
 
 DA_maaslin3 <- function(object, assay_name = "counts", 
     formula = NULL, contrast = NULL,
     normalization = c("TSS", "CLR", "NONE"), 
     transform = c("LOG", "PLOG", "NONE"), 
     median_comparison_abundance = TRUE,
+    stat_type = c("abundance", "prevalence"),
+    pvalue_type = c("abundance", "prevalence", "joint"),
     correction = "BH", 
     verbose = TRUE){
     counts_and_metadata <- get_counts_metadata(object, assay_name = assay_name)
@@ -94,19 +109,55 @@ DA_maaslin3 <- function(object, assay_name = "counts",
              "transform: please choose one transfomation between 'LOG',",
              " 'PLOG', or 'NONE'.")
     }
+    # Check stat_type
+    if(length(stat_type) > 1)
+        stop(method, "\n", 
+             "stat_type: please choose one stat_type for this istance",
+             " of differential abundance analysis.")
+    if(sum(!is.element(stat_type, c("abundance", "prevalence"))) > 0){
+        stop(method, "\n", 
+             "stat_type: please choose one stat_type between 'abundance',",
+             " or 'prevalence'.")
+    }
+    # Check pvalue_type
+    if(length(pvalue_type) > 1)
+        stop(method, "\n", 
+             "pvalue_type: please choose one pvalue_type for this istance",
+             " of differential abundance analysis.")
+    if(sum(!is.element(pvalue_type, 
+        c("abundance", "prevalence", "joint"))) > 0){
+        stop(method, "\n", 
+             "pvalue_type: please choose one pvalue_type between 'abundance',",
+             " 'prevalence', or 'joint'.")
+    }
+    if(stat_type == "abundance" & pvalue_type == "prevalence"){
+        stop(method, "\n", 
+             "pvalue_type: please choose one pvalue_type between 'abundance',",
+             " or 'joint'.")
+    }
+    if(stat_type == "prevalence" & pvalue_type != "prevalence"){
+        stop(method, "\n", 
+             "pvalue_type: please choose 'prevalence' pvalue_type.")
+    }
     # PLOG: automatically sets zero_threshold and abundance models only
     zero_threshold <- 0
     evaluate_only <- NULL
     if(transform == "PLOG"){
         zero_threshold <- -1
         evaluate_only <- "abundance"
+        # Check compatibility between PLOG and stat_type, pvalue_type
+        if(is.element("prevalence", c(stat_type, pvalue_type))){
+            stop(method, "\n", 
+                 "if transform is 'PLOG', stat_type and pvalue_type must be",
+                 " 'abundance'.")
+        }
     }
     # Check compatibility between normalization and transform
     if(normalization == 'CLR' & transform != 'NONE')
         stop(method, "\n", 
              "if normalization is CLR, transform must be NONE.")
     name <- paste(name, ".", normalization, "norm.", transform, "trans", 
-        ifelse(median_comparison_abundance, ".medCompare", ""), sep = "")
+        ifelse(median_comparison_abundance, ".med", ""), sep = "")
     if(!is.character(contrast) | length(contrast) != 3)
         stop(method, "\n", 
              "contrast: please supply a character vector with exactly", 
@@ -159,13 +210,13 @@ DA_maaslin3 <- function(object, assay_name = "counts",
             verbosity = "WARN"))
     }
     # Results for abundance
-    results <- as.data.frame(res[['fit_data_abundance']][["results"]])
-    statInfo <- results[results[, "metadata"] == contrast[1] &
-        results[, "value"] == contrast[2], ]
-    ord <- match(rownames(counts), statInfo[, "feature"])
-    statInfo <- statInfo[ord, ]
-    pValMat <- statInfo[, c("pval_individual", "qval_individual")] 
-    colnames(pValMat) <- c("rawP", "adjP")
+    results_ab <- as.data.frame(res[['fit_data_abundance']][["results"]])
+    statInfo_ab <- results_ab[results_ab[, "metadata"] == contrast[1] &
+        results_ab[, "value"] == contrast[2], ]
+    ord <- match(rownames(counts), statInfo_ab[, "feature"])
+    statInfo_ab <- statInfo_ab[ord, ]
+    pValMat_ab <- statInfo_ab[, c("pval_individual", "qval_individual")] 
+    colnames(pValMat_ab) <- c("rawP", "adjP")
     # When transform = "PLOG" only abundance models are fit
     if(transform != "PLOG"){
         # Results for prevalence
@@ -180,19 +231,44 @@ DA_maaslin3 <- function(object, assay_name = "counts",
         # Abundance and Prevalence joint results
         pValMat_joint <- statInfo_prev[, c("pval_joint", "qval_joint")]
         colnames(pValMat_joint) <- c("rawP", "adjP")
-        rownames(statInfo) <- rownames(statInfo_prev) <- 
-            statInfo[, "feature"] <- statInfo_prev[, "feature"] <- 
-            rownames(pValMat) <- rownames(pValMat_prev) <- 
+        rownames(statInfo_ab) <- rownames(statInfo_prev) <- 
+            statInfo_ab[, "feature"] <- statInfo_prev[, "feature"] <- 
+            rownames(pValMat_ab) <- rownames(pValMat_prev) <- 
             rownames(pValMat_joint) <- rownames(counts)
-        return(list("pValMat" = pValMat, "statInfo" = statInfo, 
-            "pValMat_prev" = pValMat_prev, "statInfo_prev" = statInfo_prev,
-            "pValMat_joint" = pValMat_joint, "name" = name))
-    } else {
-        rownames(statInfo) <- statInfo[, "feature"] <- rownames(pValMat) <- 
-            rownames(counts)
+        # Build name
+        # pvalue_type name
+        if(pvalue_type == "abundance"){
+            pValMat <- pValMat_ab
+            name_p <- "ab"
+        } else if(pvalue_type == "prevalence"){
+            pValMat <- pValMat_prev
+            name_p <- "prev"
+        } else {
+            pValMat <- pValMat_joint
+            name_p <- "joint"
+        }
+        # stat_type name
+        if(stat_type == "abundance"){
+            statInfo <- statInfo_ab
+            name_stat <- "ab"
+        } else {
+            statInfo <- statInfo_prev
+            name_stat <- "prev"
+        }
+        # Check if stat_type and pvalue_type are the same
+        if(name_p != name_stat){
+            name <- paste(name, ".", name_stat, "S.", name_p, "P", sep = "")
+        } else {
+            name <- paste(name, ".", name_stat, "SP", sep = "")
+        }
         return(list("pValMat" = pValMat, "statInfo" = statInfo, "name" = name))
+    } else {
+        rownames(statInfo_ab) <- statInfo_ab[, "feature"] <- 
+            rownames(pValMat_ab) <- rownames(counts)
+        name <- paste(name, ".", "abSP", sep = "")
+        return(list("pValMat" = pValMat_ab, "statInfo" = statInfo_ab, 
+            "name" = name))
     }
-    
 }# END - function: DA_maaslin3
 
 #' @title set_maaslin3
@@ -215,16 +291,20 @@ DA_maaslin3 <- function(object, assay_name = "counts",
 #' @examples
 #' # Set some basic combinations of parameters for maaslin3
 #' base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
-#'     median_comparison_abundance = TRUE, formula = ~ group,
+#'     median_comparison_abundance = TRUE, stat_type = "abundance",
+#'     pvalue_type = "abundance", formula = ~ group,
 #'     contrast = c("group", "B", "A"))
-#' many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR", "NONE"), 
+#' many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"), 
 #'     transform = c("LOG", "NONE"),
 #'     median_comparison_abundance = c(TRUE, FALSE),
+#'     stat_type = "abundance", pvalue_type = c("abundance", "joint"),
 #'     formula = ~ group, contrast = c("group", "B", "A"))
 set_maaslin3 <- function(assay_name = "counts",
     normalization = c("TSS", "CLR", "NONE"), 
     transform = c("LOG", "PLOG", "NONE"), 
     median_comparison_abundance = c(TRUE, FALSE),
+    stat_type = c("abundance", "prevalence"),
+    pvalue_type = c("abundance", "prevalence", "joint"),
     correction = "BH", formula = NULL, contrast = NULL,
     expand = TRUE) {
     
@@ -256,25 +336,39 @@ set_maaslin3 <- function(assay_name = "counts",
              "transform: please choose transformations between",
              " 'LOG', 'PLOG', or 'NONE'.")
     }
-    
+    if(sum(!is.element(stat_type, c("abundance", "prevalence"))) > 0) {
+        stop(method, "\n", 
+             "stat_type: please choose stat_type between",
+             " 'abundance' or 'prevalence'.")
+    }
+    if(sum(!is.element(pvalue_type, c("abundance", "prevalence", "joint"))) > 0) {
+        stop(method, "\n", 
+             "pvalue_type: please choose pvalue_type between",
+             " 'abundance', 'prevalence', or 'joint'.")
+    }
     # Create a grid of parameter combinations.
     if (expand) {
         parameters <- expand.grid(method = method, assay_name = assay_name,
             normalization = normalization, transform = transform,
             median_comparison_abundance = median_comparison_abundance,
-            correction = correction,
-            stringsAsFactors = FALSE)
+            stat_type = stat_type, pvalue_type = pvalue_type,
+            correction = correction, stringsAsFactors = FALSE)
     } else {
         message("Some parameters may be duplicated to fill the matrix.")
         parameters <- data.frame(method = method, assay_name = assay_name,
             normalization = normalization, transform = transform,
             median_comparison_abundance = median_comparison_abundance,
+            stat_type = stat_type, pvalue_type = pvalue_type,
             correction = correction, stringsAsFactors = FALSE)
     }
     
     # Remove senseless combinations:
-    wrong_index <- which(parameters[, "normalization"] == "CLR" & 
-                         parameters[, "transform"] != "NONE")
+    wrong_index <- c(which(parameters[, "normalization"] == "CLR" & 
+                         parameters[, "transform"] != "NONE"),
+                     which(parameters[, "stat_type"] == "abundance" &
+                           parameters[, "pvalue_type"] == "prevalence"),
+                     which(parameters[, "stat_type"] == "prevalence" &
+                           parameters[, "pvalue_type"] != "prevalence"))
     if(length(wrong_index) > 0){
         message("Removing incompatible sets.")
         parameters <- parameters[-wrong_index, ]
@@ -285,7 +379,7 @@ set_maaslin3 <- function(assay_name = "counts",
     out <- lapply(X = out, FUN = function(x){
         # Append additional parameters not included in the expansion grid.
         x <- append(x = x, values = list("formula" = formula, 
-            "contrast" = contrast), after = 6)
+            "contrast" = contrast), after = 8)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)
