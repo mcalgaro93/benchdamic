@@ -1,3 +1,13 @@
+Changes in Version 1.14.2 (2025-04-24)
+=====================================
+
+* Porting the changes of devel version 1.15.2 to release
+
+Changes in Version 1.15.2 (2025-04-24)
+=====================================
+
+* Bug-fix: add 'microbiome' among Imports due to an error in some systems
+
 Changes in Version 1.14.1 (2025-04-22)
 =====================================
 
