@@ -25,34 +25,24 @@ DA_linda(
 TreeSummarizedExperiment object (default \code{assayName = "counts"}). Not 
 used if the input object is a phyloseq.}
 
-\item{formula}{a character string for the formula. The formula should conform to that used by \code{lm} (independent 
-data) or \code{lmer} (correlated data).
- For example: \code{formula = '~x1*x2+x3+(1|id)'}. At least one fixed effect is required.}
+\item{formula}{Character. For example: formula = '~x1*x2+x3+(1|id)'. At least one fixed effect is required.}
 
 \item{contrast}{character vector with exactly, three elements: a string 
 indicating the name of factor whose levels are the conditions to be 
 compared, the name of the level of interest, and the name of the other 
 level.}
 
-\item{is.winsor}{a logical value indicating whether winsorization should be performed to replace outliers (high values).
- The default is TRUE.}
+\item{is.winsor}{Boolean. If TRUE (default), the Winsorization process will be conducted for the OTU table.}
 
-\item{outlier.pct}{the expected percentage of outliers. These outliers will be winsorized. The default is 0.03.}
+\item{outlier.pct}{A real value between 0 and 1; Winsorization cutoff (percentile) for the OTU table, e.g., 0.03. Default is NULL. If NULL, Winsorization process will not be conducted.}
 
-\item{zero.handling}{a character string of 'pseudo-count' or 'imputation' indicating the zero handling method
-used when \code{feature.dat} is 'count'.  If 'pseudo-count', a\code{pseudo.cnt} will be added to each value in \code{feature.dat}. 
-If 'imputation', then we use the imputation approach using the formula in the referenced paper. Basically,
-zeros are imputed with values proportional to the sequencing depth. When \code{feature.dat} is 'proportion',
-this parameter will be ignored and zeros will be imputed by half of the minimum for each feature.}
+\item{zero.handling}{Character. Specifies the method to handle zeros in the OTU table. Options are "pseudo-count" or "imputation" (default is "pseudo-count"). If "imputation", zeros in the OTU table will be imputed using the formula in the referenced paper. If "pseudo-count", a small constant (pseudo.cnt) will be added to each value in the OTU table.}
 
-\item{pseudo.cnt}{a positive numeric value for the pseudo-count to be added if \code{zero.handling}
-is 'pseudo-count'. Default is 0.5. }
+\item{pseudo.cnt}{A positive real value. Default is 0.5. If zero.handling is set to "pseudo-count", this constant will be added to each value in the OTU table.}
 
-\item{alpha}{a numerical value between 0 and 1 indicating the significance level 
-for declaring differential features. Default is 0.05.}
+\item{alpha}{A real value between 0 and 1; significance level of differential abundance. Default is 0.05.}
 
-\item{p.adj.method}{a character string indicating the p-value adjustment approach for 
-addressing multiple testing. See R function \code{p.adjust}. Default is 'BH'.}
+\item{p.adj.method}{Character; p-value adjusting approach. See R function p.adjust. Default is 'BH'.}
 
 \item{verbose}{an optional logical value. If \code{TRUE}, information about
 the steps of the algorithm is printed. Default \code{verbose = TRUE}.}
