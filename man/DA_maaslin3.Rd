@@ -86,7 +86,7 @@ Some maaslin3 parameters are not available for customization in this
 implementation. For this reason they assume default values or are internally
 assigned. The latter case is represented by:
 \itemize{
-\item \code{warn_prevalence} which is internally set to \code{FALSE};
+\item \code{warn_prevalence} which is internally set to \code{TRUE};
 \item \code{subtract_median} which is internally set to the same 
 \code{median_comparison_abundance} value;
 \item \code{zero_threshold} which is automatically set to -1 when 

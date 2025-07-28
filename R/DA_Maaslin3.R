@@ -26,7 +26,7 @@
 #' implementation. For this reason they assume default values or are internally
 #' assigned. The latter case is represented by:
 #' \itemize{
-#' \item \code{warn_prevalence} which is internally set to \code{FALSE};
+#' \item \code{warn_prevalence} which is internally set to \code{TRUE};
 #' \item \code{subtract_median} which is internally set to the same 
 #' \code{median_comparison_abundance} value;
 #' \item \code{zero_threshold} which is automatically set to -1 when 
@@ -190,7 +190,7 @@ DA_maaslin3 <- function(object, assay_name = "counts",
             transform = transform, standardize = TRUE, 
             median_comparison_abundance = median_comparison_abundance,
             subtract_median = median_comparison_abundance,
-            warn_prevalence = FALSE, zero_threshold = zero_threshold,
+            warn_prevalence = TRUE, zero_threshold = zero_threshold,
             evaluate_only = evaluate_only, max_significance = 0,
             formula = formula, correction = correction, 
             plot_summary_plot = FALSE, plot_associations = FALSE,
@@ -202,7 +202,7 @@ DA_maaslin3 <- function(object, assay_name = "counts",
             transform = transform, standardize = TRUE, 
             median_comparison_abundance = median_comparison_abundance,
             subtract_median = median_comparison_abundance,
-            warn_prevalence = FALSE, evaluate_only = evaluate_only,
+            warn_prevalence = TRUE, evaluate_only = evaluate_only,
             zero_threshold = zero_threshold,
             max_significance = 0,
             formula = formula, correction = correction, 
