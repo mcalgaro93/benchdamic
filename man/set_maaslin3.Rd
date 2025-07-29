@@ -9,6 +9,7 @@ set_maaslin3(
   normalization = c("TSS", "CLR", "NONE"),
   transform = c("LOG", "PLOG", "NONE"),
   median_comparison_abundance = c(TRUE, FALSE),
+  small_random_effects = c(TRUE, FALSE),
   stat_type = c("abundance", "prevalence"),
   pvalue_type = c("abundance", "prevalence", "joint"),
   correction = "BH",
@@ -38,6 +39,10 @@ used if the input object is a phyloseq.}
     null value corresponding to the median coefficient for a metadata
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
+
+\item{small_random_effects}{Automatically replace random effects with 
+    fixed effects in the logistic prevalence model to handle low numbers
+    of observations per group.}
 
 \item{stat_type}{Whether to return statistics based on abundance 
 ("abundance") or prevalence ("prevalence") models.}
@@ -108,11 +113,12 @@ base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
     median_comparison_abundance = TRUE, stat_type = "abundance",
     pvalue_type = "abundance", formula = ~ group,
     contrast = c("group", "B", "A"))
-many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"), 
+many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"),
     transform = c("LOG", "NONE"),
     median_comparison_abundance = c(TRUE, FALSE),
+    small_random_effects = c(TRUE, FALSE),
     stat_type = "abundance", pvalue_type = c("abundance", "joint"),
-    formula = ~ group, contrast = c("group", "B", "A"))
+    formula = ~ group + (1|CIAO), contrast = c("group", "B", "A"))
 }
 \seealso{
 \code{\link{DA_maaslin3}}

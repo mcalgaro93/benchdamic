@@ -2,6 +2,7 @@
 #'
 #' @importFrom maaslin3 maaslin3
 #' @importFrom SummarizedExperiment assays
+#' @importFrom lme4 findbars
 #' @importFrom phyloseq otu_table sample_data phyloseq taxa_are_rows
 #' @export
 #' @description
@@ -26,7 +27,8 @@
 #' implementation. For this reason they assume default values or are internally
 #' assigned. The latter case is represented by:
 #' \itemize{
-#' \item \code{warn_prevalence} which is internally set to \code{TRUE};
+#' \item \code{warn_prevalence} which is internally set to \code{TRUE} when 
+#' \code{normalization = "TSS"} and \code{transform = "LOG"};
 #' \item \code{subtract_median} which is internally set to the same 
 #' \code{median_comparison_abundance} value;
 #' \item \code{zero_threshold} which is automatically set to -1 when 
@@ -72,6 +74,7 @@ DA_maaslin3 <- function(object, assay_name = "counts",
     normalization = c("TSS", "CLR", "NONE"), 
     transform = c("LOG", "PLOG", "NONE"), 
     median_comparison_abundance = TRUE,
+    small_random_effects = FALSE,
     stat_type = c("abundance", "prevalence"),
     pvalue_type = c("abundance", "prevalence", "joint"),
     correction = "BH", 
@@ -139,6 +142,21 @@ DA_maaslin3 <- function(object, assay_name = "counts",
         stop(method, "\n", 
              "pvalue_type: please choose 'prevalence' pvalue_type.")
     }
+    if(small_random_effects){
+        if(is.null(lme4::findbars(formula))){
+            stop(method, "\n", 
+                 "small_random_effects: no random effects in formula.")
+        } else {
+            if(pvalue_type == "abundance"){
+                stop(method, "\n", 
+                     "small_random_effects: meaningless when pvalue_type = ",
+                     "'abundance'. Please set it to FALSE.")
+            }
+        }
+    }
+    # Set warn_prevalence = TRUE when TSS and LOG transformation
+    warn_prevalence <- ifelse(normalization == "TSS" & transform == "LOG",
+                              TRUE, FALSE)
     # PLOG: automatically sets zero_threshold and abundance models only
     zero_threshold <- 0
     evaluate_only <- NULL
@@ -157,7 +175,8 @@ DA_maaslin3 <- function(object, assay_name = "counts",
         stop(method, "\n", 
              "if normalization is CLR, transform must be NONE.")
     name <- paste(name, ".", normalization, "norm.", transform, "trans", 
-        ifelse(median_comparison_abundance, ".med", ""), sep = "")
+        ifelse(median_comparison_abundance, ".med", ""),
+        ifelse(small_random_effects, ".sre", ""), sep = "")
     if(!is.character(contrast) | length(contrast) != 3)
         stop(method, "\n", 
              "contrast: please supply a character vector with exactly", 
@@ -190,7 +209,9 @@ DA_maaslin3 <- function(object, assay_name = "counts",
             transform = transform, standardize = TRUE, 
             median_comparison_abundance = median_comparison_abundance,
             subtract_median = median_comparison_abundance,
-            warn_prevalence = TRUE, zero_threshold = zero_threshold,
+            warn_prevalence = warn_prevalence, 
+            small_random_effects = small_random_effects,
+            zero_threshold = zero_threshold,
             evaluate_only = evaluate_only, max_significance = 0,
             formula = formula, correction = correction, 
             plot_summary_plot = FALSE, plot_associations = FALSE,
@@ -202,7 +223,9 @@ DA_maaslin3 <- function(object, assay_name = "counts",
             transform = transform, standardize = TRUE, 
             median_comparison_abundance = median_comparison_abundance,
             subtract_median = median_comparison_abundance,
-            warn_prevalence = TRUE, evaluate_only = evaluate_only,
+            warn_prevalence = warn_prevalence, 
+            small_random_effects = small_random_effects,
+            evaluate_only = evaluate_only,
             zero_threshold = zero_threshold,
             max_significance = 0,
             formula = formula, correction = correction, 
@@ -294,15 +317,17 @@ DA_maaslin3 <- function(object, assay_name = "counts",
 #'     median_comparison_abundance = TRUE, stat_type = "abundance",
 #'     pvalue_type = "abundance", formula = ~ group,
 #'     contrast = c("group", "B", "A"))
-#' many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"), 
+#' many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"),
 #'     transform = c("LOG", "NONE"),
 #'     median_comparison_abundance = c(TRUE, FALSE),
+#'     small_random_effects = FALSE,
 #'     stat_type = "abundance", pvalue_type = c("abundance", "joint"),
 #'     formula = ~ group, contrast = c("group", "B", "A"))
 set_maaslin3 <- function(assay_name = "counts",
     normalization = c("TSS", "CLR", "NONE"), 
     transform = c("LOG", "PLOG", "NONE"), 
     median_comparison_abundance = c(TRUE, FALSE),
+    small_random_effects = c(TRUE, FALSE),
     stat_type = c("abundance", "prevalence"),
     pvalue_type = c("abundance", "prevalence", "joint"),
     correction = "BH", formula = NULL, contrast = NULL,
@@ -351,6 +376,7 @@ set_maaslin3 <- function(assay_name = "counts",
         parameters <- expand.grid(method = method, assay_name = assay_name,
             normalization = normalization, transform = transform,
             median_comparison_abundance = median_comparison_abundance,
+            small_random_effects = small_random_effects, 
             stat_type = stat_type, pvalue_type = pvalue_type,
             correction = correction, stringsAsFactors = FALSE)
     } else {
@@ -358,6 +384,7 @@ set_maaslin3 <- function(assay_name = "counts",
         parameters <- data.frame(method = method, assay_name = assay_name,
             normalization = normalization, transform = transform,
             median_comparison_abundance = median_comparison_abundance,
+            small_random_effects = small_random_effects,
             stat_type = stat_type, pvalue_type = pvalue_type,
             correction = correction, stringsAsFactors = FALSE)
     }
@@ -368,7 +395,11 @@ set_maaslin3 <- function(assay_name = "counts",
                      which(parameters[, "stat_type"] == "abundance" &
                            parameters[, "pvalue_type"] == "prevalence"),
                      which(parameters[, "stat_type"] == "prevalence" &
-                           parameters[, "pvalue_type"] != "prevalence"))
+                           parameters[, "pvalue_type"] != "prevalence"),
+                     which(parameters[, "pvalue_type"] == "abundance" &
+                           parameters[, "small_random_effects"] == TRUE),
+                     which(is.null(lme4::findbars(formula)) & 
+                           parameters[, "small_random_effects"] == TRUE))
     if(length(wrong_index) > 0){
         message("Removing incompatible sets.")
         parameters <- parameters[-wrong_index, ]
@@ -379,7 +410,7 @@ set_maaslin3 <- function(assay_name = "counts",
     out <- lapply(X = out, FUN = function(x){
         # Append additional parameters not included in the expansion grid.
         x <- append(x = x, values = list("formula" = formula, 
-            "contrast" = contrast), after = 8)
+            "contrast" = contrast), after = 9)
     })
     names(out) <- paste0(method, ".", seq_along(out))
     return(out)
