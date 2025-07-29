@@ -111,7 +111,8 @@ Please refer to maaslin3's guide to choose proper parameter combinations.
 \examples{
 # Set some basic combinations of parameters for maaslin3
 base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
-    median_comparison_abundance = TRUE, stat_type = "abundance",
+    median_comparison_abundance = TRUE, 
+    small_random_effects = FALSE, stat_type = "abundance",
     pvalue_type = "abundance", formula = ~ group,
     contrast = c("group", "B", "A"))
 many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"),

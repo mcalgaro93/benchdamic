@@ -1007,6 +1007,7 @@ my_maaslin3 <- set_maaslin3(
     normalization = "TSS",
     transform = "LOG",
     median_comparison_abundance = TRUE,
+    small_random_effects = TRUE,
     stat_type = "abundance", 
     pvalue_type = "joint",
     formula = "~ HMP_BODY_SUBSITE + (1 | RSID)",
@@ -1183,7 +1184,7 @@ names(Plaque_16S_splitsDA_all$Subset1$Comparison1$linda.win0.03.pc0.5$statInfo)
 cat("Maaslin2", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$Maaslin2.TSSnorm.LOGtrans.LM$statInfo)
 cat("maaslin3", "\n")
-names(Plaque_16S_splitsDA_all$Subset1$Comparison1$maaslin3.TSSnorm.LOGtrans.med.abS.jointP$statInfo)
+names(Plaque_16S_splitsDA_all$Subset1$Comparison1$maaslin3.TSSnorm.LOGtrans.med.sre.abS.jointP$statInfo)
 cat("mixMC", "\n")
 names(Plaque_16S_splitsDA_all$Subset1$Comparison1$mixMC.pc1$statInfo)
 cat("ZicoSeq", "\n")
