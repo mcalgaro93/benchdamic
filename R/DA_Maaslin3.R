@@ -143,7 +143,7 @@ DA_maaslin3 <- function(object, assay_name = "counts",
              "pvalue_type: please choose 'prevalence' pvalue_type.")
     }
     if(small_random_effects){
-        if(is.null(lme4::findbars(formula))){
+        if(is.null(as.formula(lme4::findbars(formula)))){
             stop(method, "\n", 
                  "small_random_effects: no random effects in formula.")
         } else {
@@ -388,7 +388,6 @@ set_maaslin3 <- function(assay_name = "counts",
             stat_type = stat_type, pvalue_type = pvalue_type,
             correction = correction, stringsAsFactors = FALSE)
     }
-    
     # Remove senseless combinations:
     wrong_index <- c(which(parameters[, "normalization"] == "CLR" & 
                          parameters[, "transform"] != "NONE"),
@@ -398,7 +397,7 @@ set_maaslin3 <- function(assay_name = "counts",
                            parameters[, "pvalue_type"] != "prevalence"),
                      which(parameters[, "pvalue_type"] == "abundance" &
                            parameters[, "small_random_effects"] == TRUE),
-                     which(is.null(lme4::findbars(formula)) & 
+                     which(is.null(lme4::findbars(as.formula(formula))) & 
                            parameters[, "small_random_effects"] == TRUE))
     if(length(wrong_index) > 0){
         message("Removing incompatible sets.")
