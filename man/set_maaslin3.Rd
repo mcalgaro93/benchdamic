@@ -86,7 +86,8 @@ Some maaslin3 parameters are not available for customization in this
 implementation. For this reason they assume default values or are internally
 assigned. The latter case is represented by:
 \itemize{
-\item \code{warn_prevalence} which is internally set to \code{TRUE};
+\item \code{warn_prevalence} which is internally set to \code{TRUE} when 
+\code{normalization = "TSS"} and \code{transform = "LOG"};
 \item \code{subtract_median} which is internally set to the same 
 \code{median_comparison_abundance} value;
 \item \code{zero_threshold} which is automatically set to -1 when 
@@ -116,9 +117,9 @@ base_maaslin3 <- set_maaslin3(normalization = "TSS", transform = "LOG",
 many_maaslin3 <- set_maaslin3(normalization = c("TSS", "CLR"),
     transform = c("LOG", "NONE"),
     median_comparison_abundance = c(TRUE, FALSE),
-    small_random_effects = c(TRUE, FALSE),
+    small_random_effects = FALSE,
     stat_type = "abundance", pvalue_type = c("abundance", "joint"),
-    formula = ~ group + (1|CIAO), contrast = c("group", "B", "A"))
+    formula = ~ group, contrast = c("group", "B", "A"))
 }
 \seealso{
 \code{\link{DA_maaslin3}}
