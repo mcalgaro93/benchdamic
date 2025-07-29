@@ -1,3 +1,13 @@
+Changes in Version 1.14.3 (2025-07-29)
+=====================================
+
+* Porting the changes of devel version 1.15.3 to release
+
+Changes in Version 1.15.3 (2025-07-29)
+=====================================
+
+* Minor changes related to warn_prevalence and small_random_effects parameters in DA_maaslin3
+
 Changes in Version 1.14.2 (2025-04-24)
 =====================================
 
