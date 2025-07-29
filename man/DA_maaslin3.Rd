@@ -12,6 +12,7 @@ DA_maaslin3(
   normalization = c("TSS", "CLR", "NONE"),
   transform = c("LOG", "PLOG", "NONE"),
   median_comparison_abundance = TRUE,
+  small_random_effects = FALSE,
   stat_type = c("abundance", "prevalence"),
   pvalue_type = c("abundance", "prevalence", "joint"),
   correction = "BH",
@@ -55,6 +56,10 @@ level.}
     null value corresponding to the median coefficient for a metadata
     variable across the features. This is recommended for relative abundance
     data but should not be used for absolute abundance data.}
+
+\item{small_random_effects}{Automatically replace random effects with 
+    fixed effects in the logistic prevalence model to handle low numbers
+    of observations per group.}
 
 \item{stat_type}{Whether to return statistics based on abundance 
 ("abundance") or prevalence ("prevalence") models.}
