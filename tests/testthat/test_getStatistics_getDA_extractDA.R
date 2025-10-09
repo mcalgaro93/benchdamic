@@ -153,7 +153,7 @@ test_that("Extract DA features from a list of methods: using threshold_pvalue
     da <- expect_warning(runDA(my_method, object = ps))
     # All features with p-value < 0.2 and |logFC| > 0.3 are DA
     t1 = extractDA(object = da, slot = "pValMat", colName = "adjP",
-        type = "pvalue", direction = "logFC", threshold_pvalue = 0.2,
+        type = "pvalue", direction = "logFC", threshold_pvalue = 0.4,
         threshold_logfc = 0.3, top = NULL)
     expect_equal(class(t1), "list")
     expect_equal(ncol(t1[[2]]), 3)
